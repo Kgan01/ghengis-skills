@@ -1,6 +1,6 @@
 # Ghengis Skills
 
-A Claude Code plugin that makes Claude smarter, faster, and more autonomous. 36 skills covering multi-agent orchestration, prompt quality validation, agent reliability, session management, project scaffolding, and deep domain expertise across 15+ fields.
+A Claude Code plugin that makes Claude smarter, faster, and more autonomous. 42 skills covering multi-agent orchestration, prompt quality validation, agent reliability, session management, project scaffolding, security testing, code intelligence, and deep domain expertise across 20+ fields.
 
 Skills are lightweight — they load on-demand and don't bloat your context window. Unlike MCP servers that inject tool schemas into every message, skills activate only when relevant, adding zero overhead the rest of the time.
 
@@ -76,7 +76,21 @@ These help Claude learn, remember, and adapt — building intelligence over time
 |-------|-------------|
 | **deep-research** | 7-phase iterative research methodology (Clarify, Draft, Gap Analysis, Targeted Research, Refine, Red Team, Converge). Goes beyond single-pass research with adversarial review, convergence detection, and structured confidence levels. |
 
-### Domain Expertise (15 skills)
+### Operations (2 skills)
+
+| Skill | What It Does |
+|-------|-------------|
+| **output-formatting** | 8 destination formatters (chat, email, Slack, TTS, PDF, CSV, JSON, markdown) plus document ingestion and chunking patterns. Same content, adapted per target audience and channel. |
+| **proactive-rituals** | Morning briefings, end-of-day summaries, weekly reviews, and custom ritual design. Maps directly to Claude's native cron scheduling. Includes priority queues, sensitivity levels, and event-driven triggers. |
+
+### Security & Code Analysis (2 skills)
+
+| Skill | What It Does |
+|-------|-------------|
+| **security-testing** | OWASP Top 10 coverage, CVSS scoring, reconnaissance methodology, secure coding patterns, vulnerability analysis, exploit proof format, and hardening checklists. Defensive security and authorized testing. |
+| **code-intelligence** | 6-layer architectural classification, AST-based analysis patterns, import graph construction, circular dependency detection, structural code search, and a 5-step codebase understanding methodology. |
+
+### Domain Expertise (17 skills)
 
 Expert-level methodology that loads when Claude encounters matching tasks. Each skill contains the actual knowledge — frameworks, formulas, checklists, worked examples — not just generic guidance.
 
@@ -90,6 +104,8 @@ Expert-level methodology that loads when Claude encounters matching tasks. Each 
 | **shopping** | Multi-tier product comparison, evaluation frameworks, per-unit pricing analysis, deal validation |
 | **report-writing** | Executive summary structure, data presentation, audience-appropriate formatting, confidence levels, source citation |
 | **scheduling** | Time blocking, ritual design, priority-based allocation, conflict resolution, calendar optimization |
+| **crm-patterns** | Client lifecycle management, project tracking, communication logging, pipeline management, relationship health scoring, and follow-up automation for freelancers and consultants |
+| **file-organization** | 18 manifest types for file categorization, intelligent placement suggestions, naming conventions, directory structure patterns, duplicate detection, and audit trails for file operations |
 | **mcp-patterns** | MCP server configuration, the meta-tool pattern for context reduction, Context7 two-step lookup, registration anti-patterns |
 | **data-analysis** | Statistical methodology, pandas workflows, correlation vs causation, visualization selection, small sample warnings |
 | **content-writing** | Blog posts, documentation, marketing copy — structure, SEO basics, audience targeting, editorial checklists |
