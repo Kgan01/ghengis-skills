@@ -1,0 +1,14 @@
+{
+  "name": "ghengis-skills",
+  "version": "1.0.0",
+  "description": "Agentic engineering skills and domain expertise for Claude Code",
+  "type": "module",
+  "keywords": [
+    "claude-code",
+    "skills",
+    "agentic",
+    "orchestration",
+    "prompt-quality"
+  ],
+  "license": "MIT"
+}

@@ -1,0 +1,9 @@
+{
+  "marketplace": "ghengis-skills-dev",
+  "plugins": [
+    {
+      "name": "ghengis-skills",
+      "path": ".."
+    }
+  ]
+}
