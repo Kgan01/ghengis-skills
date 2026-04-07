@@ -1,128 +1,124 @@
 # Ghengis Skills
 
-Agentic engineering patterns and domain expertise for Claude Code. 26 skills extracted from the [JARVIS](https://github.com/kgan) personal AI assistant system.
+A Claude Code plugin that makes Claude smarter, faster, and more autonomous. 26 skills covering multi-agent orchestration, prompt quality validation, project scaffolding, and deep domain expertise across 15+ fields.
 
-Install this plugin and every Claude session gets access to multi-agent orchestration, prompt quality validation, project scaffolding, and deep domain expertise across 15+ fields.
+Skills are lightweight — they load on-demand and don't bloat your context window. Unlike MCP servers that inject tool schemas into every message, skills activate only when relevant, adding zero overhead the rest of the time.
 
-## What's Inside
+## Why Use This
+
+- **Better agentic work** — Claude learns how to decompose complex tasks, dispatch specialized subagents, validate output quality, and self-correct through revision loops
+- **Prompt quality enforcement** — 35 anti-pattern checks catch vague, unsafe, or wasteful prompts before they run
+- **Project structure** — Auto-scaffolds any new project with a self-documenting 4-layer structure and modular `.claude/` configuration
+- **Domain expertise on demand** — From double-entry accounting to circadian lighting to 3D print optimization, Claude gets expert-level methodology loaded exactly when needed
+- **More autonomous sessions** — Skills include permission patterns, hook configurations, and structured workflows that let Claude work more independently with fewer interruptions
+
+## Installation
+
+### Claude Code CLI / Desktop App
+
+```bash
+# Clone into your plugins directory
+git clone https://github.com/Kgan01/ghengis-skills.git ~/.claude/plugins/ghengis-skills
+```
+
+Once installed, skills are available in every Claude Code session — CLI, desktop app, and mobile (via desktop).
+
+### Hooks & Permissions
+
+The plugin includes hook configurations in `hooks/` that can automate common workflows. Skills like `project-scaffold` and `constitutional-ai` also define permission boundaries and safety checks that help Claude operate more autonomously while staying within safe limits.
+
+## Skills
 
 ### Agentic Engineering (7 skills)
 
-The core differentiator. These teach Claude **how to be a better agent**.
+These change how Claude approaches complex work — orchestration patterns extracted from a production multi-agent system.
 
 | Skill | What It Does |
 |-------|-------------|
-| **oort-cascade** | Multi-agent orchestration — task decomposition, dependency DAGs, parallel waves, revision loops |
-| **meta-prompting** | 22 role templates for dispatching specialized subagents (researcher, builder, validator, etc.) |
-| **agent-teams** | Parallel agents with perspective diversity — Minimalist, Bold, Technical, Playful, Elegant |
-| **pql-validation** | 35 prompt anti-pattern checks across 6 categories — catches bad prompts before they waste tokens |
-| **blueprint-compilation** | Self-compiling workflows — observe repeated patterns, compile into reusable pipelines |
-| **constitutional-ai** | 9 safety rules across 5 categories — prevents irreversible actions, PII exposure, cost overruns |
-| **project-scaffold** | Van Clief 4-layer project structure — auto-generates MEMORY.md, CONTEXT.md, modular .claude/ config |
+| **oort-cascade** | Multi-agent orchestration — breaks complex tasks into specialized roles (researcher, builder, validator), wires them into dependency DAGs, executes in parallel waves, and runs revision loops until quality passes |
+| **meta-prompting** | 22 role templates for dispatching subagents. Instead of forwarding raw requests, generates tailored instructions per role with context injection, deliverable specs, and execution boundaries |
+| **agent-teams** | Spawns parallel agents with different creative perspectives (Minimalist, Bold, Technical, Playful, Elegant), then synthesizes the strongest elements from each into a final output |
+| **pql-validation** | Prompt Quality Layer — 35 anti-pattern checks across 6 categories (task, context, format, scope, reasoning, agentic). Catches vague verbs, missing constraints, hallucination invitations, and unsafe delegation before execution |
+| **blueprint-compilation** | Recognizes repeated multi-step workflows and compiles them into reusable pipelines. Trace recording, pattern detection, and progressive compilation from ad-hoc to automated |
+| **constitutional-ai** | 9 safety rules across 5 categories (Safety, Cost, Privacy, Transparency, Autonomy). Signal-based pre/post execution checks that prevent irreversible actions, PII exposure, and scope creep |
+| **project-scaffold** | Auto-generates a 4-layer project structure: MEMORY.md (project identity), CONTEXT.md (workspace routing), per-workspace guidance, and a modular `.claude/` directory with rules, docs, and settings |
 
-### Domain Expertise — Everyone (8 skills)
+### Domain Expertise (15 skills)
 
-Practical knowledge that makes Claude dramatically better at everyday tasks. Great for non-technical users too.
-
-| Skill | What It Does |
-|-------|-------------|
-| **general-research** | Systematic research methodology — source evaluation, iterative refinement, structured findings |
-| **bookkeeping** | Double-entry accounting, IRS expense categories, reconciliation, financial reports |
-| **task-tracking** | GTD + Eisenhower matrix, project breakdown, priority management |
-| **learning-paths** | Bloom's taxonomy, prerequisite mapping, curriculum design, personalized progression |
-| **tutoring** | Socratic method, level assessment, worked examples, misconception handling |
-| **shopping** | Price comparison frameworks, evaluation criteria, tier-based recommendations |
-| **report-writing** | Storytelling structure, data presentation, executive summaries |
-| **scheduling** | Time blocking, ritual design, priority-based allocation, calendar optimization |
-
-### Domain Expertise — Developers (4 skills)
+Expert-level methodology that loads when Claude encounters matching tasks. Each skill contains the actual knowledge — frameworks, formulas, checklists, worked examples — not just generic guidance.
 
 | Skill | What It Does |
 |-------|-------------|
-| **mcp-patterns** | MCP server types, meta-tool pattern (14x context reduction), Context7 integration, anti-patterns |
-| **data-analysis** | Statistical methodology, pandas patterns, visualization best practices, insight presentation |
-| **content-writing** | Blog posts, docs, marketing copy — structure, audience targeting, editorial quality |
-| **devops** | Solo-dev deployment — Docker, GitHub Actions, SSL, environment management, rollback |
-
-### Domain Expertise — Unique (3 skills)
-
-The fun ones. These make people tell their friends.
-
-| Skill | What It Does |
-|-------|-------------|
-| **music-curation** | Genre theory, BPM matching, mood mapping, playlist arc design, Spotify patterns |
-| **home-lighting** | Color theory, circadian rhythms, room profiles, scene design, Philips Hue |
-| **3d-modeling** | STL quality, support structures, print orientation, mesh optimization |
+| **general-research** | Systematic research methodology — CRAAP test source evaluation, iterative refinement, structured findings with confidence levels |
+| **bookkeeping** | Double-entry accounting, chart of accounts, IRS expense categories, bank reconciliation, cash vs accrual basis, month-end close procedures |
+| **task-tracking** | GTD methodology, Eisenhower matrix, sprint planning, task decomposition, blocked task handling |
+| **learning-paths** | Bloom's taxonomy, prerequisite mapping, curriculum design, spaced repetition scheduling, progress tracking |
+| **tutoring** | Socratic method, level assessment, worked examples scaled by difficulty, misconception detection and correction |
+| **shopping** | Multi-tier product comparison, evaluation frameworks, per-unit pricing analysis, deal validation |
+| **report-writing** | Executive summary structure, data presentation, audience-appropriate formatting, confidence levels, source citation |
+| **scheduling** | Time blocking, ritual design, priority-based allocation, conflict resolution, calendar optimization |
+| **mcp-patterns** | MCP server configuration, the meta-tool pattern for context reduction, Context7 two-step lookup, registration anti-patterns |
+| **data-analysis** | Statistical methodology, pandas workflows, correlation vs causation, visualization selection, small sample warnings |
+| **content-writing** | Blog posts, documentation, marketing copy — structure, SEO basics, audience targeting, editorial checklists |
+| **devops** | Solo-dev deployment patterns — Docker multi-stage builds, GitHub Actions CI/CD, SSL, environment management, rollback procedures |
+| **music-curation** | Genre classification, BPM matching and transitions, mood-to-genre mapping, playlist arc design, Spotify audio features |
+| **home-lighting** | Color temperature science, circadian rhythm automation, room profiles, scene composition, Philips Hue API patterns |
+| **3d-modeling** | STL mesh quality, support structure planning, print orientation optimization, dimensional tolerances, prompt engineering for 3D generation |
 
 ### Framework Skills (4 skills)
 
 | Skill | What It Does |
 |-------|-------------|
-| **react-nextjs** | App Router, server/client components, Zustand, data fetching patterns |
-| **fastapi** | Async patterns, Pydantic v2, dependency injection, WebSocket auth |
-| **flutter-dart** | Widget patterns, state management, platform channels, navigation |
-| **esp32** | PlatformIO, I2S audio, WiFi/BLE, memory management, state machines |
+| **react-nextjs** | Next.js 15 App Router, server/client component boundaries, dynamic imports, Zustand state management, CSS variable theming |
+| **fastapi** | Async-first patterns, Pydantic v2 (model_dump not dict), dependency injection, WebSocket auth-before-accept, blocking code handling |
+| **flutter-dart** | Widget composition, state management patterns, platform channels (MethodChannel/EventChannel), navigation, theme system |
+| **esp32** | PlatformIO build system, I2S audio configuration, PSRAM allocation, FreeRTOS task pinning, WiFi/BLE patterns, state machine design |
 
-## Installation
+## How Skills Work
 
-### Claude Code CLI / Desktop
-
-```bash
-# Via plugin marketplace (when published)
-/plugin install ghengis-skills
-
-# Manual install (clone into plugins directory)
-git clone https://github.com/kgan/ghengis-skills.git ~/.claude/plugins/ghengis-skills
-```
-
-### How Skills Work
-
-Skills are loaded on-demand — they don't bloat your context window. When Claude detects a task that matches a skill's description, the skill is loaded and its guidance shapes the response.
-
-Unlike MCP servers that add tool schemas to every message, skills are **zero overhead until activated**.
-
-## Evals
-
-Each skill has evaluation test cases in the `evals/` directory. These define scenarios with assertions to verify the skill is producing correct output.
-
-```
-evals/
-  oort-cascade.eval.md      # 5 test cases
-  pql-validation.eval.md    # 5 test cases
-  bookkeeping.eval.md       # 4 test cases
-  ...
-```
-
-## Origin
-
-These skills are extracted from [JARVIS](https://github.com/kgan), a personal AI assistant with 72 specialized agents, ~200 tools, and 50+ domain skills. The agentic engineering patterns (OORT, PQL, Blueprint, Constitutional AI) power JARVIS's multi-agent orchestration system.
-
-Ghengis Skills packages the **portable knowledge** — the methodology and domain expertise that works in any Claude session, without requiring the JARVIS server.
-
-## Contributing
-
-Skills follow the [superpowers](https://github.com/obra/superpowers) plugin format:
-
-```
-skills/{skill-name}/
-  SKILL.md           # Main skill (YAML frontmatter + markdown)
-  supporting-doc.md  # Optional supporting documents
-evals/
-  {skill-name}.eval.md  # Test cases
-```
-
-### Skill Format
+Each skill is a markdown file with YAML frontmatter:
 
 ```yaml
 ---
 name: skill-name
-description: When Claude should activate this skill — be specific about triggers
+description: When Claude should activate this skill — specific trigger conditions
 ---
 
 # Skill Name
 
-Content here...
+Methodology, patterns, examples, checklists...
 ```
+
+The `description` field tells Claude when to load the skill. When a task matches, the skill content is injected into the session and guides Claude's approach. When no skills match, nothing is loaded — zero context cost.
+
+Some skills include supporting documents (e.g., `oort-cascade/handoff-protocol.md`, `pql-validation/anti-patterns.md`) that provide deeper reference material.
+
+## Evals
+
+Each skill has evaluation test cases in `evals/` — scenarios with specific assertions that verify the skill produces correct, methodology-driven output rather than generic responses.
+
+```
+evals/{skill-name}.eval.md
+
+# Example test case format:
+## TC-1: Complex Multi-Step Task
+- prompt: "Research competitors, write a strategy doc, then review it"
+- assertions:
+  - Decomposes into researcher → builder → validator roles
+  - Creates dependency DAG with parallel waves
+  - Runs validation pass with scoring rubric
+- passing_grade: 3/3
+```
+
+## Contributing
+
+To add a skill:
+
+1. Create `skills/{skill-name}/SKILL.md` with YAML frontmatter
+2. Create `evals/{skill-name}.eval.md` with 3-5 test cases
+3. Keep skills focused — one domain, one methodology
+4. Include worked examples and checklists where possible
+5. Test that the skill activates on the right triggers and stays silent otherwise
 
 ## License
 
