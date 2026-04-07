@@ -1,14 +1,17 @@
 # Ghengis Skills
 
-A Claude Code plugin that makes Claude smarter, faster, and more autonomous. 26 skills covering multi-agent orchestration, prompt quality validation, project scaffolding, and deep domain expertise across 15+ fields.
+A Claude Code plugin that makes Claude smarter, faster, and more autonomous. 36 skills covering multi-agent orchestration, prompt quality validation, agent reliability, session management, project scaffolding, and deep domain expertise across 15+ fields.
 
 Skills are lightweight — they load on-demand and don't bloat your context window. Unlike MCP servers that inject tool schemas into every message, skills activate only when relevant, adding zero overhead the rest of the time.
 
 ## Why Use This
 
 - **Better agentic work** — Claude learns how to decompose complex tasks, dispatch specialized subagents, validate output quality, and self-correct through revision loops
+- **Agent reliability** — Completion verification catches premature "done" claims, hallucination detection flags fabricated content, context health monitoring prevents session degradation, and constitutional safety rules block dangerous actions
+- **Multi-session execution** — The execution harness breaks large projects into checkpointed tasks that survive session boundaries, with resume capability and human review gates
 - **Prompt quality enforcement** — 35 anti-pattern checks catch vague, unsafe, or wasteful prompts before they run
 - **Project structure** — Auto-scaffolds any new project with a self-documenting 4-layer structure and modular `.claude/` configuration
+- **Adaptive behavior** — Agent identity learns your preferences over time, skill memory accumulates domain knowledge from past tasks, compute adaptation degrades gracefully under resource pressure
 - **Domain expertise on demand** — From double-entry accounting to circadian lighting to 3D print optimization, Claude gets expert-level methodology loaded exactly when needed
 - **More autonomous sessions** — Skills include permission patterns, hook configurations, and structured workflows that let Claude work more independently with fewer interruptions
 
@@ -25,7 +28,7 @@ Once installed, skills are available in every Claude Code session — CLI, deskt
 
 ### Hooks & Permissions
 
-The plugin includes hook configurations in `hooks/` that can automate common workflows. Skills like `project-scaffold` and `constitutional-ai` also define permission boundaries and safety checks that help Claude operate more autonomously while staying within safe limits.
+The plugin includes hook configurations in `hooks/` that can automate common workflows. Skills like `project-scaffold` and `constitutional-ai` define permission boundaries and safety checks that help Claude operate more autonomously while staying within safe limits.
 
 ## Skills
 
@@ -42,6 +45,36 @@ These change how Claude approaches complex work — orchestration patterns extra
 | **blueprint-compilation** | Recognizes repeated multi-step workflows and compiles them into reusable pipelines. Trace recording, pattern detection, and progressive compilation from ad-hoc to automated |
 | **constitutional-ai** | 9 safety rules across 5 categories (Safety, Cost, Privacy, Transparency, Autonomy). Signal-based pre/post execution checks that prevent irreversible actions, PII exposure, and scope creep |
 | **project-scaffold** | Auto-generates a 4-layer project structure: MEMORY.md (project identity), CONTEXT.md (workspace routing), per-workspace guidance, and a modular `.claude/` directory with rules, docs, and settings |
+
+### Agent Reliability (5 skills)
+
+These keep agents honest, healthy, and on track — catching failures that normally go unnoticed until the user finds them.
+
+| Skill | What It Does |
+|-------|-------------|
+| **completion-enforcer** | 70+ signal phrases detect when an agent claims "done" but left placeholders, TODOs, or unfinished work. Five heuristic checks verify structural completeness. Zero cost, instant. |
+| **hallucination-detector** | Signal-based detection of fabricated URLs, unsourced statistics, fake citations, and impossible future claims. Catches confabulation without an LLM verification call. |
+| **context-health** | Monitors context window usage mid-session, detects degradation and task drift, offers three recovery strategies (truncate, checkpoint-restart, re-anchor). Prevents the silent quality collapse that happens in long sessions. |
+| **execution-harness** | Multi-session orchestration for large projects. Decomposes work into 3-15 checkpointed tasks, tracks progress across session boundaries, supports pause/resume, and includes human review gates between phases. |
+| **constitutional-ai** | *(also listed in Agentic Engineering)* Pre/post execution safety checks that prevent irreversible actions before they happen. |
+
+### Agent Learning & Adaptation (5 skills)
+
+These help Claude learn, remember, and adapt — building intelligence over time rather than starting fresh every session.
+
+| Skill | What It Does |
+|-------|-------------|
+| **goal-tracking** | Auto-detects goals from conversation, maintains parent-child hierarchy, tracks state transitions (active/blocked/completed/abandoned), and catches goal staleness with fuzzy matching for related requests |
+| **agent-identity** | Builds an evolving understanding of user preferences, communication style, and working patterns through an observe-extract-synthesize loop. Adapts behavior over time. |
+| **skill-memory** | Accumulates domain knowledge from past tasks in a grepable plain-text format. No vector database needed — plain markdown, searchable via grep, with auto-consolidation when it grows too large. |
+| **audit-ledger** | Hash-chained append-only audit trail for what agents did, when, and why. Tamper-proof via SHA-256 chain, queryable by time/agent/goal, daily rollover. |
+| **compute-adaptation** | 4-tier graceful degradation (Normal, Low, Critical, Offline). Adapts agent behavior when hitting rate limits, budget constraints, or resource pressure — reduces parallelism, downgrades models, queues non-essential work. |
+
+### Deep Research (1 skill)
+
+| Skill | What It Does |
+|-------|-------------|
+| **deep-research** | 7-phase iterative research methodology (Clarify, Draft, Gap Analysis, Targeted Research, Refine, Red Team, Converge). Goes beyond single-pass research with adversarial review, convergence detection, and structured confidence levels. |
 
 ### Domain Expertise (15 skills)
 
@@ -104,7 +137,7 @@ evals/{skill-name}.eval.md
 ## TC-1: Complex Multi-Step Task
 - prompt: "Research competitors, write a strategy doc, then review it"
 - assertions:
-  - Decomposes into researcher → builder → validator roles
+  - Decomposes into researcher, builder, validator roles
   - Creates dependency DAG with parallel waves
   - Runs validation pass with scoring rubric
 - passing_grade: 3/3

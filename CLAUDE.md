@@ -1,11 +1,11 @@
 # Ghengis Skills
 
-> Claude Code skills plugin — agentic engineering patterns and domain expertise extracted from the JARVIS system.
+> Claude Code skills plugin — 36 skills covering agentic engineering, agent reliability, learning/adaptation, and domain expertise.
 
 ## Structure
 
 ```
-skills/           # 26 skill directories, each with SKILL.md
+skills/           # 36 skill directories, each with SKILL.md
 evals/            # Evaluation test cases per skill
 hooks/            # Claude Code hooks configuration
 agents/           # Subagent prompt templates
@@ -18,15 +18,15 @@ docs/             # Plans, transformation rules, architecture
 | Category | Count | Skills |
 |----------|-------|--------|
 | Agentic Engineering | 7 | oort-cascade, meta-prompting, agent-teams, pql-validation, blueprint-compilation, constitutional-ai, project-scaffold |
+| Agent Reliability | 4 | completion-enforcer, hallucination-detector, context-health, execution-harness |
+| Agent Learning | 5 | goal-tracking, agent-identity, skill-memory, audit-ledger, compute-adaptation |
+| Deep Research | 1 | deep-research |
 | Domain - Everyone | 8 | general-research, bookkeeping, task-tracking, learning-paths, tutoring, shopping, report-writing, scheduling |
 | Domain - Developers | 4 | mcp-patterns, data-analysis, content-writing, devops |
 | Domain - Unique | 3 | music-curation, home-lighting, 3d-modeling |
 | Frameworks | 4 | react-nextjs, fastapi, flutter-dart, esp32 |
 
 ## Development
-
-Skills are extracted and adapted from the JARVIS system (`~/Desktop/ghengis/Ghengis/`).
-Source material lives in `apps/server/skills/upskill/` (SKILL.md files) and `apps/server/agents/` (Python implementations).
 
 ### Transformation Rules
 
