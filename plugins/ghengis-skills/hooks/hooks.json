@@ -1,3 +1,16 @@
 {
-  "hooks": {}
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Check if the assistant's final response contains any incompleteness signals: TODO, placeholder, 'left as an exercise', 'I'll leave that to you', skeleton code, NotImplementedError, TBD, stub, 'you'll need to', 'as an exercise', pass-only function bodies, or trailing '...' as content. If ANY are found, respond with a short warning listing each signal found. If the response looks complete, respond with just 'ok'. Response text: $ARGUMENTS",
+            "model": "claude-haiku-4-5",
+            "statusMessage": "Checking completion..."
+          }
+        ]
+      }
+    ]
+  }
 }
