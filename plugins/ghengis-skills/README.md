@@ -17,31 +17,39 @@ Skills are lightweight — they load on-demand and don't bloat your context wind
 
 ## Installation
 
-### Quick Start (Local)
-
-Clone the repo anywhere and load it with the `--plugin-dir` flag:
+### Step 1: Clone the repo
 
 ```bash
 git clone https://github.com/Kgan01/ghengis-skills.git ~/ghengis-skills
-claude --plugin-dir ~/ghengis-skills
 ```
 
-### Persistent Install
+### Step 2: Add the marketplace
 
-To have ghengis-skills available in every session without the flag, add it to your Claude Code settings:
+In Claude Code, run:
 
-```bash
-# Clone the repo
-git clone https://github.com/Kgan01/ghengis-skills.git ~/ghengis-skills
-
-# Add to your settings so it loads automatically
-# In ~/.claude/settings.json, add:
-# "pluginDirs": ["~/ghengis-skills"]
 ```
+/plugin marketplace add ~/ghengis-skills
+```
+
+### Step 3: Install the plugin
+
+```
+/plugin install ghengis-skills@ghengis-skills-marketplace
+```
+
+Or use the `/plugin` UI to browse and install.
+
+### Step 4: Activate
+
+```
+/reload-plugins
+```
+
+That's it. Skills are now available in every Claude Code session — CLI, desktop app, and mobile (via desktop).
 
 ### Using Skills
 
-Once loaded, skills are available as namespaced commands:
+Skills are namespaced and available as slash commands:
 
 ```
 /ghengis-skills:project-scaffold    # Scaffold a new project
@@ -50,11 +58,31 @@ Once loaded, skills are available as namespaced commands:
 /ghengis-skills:deep-research       # 7-phase iterative research
 ```
 
-Claude also loads skills automatically when it detects a matching task — you don't always need to invoke them manually.
+Claude also loads skills automatically when it detects a matching task — you don't always need to invoke them manually. Just work normally and the relevant skill activates when needed.
+
+### For Teams
+
+Add the marketplace to your project's `.claude/settings.json` so teammates get it automatically:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "ghengis-skills-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "Kgan01/ghengis-skills"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "ghengis-skills@ghengis-skills-marketplace": true
+  }
+}
+```
 
 ### Hooks & Permissions
 
-Skills like `project-scaffold` and `constitutional-ai` define permission boundaries and safety checks that help Claude operate more autonomously while staying within safe limits. The `hooks/` directory contains hook configurations that can automate common workflows.
+Skills like `project-scaffold` and `constitutional-ai` define permission boundaries and safety checks that help Claude operate more autonomously while staying within safe limits.
 
 ## Skills
 
