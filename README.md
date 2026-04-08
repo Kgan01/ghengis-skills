@@ -17,18 +17,44 @@ Skills are lightweight — they load on-demand and don't bloat your context wind
 
 ## Installation
 
-### Claude Code CLI / Desktop App
+### Quick Start (Local)
+
+Clone the repo anywhere and load it with the `--plugin-dir` flag:
 
 ```bash
-# Clone into your plugins directory
-git clone https://github.com/Kgan01/ghengis-skills.git ~/.claude/plugins/ghengis-skills
+git clone https://github.com/Kgan01/ghengis-skills.git ~/ghengis-skills
+claude --plugin-dir ~/ghengis-skills
 ```
 
-Once installed, skills are available in every Claude Code session — CLI, desktop app, and mobile (via desktop).
+### Persistent Install
+
+To have ghengis-skills available in every session without the flag, add it to your Claude Code settings:
+
+```bash
+# Clone the repo
+git clone https://github.com/Kgan01/ghengis-skills.git ~/ghengis-skills
+
+# Add to your settings so it loads automatically
+# In ~/.claude/settings.json, add:
+# "pluginDirs": ["~/ghengis-skills"]
+```
+
+### Using Skills
+
+Once loaded, skills are available as namespaced commands:
+
+```
+/ghengis-skills:project-scaffold    # Scaffold a new project
+/ghengis-skills:oort-cascade        # Multi-agent orchestration
+/ghengis-skills:pql-validation      # Check prompt quality
+/ghengis-skills:deep-research       # 7-phase iterative research
+```
+
+Claude also loads skills automatically when it detects a matching task — you don't always need to invoke them manually.
 
 ### Hooks & Permissions
 
-The plugin includes hook configurations in `hooks/` that can automate common workflows. Skills like `project-scaffold` and `constitutional-ai` define permission boundaries and safety checks that help Claude operate more autonomously while staying within safe limits.
+Skills like `project-scaffold` and `constitutional-ai` define permission boundaries and safety checks that help Claude operate more autonomously while staying within safe limits. The `hooks/` directory contains hook configurations that can automate common workflows.
 
 ## Skills
 
