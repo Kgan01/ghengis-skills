@@ -1,13 +1,84 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/run-hook.cmd\" scripts/session-start.sh",
+            "async": false,
+            "statusMessage": "Loading project context..."
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "Check if the assistant's final response contains any incompleteness signals: TODO, placeholder, 'left as an exercise', 'I'll leave that to you', skeleton code, NotImplementedError, TBD, stub, 'you'll need to', 'as an exercise', pass-only function bodies, or trailing '...' as content. If ANY are found, respond with a short warning listing each signal found. If the response looks complete, respond with just 'ok'. Response text: $ARGUMENTS",
+            "prompt": "Check if the assistant's final response contains incompleteness signals: TODO, placeholder, 'left as an exercise', 'I'll leave that to you', skeleton code, NotImplementedError, TBD, stub, 'you'll need to', pass-only function bodies, or trailing '...' as content. If ANY found, respond with a short warning listing each. If complete, respond 'ok'. Response: $ARGUMENTS",
             "model": "claude-haiku-4-5",
             "statusMessage": "Checking completion..."
+          },
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/run-hook.cmd\" scripts/session-stop.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/run-hook.cmd\" scripts/pre-compact.sh",
+            "async": false,
+            "statusMessage": "Saving state before compaction..."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/run-hook.cmd\" scripts/validate-commit.sh",
+            "if": "Bash(git commit*)"
+          },
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/run-hook.cmd\" scripts/validate-push.sh",
+            "if": "Bash(git push*)"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Check if this file write contains hardcoded secrets (API keys, passwords, tokens, private keys) or PII (email addresses, phone numbers, SSNs, account numbers). File path and content: $ARGUMENTS. If ANY found, respond with a warning. If clean, respond 'ok'.",
+            "model": "claude-haiku-4-5",
+            "statusMessage": "Checking for secrets/PII..."
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Check this subagent output for: 1) incompleteness (TODO, placeholder, skeleton, stub), 2) hallucination signals (fabricated URLs, unsourced statistics with decimal precision, fake citations). If ANY issues, respond with a short warning. If clean, respond 'ok'. Output: $ARGUMENTS",
+            "model": "claude-haiku-4-5",
+            "statusMessage": "Validating subagent output..."
           }
         ]
       }
