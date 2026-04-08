@@ -1,10 +1,9 @@
 {
   "name": "ghengis-skills",
-  "description": "Agentic engineering skills and domain expertise from the JARVIS system — OORT cascades, prompt quality validation, multi-agent orchestration, and 15+ domain skills",
+  "description": "42 skills for Claude Code — multi-agent orchestration, prompt quality validation, agent reliability, security testing, code intelligence, and domain expertise",
   "version": "1.0.0",
   "author": {
-    "name": "Kgan",
-    "url": "https://github.com/kgan"
+    "name": "Kgan"
   },
   "keywords": [
     "skills",

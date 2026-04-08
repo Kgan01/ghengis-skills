@@ -9,7 +9,7 @@ skills/           # 42 skill directories, each with SKILL.md
 evals/            # Evaluation test cases per skill
 hooks/            # Claude Code hooks configuration
 agents/           # Subagent prompt templates
-docs/             # Plans, transformation rules, architecture
+docs/             # Plans, architecture
 .claude-plugin/   # Plugin metadata for marketplace
 ```
 
@@ -27,13 +27,3 @@ docs/             # Plans, transformation rules, architecture
 | Domain - Operations | 2 | output-formatting, proactive-rituals |
 | Domain - Security | 2 | security-testing, code-intelligence |
 | Frameworks | 4 | react-nextjs, fastapi, flutter-dart, esp32 |
-
-## Development
-
-### Transformation Rules
-
-1. Frontmatter: `name` + `description` (when Claude should trigger this skill)
-2. Reframe from "teach a cheap model" to "guide Claude Code behavior"
-3. Remove JARVIS-specific tool references (replace with Claude Code equivalents)
-4. Keep core knowledge intact — the expertise is the value
-5. Add behavioral shaping (red flags, process gates) where the skill is rigid
