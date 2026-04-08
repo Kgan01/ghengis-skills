@@ -1,6 +1,7 @@
 ---
 name: agent-teams
 description: Use when a task benefits from multiple creative perspectives -- spawns parallel agents with different viewpoints, then synthesizes the best elements into a final output
+allowed-tools: Agent Read Grep Glob
 ---
 
 # Agent Teams

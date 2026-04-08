@@ -1,6 +1,7 @@
 ---
 name: general-research
 description: Use when the user needs deep research on any topic — teaches systematic research methodology including source evaluation, iterative refinement, fact-checking, and structured findings
+allowed-tools: Read Grep Glob WebSearch WebFetch
 ---
 
 # General Research

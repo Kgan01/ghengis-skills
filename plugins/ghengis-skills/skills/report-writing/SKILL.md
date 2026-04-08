@@ -1,6 +1,7 @@
 ---
 name: report-writing
 description: Use when creating reports, summaries, or structured documents — covers storytelling structure, data presentation, executive summaries, and audience-appropriate formatting
+allowed-tools: Read Write Edit Glob Grep
 ---
 
 # Report Writing

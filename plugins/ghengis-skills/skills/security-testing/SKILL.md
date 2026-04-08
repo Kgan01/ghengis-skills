@@ -1,6 +1,7 @@
 ---
 name: security-testing
 description: Use when reviewing code for vulnerabilities, performing security assessments, or hardening applications -- covers reconnaissance methodology, OWASP Top 10, CVSS scoring, secure coding patterns, and vulnerability analysis
+allowed-tools: Read Grep Glob Bash(grep *) Bash(find *)
 ---
 
 # Security Testing

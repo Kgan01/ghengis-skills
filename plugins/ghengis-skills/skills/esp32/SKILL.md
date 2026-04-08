@@ -1,6 +1,7 @@
 ---
 name: esp32
 description: Use when working with ESP32 firmware or IoT hardware projects — covers PlatformIO build system, I2S audio, WiFi/BLE patterns, memory management, and state machine design
+allowed-tools: Read Write Edit Glob Grep Bash(pio *)
 ---
 
 # PlatformIO + ESP32-S3

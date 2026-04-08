@@ -1,6 +1,7 @@
 ---
 name: fastapi
 description: Use when building or modifying FastAPI applications — covers async patterns, Pydantic v2 models, dependency injection, WebSocket auth, middleware, and blocking code handling
+allowed-tools: Read Write Edit Glob Grep Bash(python *) Bash(pip *)
 ---
 
 # FastAPI Python Async

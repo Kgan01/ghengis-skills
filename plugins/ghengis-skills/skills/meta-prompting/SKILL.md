@@ -1,6 +1,7 @@
 ---
 name: meta-prompting
 description: Use when dispatching subagents or writing role-specific instructions -- provides 22 specialized role templates for researcher, builder, validator, and 19 other roles
+allowed-tools: Agent Read Grep Glob
 ---
 
 # Meta-Prompting

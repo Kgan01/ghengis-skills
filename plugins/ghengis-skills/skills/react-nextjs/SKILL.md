@@ -1,6 +1,7 @@
 ---
 name: react-nextjs
 description: Use when building or modifying React or Next.js applications — covers App Router patterns, server components, client components, data fetching, Zustand state management, and common pitfalls
+allowed-tools: Read Write Edit Glob Grep Bash(npm *) Bash(npx *)
 ---
 
 # React 19 + Next.js 15

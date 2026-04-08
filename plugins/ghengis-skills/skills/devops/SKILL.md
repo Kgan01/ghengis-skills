@@ -1,6 +1,7 @@
 ---
 name: devops
 description: Use when setting up deployment, CI/CD, Docker, or infrastructure -- covers solo-dev deployment patterns, GitHub Actions, Docker best practices, SSL, environment management, and rollback procedures
+allowed-tools: Read Write Edit Bash(docker *) Bash(git *) Bash(npm *) Glob Grep
 ---
 
 # DevOps

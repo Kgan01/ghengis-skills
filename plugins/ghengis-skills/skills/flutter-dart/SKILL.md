@@ -1,6 +1,7 @@
 ---
 name: flutter-dart
 description: Use when building or modifying Flutter/Dart applications — covers widget patterns, state management, platform channels, navigation, and common Dart conventions
+allowed-tools: Read Write Edit Glob Grep Bash(flutter *) Bash(dart *)
 ---
 
 # Flutter + Dart Mobile

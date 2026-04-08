@@ -1,6 +1,7 @@
 ---
 name: content-writing
 description: Use when creating written content -- blog posts, documentation, marketing copy, technical writing -- covers structure, audience targeting, SEO basics, and editorial quality
+allowed-tools: Read Write Edit
 ---
 
 # Content Writing

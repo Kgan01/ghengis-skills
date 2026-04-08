@@ -1,6 +1,7 @@
 ---
 name: oort-cascade
 description: Use when facing complex tasks that need multiple specialized agents working in sequence or parallel — task decomposition, role assignment, dependency DAGs, revision loops, and quality validation
+allowed-tools: Agent Read Grep Glob
 ---
 
 # OORT Cascade

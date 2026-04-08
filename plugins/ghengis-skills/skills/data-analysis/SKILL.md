@@ -1,6 +1,7 @@
 ---
 name: data-analysis
 description: Use when analyzing data, creating visualizations, or extracting insights -- covers statistical methodology, pandas patterns, data cleaning, visualization best practices, and insight presentation
+allowed-tools: Read Grep Glob Bash(python *)
 ---
 
 # Data Analysis

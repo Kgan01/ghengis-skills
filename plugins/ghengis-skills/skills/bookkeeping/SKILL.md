@@ -1,6 +1,7 @@
 ---
 name: bookkeeping
 description: Use when helping with financial record-keeping, expense categorization, tax preparation, or accounting questions — covers double-entry accounting, IRS categories, reconciliation, and financial reports
+allowed-tools: Read Write Edit Glob
 ---
 
 # Bookkeeping

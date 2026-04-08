@@ -1,6 +1,7 @@
 ---
 name: execution-harness
 description: Use when a task is too large for a single session — provides multi-session execution with checkpoints, progress tracking, and resume capability so complex projects survive context resets and session boundaries
+allowed-tools: Agent Read Write Edit Glob Grep
 ---
 
 # Execution Harness

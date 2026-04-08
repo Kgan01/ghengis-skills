@@ -1,6 +1,7 @@
 ---
 name: crm-patterns
 description: Use when managing client relationships, freelance projects, or any work involving multiple clients — covers client tracking, project lifecycle, communication logging, pipeline management, and relationship health
+allowed-tools: Read Write Edit Glob
 ---
 
 # CRM Patterns

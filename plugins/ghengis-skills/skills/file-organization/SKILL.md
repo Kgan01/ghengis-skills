@@ -1,6 +1,7 @@
 ---
 name: file-organization
 description: Use when helping organize files, clean up directories, or establish file naming and structure conventions — covers 18 manifest types, intelligent file categorization, naming conventions, and organizational patterns with audit trails
+allowed-tools: Read Glob Bash(ls *) Bash(find *) Bash(mv *) Bash(mkdir *)
 ---
 
 # File Organization

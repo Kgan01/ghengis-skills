@@ -1,6 +1,7 @@
 ---
 name: project-scaffold
 description: Use when starting a new project or organizing an existing one — creates self-documenting 4-layer project structure with MEMORY.md, CONTEXT.md, modular CLAUDE.md, and workspace routing
+allowed-tools: Read Write Edit Bash(mkdir *) Glob
 ---
 
 # Project Scaffold (Van Clief 4-Layer Structure)

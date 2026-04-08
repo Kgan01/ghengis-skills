@@ -1,6 +1,7 @@
 ---
 name: code-intelligence
 description: Use when analyzing codebases, understanding architecture, tracing dependencies, or building mental models of unfamiliar code -- covers AST parsing patterns, 6-layer architectural classification, import graph analysis, and structural code search
+allowed-tools: Read Grep Glob
 ---
 
 # Code Intelligence

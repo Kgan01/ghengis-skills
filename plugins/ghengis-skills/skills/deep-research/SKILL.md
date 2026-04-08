@@ -1,6 +1,7 @@
 ---
 name: deep-research
 description: Use when a research task requires iterative depth -- goes beyond single-pass research with a 7-phase methodology that includes gap analysis, targeted follow-up, adversarial review, and convergence checking
+allowed-tools: Read Grep Glob WebSearch WebFetch Agent
 ---
 
 # Deep Research
