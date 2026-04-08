@@ -38,57 +38,25 @@ Skills are lightweight — they load on-demand and don't bloat your context wind
 
 ## Installation
 
-### Step 1: Clone the repo
-
-```bash
-git clone https://github.com/Kgan01/ghengis-skills.git ~/ghengis-skills
-```
-
-### Step 2: Add the marketplace
+Two commands. Once installed, skills are available across all projects forever.
 
 In Claude Code, run:
 
 ```
-/plugin marketplace add ~/ghengis-skills
-```
-
-### Step 3: Install the plugin
-
-```
+/plugin marketplace add Kgan01/ghengis-skills
 /plugin install ghengis-skills@ghengis-skills-marketplace
 ```
 
-Or use the `/plugin` UI to browse and install.
+That's it. All 42 skills are now available in every session — CLI, desktop app, and mobile.
 
-### Step 4: Activate
-
-```
-/reload-plugins
-```
-
-That's it. Skills are now available in every Claude Code session — CLI, desktop app, and mobile (via desktop).
-
-### Short Commands (Recommended)
-
-By default, plugin skills are namespaced (`/ghengis-skills:project-scaffold`). To use short names like `/project-scaffold`, symlink the skills to your personal skills directory:
-
-```bash
-mkdir -p ~/.claude/skills
-for skill in ~/ghengis-skills/plugins/ghengis-skills/skills/*/; do
-  ln -sf "$skill" ~/.claude/skills/$(basename "$skill")
-done
-```
-
-Now you can use skills directly:
+Claude loads skills automatically when it detects a matching task. You can also invoke them directly:
 
 ```
-/project-scaffold    # Scaffold a new project
-/oort-cascade        # Multi-agent orchestration
-/pql-validation      # Check prompt quality
-/deep-research       # 7-phase iterative research
+/ghengis-skills:project-scaffold    # Scaffold a new project
+/ghengis-skills:oort-cascade        # Multi-agent orchestration
+/ghengis-skills:pql-validation      # Check prompt quality
+/ghengis-skills:deep-research       # 7-phase iterative research
 ```
-
-Claude also loads skills automatically when it detects a matching task — you don't always need to invoke them manually. Just work normally and the relevant skill activates when needed.
 
 ### For Teams
 
