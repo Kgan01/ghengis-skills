@@ -47,15 +47,24 @@ Or use the `/plugin` UI to browse and install.
 
 That's it. Skills are now available in every Claude Code session — CLI, desktop app, and mobile (via desktop).
 
-### Using Skills
+### Short Commands (Recommended)
 
-Skills are namespaced and available as slash commands:
+By default, plugin skills are namespaced (`/ghengis-skills:project-scaffold`). To use short names like `/project-scaffold`, symlink the skills to your personal skills directory:
+
+```bash
+mkdir -p ~/.claude/skills
+for skill in ~/ghengis-skills/plugins/ghengis-skills/skills/*/; do
+  ln -sf "$skill" ~/.claude/skills/$(basename "$skill")
+done
+```
+
+Now you can use skills directly:
 
 ```
-/ghengis-skills:project-scaffold    # Scaffold a new project
-/ghengis-skills:oort-cascade        # Multi-agent orchestration
-/ghengis-skills:pql-validation      # Check prompt quality
-/ghengis-skills:deep-research       # 7-phase iterative research
+/project-scaffold    # Scaffold a new project
+/oort-cascade        # Multi-agent orchestration
+/pql-validation      # Check prompt quality
+/deep-research       # 7-phase iterative research
 ```
 
 Claude also loads skills automatically when it detects a matching task — you don't always need to invoke them manually. Just work normally and the relevant skill activates when needed.
