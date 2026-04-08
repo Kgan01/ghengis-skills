@@ -38,25 +38,19 @@ Skills are lightweight — they load on-demand and don't bloat your context wind
 
 ## Installation
 
-Two commands. Once installed, skills are available across all projects forever.
+Three commands. Once installed, skills and permissions are set up across all projects forever.
 
 In Claude Code, run:
 
 ```
 /plugin marketplace add Kgan01/ghengis-skills
 /plugin install ghengis-skills@ghengis-skills-marketplace
+/ghengis-skills:setup
 ```
 
-That's it. All 42 skills are now available in every session — CLI, desktop app, and mobile.
+The first two install the plugin. The third configures autonomous permissions — safe dev tools are auto-allowed, dangerous operations are blocked. Restart Claude Code after setup.
 
-Claude loads skills automatically when it detects a matching task. You can also invoke them directly:
-
-```
-/ghengis-skills:project-scaffold    # Scaffold a new project
-/ghengis-skills:oort-cascade        # Multi-agent orchestration
-/ghengis-skills:pql-validation      # Check prompt quality
-/ghengis-skills:deep-research       # 7-phase iterative research
-```
+All 42 skills are now available in every session — CLI, desktop app, and mobile. Claude loads them automatically when it detects a matching task.
 
 ### For Teams
 
