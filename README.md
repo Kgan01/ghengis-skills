@@ -78,9 +78,51 @@ Add the marketplace to your project's `.claude/settings.json` so teammates get i
 }
 ```
 
-### Hooks & Permissions
+### Autonomous Permissions (Recommended)
 
-Skills like `project-scaffold` and `constitutional-ai` define permission boundaries and safety checks that help Claude operate more autonomously while staying within safe limits.
+To get the most out of these skills, add this to your `~/.claude/settings.json`. It lets Claude work autonomously on safe operations while blocking dangerous ones.
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(git:*)", "Bash(python:*)", "Bash(python3:*)", "Bash(python -m:*)",
+      "Bash(pytest:*)", "Bash(pip:*)", "Bash(pip3:*)",
+      "Bash(npm:*)", "Bash(npx:*)", "Bash(node:*)",
+      "Bash(docker:*)", "Bash(docker compose:*)",
+      "Bash(pio:*)", "Bash(gh:*)", "Bash(curl:*)",
+      "Bash(make:*)", "Bash(cmake:*)", "Bash(cargo:*)", "Bash(go:*)",
+      "Bash(flutter:*)", "Bash(dart:*)",
+      "Bash(ls:*)", "Bash(cat:*)", "Bash(head:*)", "Bash(tail:*)",
+      "Bash(wc:*)", "Bash(find:*)", "Bash(tree:*)", "Bash(grep:*)",
+      "Bash(mkdir:*)", "Bash(chmod:*)", "Bash(echo:*)", "Bash(sort:*)",
+      "Bash(xargs:*)", "Bash(basename:*)", "Bash(dirname:*)",
+      "Bash(cp:*)", "Bash(mv:*)", "Bash(touch:*)", "Bash(diff:*)",
+      "Bash(sed:*)", "Bash(awk:*)", "Bash(cut:*)", "Bash(tr:*)",
+      "Bash(tee:*)", "Bash(jq:*)", "Bash(bash:*)",
+      "Bash(cd:*)", "Bash(pwd:*)", "Bash(which:*)", "Bash(env:*)",
+      "Read", "Edit", "Write", "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "WebFetch(domain:pypi.org)",
+      "WebFetch(domain:npmjs.com)",
+      "WebFetch(domain:stackoverflow.com)"
+    ],
+    "deny": [
+      "Bash(rm -rf:*)",
+      "Bash(git push --force:*)", "Bash(git push -f:*)",
+      "Bash(git reset --hard:*)", "Bash(git clean -f:*)",
+      "Bash(sudo:*)", "Bash(chmod 777:*)",
+      "Bash(shutdown:*)", "Bash(reboot:*)", "Bash(halt:*)", "Bash(poweroff:*)",
+      "Bash(killall:*)", "Bash(pkill:*)", "Bash(kill -9:*)",
+      "Bash(mkfs:*)", "Bash(dd:*)", "Bash(diskutil erase:*)", "Bash(launchctl:*)"
+    ]
+  }
+}
+```
+
+The allow list covers all common dev tools. The deny list blocks destructive operations — `rm -rf`, force push, `sudo`, disk formatting, process killing. Claude still asks before anything not on either list.
 
 ## Skills
 
