@@ -1,18 +1,13 @@
 {
-  "name": "ghengis-skills",
-  "description": "Agentic engineering skills and domain expertise for Claude Code",
+  "name": "ghengis-skills-marketplace",
   "owner": {
     "name": "Kgan"
   },
   "plugins": [
     {
       "name": "ghengis-skills",
-      "description": "42 skills covering multi-agent orchestration, prompt quality, agent reliability, security, code intelligence, and domain expertise",
-      "version": "1.0.0",
-      "source": "./",
-      "author": {
-        "name": "Kgan"
-      }
+      "source": "./plugins/ghengis-skills",
+      "description": "42 skills covering multi-agent orchestration, prompt quality, agent reliability, security, code intelligence, and domain expertise"
     }
   ]
 }
