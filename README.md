@@ -1,6 +1,27 @@
-# Ghengis Skills
+<div align="center">
 
-A Claude Code plugin that makes Claude smarter, faster, and more autonomous. 42 skills covering multi-agent orchestration, prompt quality validation, agent reliability, session management, project scaffolding, security testing, code intelligence, and deep domain expertise across 20+ fields.
+```
+   ██████╗ ██╗  ██╗███████╗███╗   ██╗ ██████╗ ██╗███████╗
+  ██╔════╝ ██║  ██║██╔════╝████╗  ██║██╔════╝ ██║██╔════╝
+  ██║  ███╗███████║█████╗  ██╔██╗ ██║██║  ███╗██║███████╗
+  ██║   ██║██╔══██║██╔══╝  ██║╚██╗██║██║   ██║██║╚════██║
+  ╚██████╔╝██║  ██║███████╗██║ ╚████║╚██████╔╝██║███████║
+   ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝╚══════╝
+                     S K I L L S
+```
+
+[![Skills](https://img.shields.io/badge/skills-42-blue?style=for-the-badge)](./plugins/ghengis-skills/skills/)
+[![Evals](https://img.shields.io/badge/evals-42-green?style=for-the-badge)](./plugins/ghengis-skills/evals/)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange?style=for-the-badge)](https://code.claude.com)
+[![License](https://img.shields.io/badge/license-MIT-purple?style=for-the-badge)](./LICENSE)
+
+**Make Claude smarter, faster, and more autonomous.**
+
+*42 skills covering multi-agent orchestration, prompt quality validation, agent reliability, security testing, code intelligence, and domain expertise across 20+ fields.*
+
+---
+
+</div>
 
 Skills are lightweight — they load on-demand and don't bloat your context window. Unlike MCP servers that inject tool schemas into every message, skills activate only when relevant, adding zero overhead the rest of the time.
 
