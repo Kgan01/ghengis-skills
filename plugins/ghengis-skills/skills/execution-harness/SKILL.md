@@ -102,6 +102,60 @@ When a new session starts and needs to continue:
 3. **Check artifacts** — verify files exist, git state is clean
 4. **Continue from the next pending task** — no need to redo anything
 
+### Fresh Start vs. Compaction
+
+**Prefer starting fresh** over compacting when context has degraded. Opus 4.6 is extremely effective at rediscovering state from the filesystem. A fresh context with good state files often outperforms a compacted context with degraded history.
+
+**When to start fresh:**
+- After 2+ compactions in the same session (diminishing returns)
+- When output quality has visibly degraded (repetition, drift, errors)
+- At natural phase boundaries (setup complete, moving to implementation)
+
+**When to compact instead:**
+- Mid-task where you need the immediate conversation context
+- When the state is too complex to capture in files (intricate debugging session)
+- When checkpoint files don't exist yet
+
+**For the first context window**, use a different prompt: set up the framework (write tests, create setup scripts, save initial state). Future windows iterate on the task list.
+
+### State Management Patterns
+
+Use structured files + git to carry state across sessions.
+
+**Structured state file** (`tests.json`):
+```json
+{
+  "tests": [
+    {"id": 1, "name": "auth_flow", "status": "passing"},
+    {"id": 2, "name": "user_crud", "status": "failing"},
+    {"id": 3, "name": "api_endpoints", "status": "not_started"}
+  ],
+  "total": 15, "passing": 10, "failing": 3, "not_started": 2
+}
+```
+
+**Progress notes** (`progress.txt`):
+```
+Session 3 progress:
+- Fixed auth token validation
+- Updated user model for edge cases
+- Next: investigate user_crud test failures (test #2)
+- Note: Do not remove tests — this could mask bugs
+```
+
+**Setup script** (`init.sh`):
+```bash
+#!/bin/bash
+# Run this at the start of each session
+cd project_root && pip install -r requirements.txt
+python -m pytest tests/ --tb=short -q
+cat progress.txt
+```
+
+**Git as state tracking:** Commit after each completed task. Git log provides a natural audit trail. Tag phase boundaries (`git tag phase-1-complete`).
+
+**Key principle:** Write tests in the first session, track them in a structured format, and remind future sessions: "Do not remove or edit tests — this could lead to missing or buggy functionality."
+
 ## Task Decomposition Rules
 
 Good decomposition:

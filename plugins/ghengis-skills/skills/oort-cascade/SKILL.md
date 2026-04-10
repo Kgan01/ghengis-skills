@@ -175,19 +175,41 @@ Roles pass structured data downstream -- not prose paragraphs. See `handoff-prot
 
 Every cascade includes validation. See `quality-gates.md` for the full scoring system.
 
+### Functional Testing (Not Just Scoring)
+
+The validator must **use the output like a user would**, not just read and rate it. Scoring without execution catches surface problems; functional testing catches real ones.
+
+| Output Type | Functional Test |
+|-------------|----------------|
+| Code | Run it. Execute tests. Check imports resolve. Verify the build passes. |
+| API endpoints | Call them. Send real requests. Check response shapes and status codes. |
+| Web UI / frontend | Load it in a browser (Playwright, puppeteer). Click through flows. Screenshot results. |
+| Documents / reports | Check all claims are sourced. Verify data points against inputs. |
+| Config / infrastructure | Dry-run or validate syntax (`terraform validate`, `docker compose config`). |
+| 3D models | Check mesh integrity, verify printability constraints. |
+
+**Tune the validator to skepticism.** Models praise their own work — a separate validator context with instructions to find problems catches what self-review misses. The validator prompt should say "find what's wrong" not "check if it's good."
+
+```
+Validator prompt pattern:
+  "Your job is to BREAK this, not approve it.
+   Run the code. Hit the endpoints. Click the buttons.
+   Score based on what actually works, not what looks right."
+```
+
 ### The Builder-Validator Loop
 
 ```
 Builder produces output
     |
-Validator scores 0-10 on rubric
+Validator RUNS functional tests (not just reads)
     |
 Score >= 7?  -->  Accept, continue pipeline
 Score < 7?   -->  Send feedback to Builder with specific issues
     |
 Builder revises addressing ALL listed issues
     |
-Validator re-scores
+Validator re-tests (functional, not just re-reads)
     |
 Accept (max 2 revision loops to prevent infinite cycles)
 ```
@@ -272,3 +294,26 @@ Here is the full execution flow for a cascade:
 ```
 
 The power of OORT is not in the framework -- it is in the discipline of decomposition, structured handoffs, and closed-loop validation. Apply the pattern; skip the ceremony when the task does not warrant it.
+
+## Subagent Dispatch Guardrails
+
+Opus 4.6 has a strong native tendency to spawn subagents. Combined with OORT's cascade pattern, this can cause over-spawning — subagents spawning subagents, coordination overhead exceeding the work itself.
+
+**Use subagents (cascade) when:**
+- Tasks can genuinely run in parallel with no shared state
+- Different specializations are required (research vs build vs validate)
+- The deliverable benefits from isolated contexts (independent perspectives)
+- Work is substantial enough that coordination overhead is worth it
+
+**Work directly (no cascade) when:**
+- A single grep, file read, or lookup answers the question
+- The task is a sequential chain where each step needs the previous result immediately
+- Single-file edits or small focused changes
+- The task takes less than 2 minutes of focused work
+- You already have the context you need — don't delegate understanding
+
+**Anti-patterns to avoid:**
+- Spawning a Researcher subagent when you could just grep the codebase yourself
+- Creating a Validator subagent for a 10-line code change — just run the tests directly
+- Cascading a task that has one obvious approach — cascading adds overhead, not quality
+- Nesting cascades — if a subagent needs its own cascade, the decomposition is wrong

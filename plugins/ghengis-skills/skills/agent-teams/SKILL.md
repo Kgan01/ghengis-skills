@@ -114,6 +114,10 @@ Output your synthesized result.
 - Data analysis (numbers don't benefit from creative lenses)
 - Single-answer questions ("What is the capital of France?")
 - Tasks where the user already knows exactly what they want
+- Tasks you can complete well in a single focused pass — teams add overhead
+- Simple file reads, grep searches, or lookups — do these directly, don't delegate
+
+**Opus 4.6 note:** This model naturally spawns subagents without being told to. If you are running on Opus 4.6, applying agent-teams on top of native subagent behavior can cause over-spawning (subagents spawning subagents). Only use agent-teams when the creative perspective diversity genuinely adds value. For tasks that just need parallel execution without creative lenses, use direct parallel tool calls instead.
 
 ## Controlling Team Size
 

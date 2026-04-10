@@ -7,6 +7,31 @@ description: Use during long-running sessions or complex multi-step tasks -- det
 
 Detects when a long conversation or multi-step task is degrading due to context window pressure, task drift, or tool failure spirals. Provides recovery strategies: truncate, checkpoint-restart, re-anchor, or warn. Zero LLM cost, sub-millisecond latency -- pure heuristics and token estimation.
 
+## Native Context Awareness (Claude 4.5+ / Opus 4.6)
+
+Claude 4.5 and 4.6 models natively track their remaining context window. This changes how context health works:
+
+**What the model does natively:**
+- Tracks remaining token budget throughout conversation
+- Can self-manage context when told about compaction behavior
+- Discovers state from the filesystem after context resets (extremely effective on Opus 4.6)
+- Naturally wraps up work as context limit approaches (unless told otherwise)
+
+**What this skill still provides:**
+- Task drift detection (models don't self-detect drift reliably)
+- Tool failure rate tracking (models don't aggregate failure patterns)
+- Structured checkpoint format for cross-session continuity
+- Recovery strategy selection (truncate vs restart vs re-anchor)
+
+**Tell the model about compaction** when using an agent harness that compacts:
+```
+Your context window will be automatically compacted as it approaches its limit,
+allowing you to continue working indefinitely. Do not stop tasks early due to
+token budget concerns. Save progress to files before the window refreshes.
+```
+
+**Prefer starting fresh over compacting** when possible. Opus 4.6 is extremely effective at rediscovering state from the filesystem -- reading progress files, git logs, and test results. A fresh context with good state files often outperforms a compacted context with degraded history.
+
 ## When to Check Context Health
 
 - **After every N tool calls** (every 5-10 is a good interval for complex tasks)
@@ -21,7 +46,9 @@ Detects when a long conversation or multi-step task is degrading due to context 
 Different models degrade at different context utilization levels. These thresholds are based on empirical quality degradation curves.
 
 ### Full Tier (resilient, less than 5% quality loss across wide range)
-**Models:** opus, sonnet, gpt-4o, gpt-4, gpt-5, gemini-pro, gemini-2.5-pro, gemini-3-pro, claude-4, claude-3.5-sonnet, o1, o3
+**Models:** opus-4.6, sonnet-4.6, opus-4.5, sonnet-4.5, opus, sonnet, gpt-4o, gpt-4, gpt-5, gemini-pro, gemini-2.5-pro, gemini-3-pro, claude-4, claude-3.5-sonnet, o1, o3
+
+Note: Opus 4.6 has a 1M context window and handles degradation even more gracefully than earlier models. It may not need active health checks until much later thresholds.
 
 | Zone | Token Threshold | Action |
 |------|----------------|--------|
@@ -31,7 +58,7 @@ Different models degrade at different context utilization levels. These threshol
 | Hard limit | 180,000+ | Must restart with checkpoint |
 
 ### Compact Tier (degrades earlier, ~50% quality drop at upper range)
-**Models:** haiku, gpt-4o-mini, gemini-flash, deepseek, codestral, grok, mistral-small, mistral-medium, gemini-2.0-flash, gemini-2.5-flash, gemini-3-flash, perplexity-sonar, groq-llama, claude-3.5-haiku
+**Models:** haiku-4.5, haiku, gpt-4o-mini, gemini-flash, deepseek, codestral, grok, mistral-small, mistral-medium, gemini-2.0-flash, gemini-2.5-flash, gemini-3-flash, perplexity-sonar, groq-llama, claude-3.5-haiku
 
 | Zone | Token Threshold | Action |
 |------|----------------|--------|

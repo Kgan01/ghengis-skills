@@ -1,8 +1,18 @@
 # Ghengis Skills
 
-A Claude Code plugin that makes Claude smarter, faster, and more autonomous. 42 skills covering multi-agent orchestration, prompt quality validation, agent reliability, session management, project scaffolding, security testing, code intelligence, and deep domain expertise across 20+ fields.
+A Claude Code plugin that makes Claude smarter, faster, and more autonomous. 43 skills covering multi-agent orchestration, prompt quality validation, agent reliability, session management, project scaffolding, security testing, code intelligence, and deep domain expertise across 20+ fields.
 
 Skills are lightweight — they load on-demand and don't bloat your context window. Unlike MCP servers that inject tool schemas into every message, skills activate only when relevant, adding zero overhead the rest of the time.
+
+### v1.4.0 — Opus 4.6 Optimizations
+
+Updated for Claude Opus 4.6 based on [Anthropic's prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices), [harness design patterns](https://www.anthropic.com/engineering/harness-design-long-running-apps), and [Managed Agents architecture](https://www.anthropic.com/engineering/managed-agents):
+
+- **Functional testing in OORT** — Validators now run the output (execute tests, call endpoints, load in browser) instead of just scoring it. Tuned to skepticism.
+- **Subagent guardrails** — oort-cascade, agent-teams, and meta-prompting include dispatch guardrails for Opus 4.6, which has a strong native tendency to spawn subagents. Prevents over-spawning.
+- **Native context awareness** — context-health updated for models that track their own context window. Shift from detection to leveraging native awareness. Fresh-start guidance over compaction.
+- **State management patterns** — execution-harness now includes structured state files (tests.json, progress.txt), setup scripts, and git-as-state-tracking for multi-window workflows.
+- **Model tier updates** — context-health model tiers updated for opus-4.6, sonnet-4.6, haiku-4.5.
 
 ## Why Use This
 
@@ -101,7 +111,7 @@ These change how Claude approaches complex work — orchestration patterns extra
 
 | Skill | What It Does |
 |-------|-------------|
-| **oort-cascade** | Multi-agent orchestration — breaks complex tasks into specialized roles (researcher, builder, validator), wires them into dependency DAGs, executes in parallel waves, and runs revision loops until quality passes |
+| **oort-cascade** | Multi-agent orchestration — breaks complex tasks into specialized roles (researcher, builder, validator), wires them into dependency DAGs, executes in parallel waves, and runs functional testing + revision loops. Includes subagent dispatch guardrails for Opus 4.6 |
 | **meta-prompting** | 22 role templates for dispatching subagents. Instead of forwarding raw requests, generates tailored instructions per role with context injection, deliverable specs, and execution boundaries |
 | **agent-teams** | Spawns parallel agents with different creative perspectives (Minimalist, Bold, Technical, Playful, Elegant), then synthesizes the strongest elements from each into a final output |
 | **pql-validation** | Prompt Quality Layer — 35 anti-pattern checks across 6 categories (task, context, format, scope, reasoning, agentic). Catches vague verbs, missing constraints, hallucination invitations, and unsafe delegation before execution |
@@ -117,8 +127,8 @@ These keep agents honest, healthy, and on track — catching failures that norma
 |-------|-------------|
 | **completion-enforcer** | 70+ signal phrases detect when an agent claims "done" but left placeholders, TODOs, or unfinished work. Five heuristic checks verify structural completeness. Zero cost, instant. |
 | **hallucination-detector** | Signal-based detection of fabricated URLs, unsourced statistics, fake citations, and impossible future claims. Catches confabulation without an LLM verification call. |
-| **context-health** | Monitors context window usage mid-session, detects degradation and task drift, offers three recovery strategies (truncate, checkpoint-restart, re-anchor). Prevents the silent quality collapse that happens in long sessions. |
-| **execution-harness** | Multi-session orchestration for large projects. Decomposes work into 3-15 checkpointed tasks, tracks progress across session boundaries, supports pause/resume, and includes human review gates between phases. |
+| **context-health** | Monitors context window usage mid-session, detects degradation and task drift, offers three recovery strategies (truncate, checkpoint-restart, re-anchor). Updated for Opus 4.6 native context awareness — leverages the model's own tracking while still catching drift and failure spirals. |
+| **execution-harness** | Multi-session orchestration for large projects. Decomposes work into 3-15 checkpointed tasks, tracks progress across session boundaries with structured state files (tests.json, progress.txt), supports fresh-start-over-compact strategy, git-as-state-tracking, and human review gates. |
 | **constitutional-ai** | *(also listed in Agentic Engineering)* Pre/post execution safety checks that prevent irreversible actions before they happen. |
 
 ### Agent Learning & Adaptation (5 skills)

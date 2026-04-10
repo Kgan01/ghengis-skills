@@ -164,6 +164,29 @@ STOP CONDITIONS (pause and ask for human review):
 - If the change requires modifying more than 5 files
 ```
 
+## Subagent Dispatch Guardrails
+
+Opus 4.6 has a strong native tendency to spawn subagents. Meta-prompting should guide dispatch decisions, not encourage blanket delegation.
+
+**Dispatch to a subagent when:**
+- The task requires a genuinely different specialization (researcher vs builder vs validator)
+- The work can run in parallel without shared state
+- Isolated context improves output quality (the subagent shouldn't see the builder's mistakes)
+- The task is substantial enough to justify coordination overhead
+
+**Work directly (skip the subagent) when:**
+- A single grep, file read, or direct tool call answers the question
+- The task is a sequential chain where each step needs immediate access to the previous result
+- You already have the context — delegating forces you to re-explain what you already know
+- The task takes under 2 minutes of focused work
+- You'd spend more tokens writing the meta-prompt than doing the work
+
+**Signs of over-dispatching:**
+- Spawning a researcher subagent to read one file
+- Creating a validator for a 10-line change — just run the tests yourself
+- Writing a 200-token meta-prompt for a 50-token task
+- Subagents spawning their own subagents (decomposition is wrong — flatten it)
+
 ## Building a Custom Role
 
 If none of the 22 roles fit, create a generic role prompt:

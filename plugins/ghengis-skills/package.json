@@ -1,6 +1,6 @@
 {
   "name": "ghengis-skills",
-  "version": "1.0.0",
+  "version": "1.4.0",
   "description": "Agentic engineering skills and domain expertise for Claude Code",
   "type": "module",
   "keywords": [
