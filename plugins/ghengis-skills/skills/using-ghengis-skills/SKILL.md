@@ -113,8 +113,9 @@ These situations ALWAYS require the listed skill — no exceptions:
 | Data analysis / visualization | `ghengis-skills:data-analysis` |
 | Writing reports / structured docs | `ghengis-skills:report-writing` |
 | Writing content / blog posts / docs | `ghengis-skills:content-writing` |
-| Need multiple creative perspectives | `ghengis-skills:agent-teams` |
+| Need multiple creative perspectives, parallel ideation, or comparing 2+ approaches | **`ghengis-skills:agent-teams` (AUTO-FIRE)** |
 | Multi-step pipeline with role decomposition | `ghengis-skills:oort-cascade` |
+| Noticed a repeated multi-step workflow done 2+ times (e.g., research→spec→plan→execute happens regularly) | **`ghengis-skills:blueprint-compilation` (AUTO-FIRE)** |
 | Reviewing AI/agent output for hallucinations | `ghengis-skills:hallucination-detector` |
 | Building agentic workflow | `ghengis-skills:constitutional-ai` (safety boundaries) |
 | Long-running session, context degradation | `ghengis-skills:context-health` |
@@ -142,6 +143,45 @@ These situations ALWAYS require the listed skill — no exceptions:
 | Financial record-keeping / tax prep | `ghengis-skills:bookkeeping` |
 | Client/freelance project management | `ghengis-skills:crm-patterns` |
 
+## Aggressive Auto-Fire Skills
+
+These skills should fire **proactively without user prompting** when their conditions match — don't wait for the user to ask:
+
+### agent-teams — Auto-fire when:
+- User asks "what are some options for X" or "compare approaches"
+- Brainstorming session with 2+ candidate directions
+- Creative output where divergence-then-synthesis would help
+- User says "give me different angles" or similar
+- Architecture decision with multiple valid paths
+
+### blueprint-compilation — Auto-fire when:
+- You've executed the same multi-step workflow 2+ times in the project
+  (e.g., "research → spec → plans → subagent execution" pattern)
+- User has a repeated process they manually trigger each time
+- Detecting "this feels like something we just did"
+- After completing any multi-phase build, ask: "Should I blueprint this?"
+
+### auto-project-sync — Auto-fire when:
+- subagent-driven-development reports all tasks complete
+- `superpowers:finishing-a-development-branch` invoked
+- 5+ commits since last sync (check `.claude/last_sync`)
+- User signals a major phase done ("Phase X complete", "all done", "great work")
+
+### meta-prompting — Auto-fire when:
+- About to write ANY subagent prompt
+- About to dispatch via Agent tool with custom prompt
+- Never write subagent prompts freehand without this skill
+
+### pql-validation — Auto-fire when:
+- Just generated a subagent prompt (validate before dispatch)
+- About to send a complex prompt to an LLM
+- Reviewing prompts written by user or other agents
+
+### completion-enforcer — Auto-fire when:
+- Subagent reports DONE, COMPLETE, or similar
+- About to mark a task done in TaskUpdate
+- Before claiming "all tasks complete" to the user
+
 ## Red Flags
 
 These thoughts mean STOP — you're rationalizing:
@@ -155,6 +195,9 @@ These thoughts mean STOP — you're rationalizing:
 | "The agent finished, looks good" | completion-enforcer catches premature/false completions. |
 | "I'll do shallow research" | If complex, use deep-research. Don't skip the methodology. |
 | "FastAPI is just web code" | The fastapi skill has patterns specific to async/Pydantic v2/dependency injection. Use it. |
+| "I'll just synthesize myself instead of using agent-teams" | Multiple perspectives produce better results than solo synthesis. Use it. |
+| "I'll remember this pattern for next time" | You won't. Blueprint it. |
+| "Sync can wait" | Drift compounds. Sync after every meaningful batch. |
 
 ## Coexistence with Superpowers
 
