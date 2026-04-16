@@ -128,6 +128,8 @@ These situations ALWAYS require the listed skill — no exceptions:
 | Organizing files / cleanup | `ghengis-skills:file-organization` |
 | Tracking goals across multi-step work | `ghengis-skills:goal-tracking` |
 | Tracking tasks/projects/priorities | `ghengis-skills:task-tracking` |
+| Major work batch completed (plan execution, feature build, multi-task subagent run) | `ghengis-skills:auto-project-sync` |
+| User runs `/sync` slash command | `ghengis-skills:auto-project-sync` |
 | Adapting agent behavior to user style | `ghengis-skills:agent-identity` |
 | Codebase exploration / architecture analysis | `ghengis-skills:code-intelligence` |
 | Formatting output for specific destination | `ghengis-skills:output-formatting` |
