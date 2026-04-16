@@ -1,7 +1,7 @@
 {
   "name": "ghengis-skills",
-  "description": "42 skills for Claude Code — multi-agent orchestration, prompt quality validation, agent reliability, security testing, code intelligence, and domain expertise",
-  "version": "1.4.1",
+  "description": "43 skills for Claude Code — autoloader, multi-agent orchestration, prompt quality validation, agent reliability, security testing, code intelligence, and domain expertise",
+  "version": "1.4.2",
   "author": {
     "name": "Kgan"
   },
