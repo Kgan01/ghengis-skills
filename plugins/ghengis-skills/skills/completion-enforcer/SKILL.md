@@ -188,11 +188,58 @@ When incompleteness is detected, do not just flag it -- fix it:
 5. **Expand short outputs** -- if output is too short for the instruction complexity, expand with actual content
 6. **Add missing deliverables** -- if code was expected but not delivered, write the code
 
+## Check 6: Multi-Stage Verification (ASI-Evolve Pattern)
+
+For non-trivial deliverables, a single pass is not enough. ASI-Evolve (arxiv 2603.29640) demonstrated that discoveries validated at small scale (20M parameters) often fail at medium scale (340M) and need re-validation at full scale (1.3B). The same principle applies to code, content, and any agent output.
+
+**Three verification tiers:**
+
+| Tier | What It Checks | Cost | When to Use |
+|------|---------------|------|-------------|
+| **Proxy** | Lint, type-check, syntax, format | $0, <1s | Every deliverable |
+| **Functional** | Unit tests, integration tests, endpoint smoke tests | $0-0.01, <30s | Code changes, API work |
+| **Full** | Manual smoke test, cross-validation script, user-facing walkthrough | Variable | Features, UI changes, deployments |
+
+**The rule:** A deliverable that passes Tier 1 but hasn't been Tier 2 tested is NOT complete. A deliverable that passes Tier 2 but involves user-facing changes and hasn't been Tier 3 tested is NOT complete.
+
+**Detection:** Check what tier the implementer actually reached:
+
+```
+Tier 1 signals (proxy only):
+- "lint passes" / "no type errors" / "compiles cleanly"
+- But no test execution mentioned
+
+Tier 2 signals (functional):
+- "X tests passing" / "pytest output" / "curl returned 200"
+- But no manual verification of the user-facing behavior
+
+Tier 3 signals (full):
+- "tested in browser" / "smoke-tested on device" / "verified the UI flow"
+- Screenshots, recordings, or specific behavioral descriptions
+```
+
+**Recovery by tier gap:**
+
+| Gap | Recovery Action |
+|-----|----------------|
+| Only Tier 1 claimed | Run the test suite. Report results. |
+| Tier 2 passed but Tier 3 skipped on UI work | Start the dev server, test the golden path + one edge case. Report what you see. |
+| Tier 2 passed but Tier 3 infeasible (no emulator, no browser) | Explicitly state "Tier 3 not verified — [reason]". Do NOT claim full completion. |
+
+**When Tier 3 is infeasible:** It is honest and correct to say "functional tests pass but I cannot verify the UI behavior because [no emulator available / no browser access / etc.]." Claim DONE_WITH_CONCERNS, not DONE. The user decides whether to accept.
+
+**Multi-stage for subagent review:**
+When reviewing a subagent's work, check which tier they reached:
+1. Did they run any tests at all? (Many subagents claim "done" without running anything)
+2. Did they run the RIGHT tests? (Running unrelated tests is not verification)
+3. Did they verify the SPECIFIC behavior the task requested? (Running the full suite doesn't prove the new feature works)
+
 ## Integration with Other Skills
 
 - **constitutional-ai** catches intent violations (dangerous actions, privacy leaks). Completion enforcer catches output quality (did you actually finish?).
 - **hallucination-detector** catches fabricated content. Completion enforcer catches missing content.
 - **context-health** detects when context degradation causes declining output quality. Completion enforcer detects when the final output is incomplete regardless of cause.
+- **evolving-cognition** prevents the same incompleteness pattern NEXT TIME by distilling lessons from past outcomes. Completion enforcer catches it NOW.
 
 ## Cost
 
