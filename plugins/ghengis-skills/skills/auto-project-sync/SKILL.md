@@ -1,6 +1,6 @@
 ---
 name: auto-project-sync
-description: Use after completing a major work batch (plan execution, feature build, multi-task subagent run) to update CLAUDE.md, MEMORY.md, project indexes, and documentation to reflect current state. Captures lessons learned, marks completed plans, and keeps project DNS in sync with reality.
+description: Use after completing a major work batch (plan execution, feature build, multi-task subagent run) to update CLAUDE.md, MEMORY.md, project indexes, documentation, and propagate new permissions to global settings. Captures lessons learned, marks completed plans, ratchets reusable permissions across all projects, and keeps project DNS in sync with reality.
 allowed-tools: Read Write Edit Glob Grep Bash
 ---
 
@@ -36,6 +36,7 @@ Update project documentation after a significant work batch completes, so the ne
 | **docs/superpowers/specs/INDEX.md** | List of specs with status (draft/approved/implemented) |
 | **docs/superpowers/plans/INDEX.md** | List of plans with completion status (% tasks done) |
 | **README.md** | Top-level project description if scope changed |
+| **~/.claude/settings.json** | New reusable permissions promoted from project-local to global (permission ratchet) |
 | **.claude/last_sync** | Timestamp of this sync (used by hooks for threshold checks) |
 
 ## Workflow
@@ -99,6 +100,49 @@ Read current versions:
 
 **CONTEXT.md updates:**
 - If new top-level modules added, update workspace routing table
+
+### Step 4.5: Sync Permissions to Global Settings (Permission Ratchet)
+
+Propagate reusable permissions from this project's `.claude/settings.local.json` to the global `~/.claude/settings.json` so they apply across ALL projects. Over time, the user gets fewer and fewer approval prompts.
+
+**Process:**
+
+1. Read `<project>/.claude/settings.local.json` → `permissions.allow` list
+2. Read `~/.claude/settings.json` → `permissions.allow` and `permissions.deny` lists
+3. Filter project-local allows to ONLY reusable patterns:
+   - Keep: entries with wildcards (`*`) — e.g., `Bash(brew install *)`, `WebFetch(domain:arxiv.org)`
+   - Keep: tool-level allows — e.g., `Read`, `Edit`, `Write`, `WebSearch`
+   - Keep: domain-scoped WebFetch — e.g., `WebFetch(domain:docs.anthropic.com)`
+   - **Skip**: exact one-off commands (no `*`, long paths, specific filenames) — these are session artifacts, not reusable patterns
+   - **Skip**: anything already in the global allow list (dedup)
+   - **Skip**: anything in the global deny list (deny list is immutable)
+4. If new reusable permissions found:
+   - Show the user what will be added: "Promoting N permissions to global settings: [list]"
+   - Add to `~/.claude/settings.json` `permissions.allow`
+   - NEVER touch `permissions.deny` — the deny list from `setup` is permanent
+5. If nothing to promote, skip silently
+
+**Filter heuristic (what counts as "reusable"):**
+
+```python
+def is_reusable_permission(perm: str) -> bool:
+    # Tool-level allows are always reusable
+    if perm in ("Read", "Edit", "Write", "WebSearch", "WebFetch"):
+        return True
+    # Wildcard patterns are reusable
+    if "*" in perm:
+        # But skip patterns with absolute paths to specific files
+        if "/Users/" in perm or "/private/" in perm or "/tmp/" in perm:
+            return False
+        return True
+    # Domain-scoped WebFetch is reusable
+    if perm.startswith("WebFetch(domain:"):
+        return True
+    # Everything else is a one-off exact command — skip
+    return False
+```
+
+**Why this matters:** After 10 sessions, the user's global allow list has grown organically from their actual usage. New projects start with all the permissions they've ever found useful. The deny list never shrinks — dangerous operations always require confirmation.
 
 ### Step 5: Capture Lessons Learned (Optional but Recommended)
 
