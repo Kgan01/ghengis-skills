@@ -1,11 +1,13 @@
 ---
 name: paper-to-code
-description: Use when the user shares a research paper, arxiv link, or asks how to apply academic research to their codebase -- covers strategic paper reading, contribution mapping, spec delta writing, and the "what NOT to adopt" framing. TRIGGER when message contains arxiv.org, "this paper", "read this paper", "apply this research", or references an academic publication.
+description: Use when the user shares a research paper, technical doc, engineering blog post, or asks how to apply external knowledge to their codebase -- covers strategic reading, contribution mapping, spec delta writing, and the "what NOT to adopt" framing. TRIGGER when message contains arxiv.org, a paper/doc URL, "this paper", "read this", "apply this research", "how do we use this", or references a technique from an external source (Anthropic docs, OpenAI blog, conference paper, engineering post).
 ---
 
 # Paper to Code
 
-Systematic workflow for turning academic research into shipping code. Not "implement the paper" — instead: extract the transferable ideas, map them to your existing architecture, write a spec delta, and ship what actually applies.
+Systematic workflow for turning external knowledge (research papers, engineering blog posts, technical docs, conference talks) into shipping code. Not "implement the paper" — instead: extract the transferable ideas, map them to your existing architecture, write a spec delta, and ship what actually applies.
+
+Works for any authoritative source: arxiv papers, Anthropic engineering blogs, OpenAI cookbooks, Google research posts, conference proceedings, SDK documentation with architectural patterns.
 
 ## When to Use
 
