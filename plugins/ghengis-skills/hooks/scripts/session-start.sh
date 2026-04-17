@@ -1,54 +1,66 @@
-#!/bin/bash
-# session-start.sh — Load project context at session start
+#!/usr/bin/env bash
+# session-start.sh — Load project context + inject using-ghengis-skills at session start
 
-echo "=== Session Context ==="
+set -euo pipefail
 
-# Git context
+# Determine plugin root directory
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+
+# Read using-ghengis-skills content
+using_ghengis_content=$(cat "${PLUGIN_ROOT}/skills/using-ghengis-skills/SKILL.md" 2>/dev/null || echo "Error reading using-ghengis-skills skill")
+
+# Build project context diagnostics
+project_context=""
 if command -v git &>/dev/null && git rev-parse --is-inside-work-tree &>/dev/null 2>&1; then
     BRANCH=$(git branch --show-current 2>/dev/null || echo "detached")
-    echo "Branch: $BRANCH"
-    echo ""
-    echo "Recent commits:"
-    git log --oneline -5 2>/dev/null || true
-    echo ""
-
+    RECENT=$(git log --oneline -3 2>/dev/null || true)
     CHANGES=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
-    if [ "$CHANGES" -gt 0 ]; then
-        echo "Uncommitted changes: $CHANGES files"
-        git status --short 2>/dev/null
-        echo ""
-    fi
+    project_context="Branch: ${BRANCH}. Recent: ${RECENT}. Uncommitted: ${CHANGES} files."
 fi
 
-# Session state recovery (execution-harness checkpoints)
-for f in CHECKPOINT.md docs/harness/*.md; do
-    if [ -f "$f" ]; then
-        echo "==============================="
-        echo "ACTIVE CHECKPOINT DETECTED: $f"
-        echo "==============================="
-        head -20 "$f"
-        echo ""
-        echo "Read full file to resume."
-        break
-    fi
-done
-
-# In-progress work detection
-if [ -f "docs/TODO.md" ]; then
-    IN_PROGRESS=$(grep -c "In Progress\|in.progress\|\bWIP\b" "docs/TODO.md" 2>/dev/null || echo 0)
-    if [ "$IN_PROGRESS" -gt 0 ]; then
-        echo "TODO: $IN_PROGRESS in-progress items — read docs/TODO.md"
-    fi
+# Check for pending sync
+pending_sync=""
+if [ -f ".claude/pending_sync.md" ]; then
+    pending_sync=$(cat .claude/pending_sync.md 2>/dev/null || true)
 fi
 
-# Code health
-SRC_DIRS="src apps lib"
-for dir in $SRC_DIRS; do
-    if [ -d "$dir" ]; then
-        TODO_COUNT=$(grep -rn "TODO\|FIXME\|HACK\|XXX" "$dir" 2>/dev/null | wc -l | tr -d ' ')
-        if [ "$TODO_COUNT" -gt 0 ]; then
-            echo "Code health: $TODO_COUNT TODO/FIXME markers in $dir/"
-        fi
-        break
-    fi
-done
+# Escape string for JSON embedding
+escape_for_json() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
+    printf '%s' "$s"
+}
+
+using_ghengis_escaped=$(escape_for_json "$using_ghengis_content")
+project_escaped=$(escape_for_json "$project_context")
+pending_escaped=$(escape_for_json "$pending_sync")
+
+session_context="<EXTREMELY_IMPORTANT>\nYou have ghengis-skills installed.\n\n**Below is the full content of your 'ghengis-skills:using-ghengis-skills' skill. For all ghengis skills, use the 'Skill' tool with the ghengis-skills: prefix:**\n\n${using_ghengis_escaped}\n\n"
+
+# Add project context
+if [ -n "$project_context" ]; then
+    session_context="${session_context}Project context: ${project_escaped}\n"
+fi
+
+# Add pending sync notice
+if [ -n "$pending_sync" ]; then
+    session_context="${session_context}\n${pending_escaped}\nRun /sync to update project docs.\n"
+fi
+
+session_context="${session_context}</EXTREMELY_IMPORTANT>"
+
+# Output context injection as JSON — matching the platform-specific format.
+if [ -n "${CURSOR_PLUGIN_ROOT:-}" ]; then
+    printf '{\n  "additional_context": "%s"\n}\n' "$session_context"
+elif [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -z "${COPILOT_CLI:-}" ]; then
+    printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s"\n  }\n}\n' "$session_context"
+else
+    printf '{\n  "additionalContext": "%s"\n}\n' "$session_context"
+fi
+
+exit 0

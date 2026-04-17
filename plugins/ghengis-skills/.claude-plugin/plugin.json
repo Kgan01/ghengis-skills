@@ -1,7 +1,7 @@
 {
   "name": "ghengis-skills",
   "description": "44 skills for Claude Code — autoloader, auto project sync, aggressive agent-teams + blueprint-compilation auto-fire, multi-agent orchestration, prompt quality validation, agent reliability, security testing, code intelligence, and domain expertise",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "author": {
     "name": "Kgan"
   },
