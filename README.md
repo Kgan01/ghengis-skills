@@ -10,14 +10,14 @@
                      S K I L L S
 ```
 
-[![Skills](https://img.shields.io/badge/skills-44-blue?style=for-the-badge)](./plugins/ghengis-skills/skills/)
+[![Skills](https://img.shields.io/badge/skills-46-blue?style=for-the-badge)](./plugins/ghengis-skills/skills/)
 [![Evals](https://img.shields.io/badge/evals-42-green?style=for-the-badge)](./plugins/ghengis-skills/evals/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange?style=for-the-badge)](https://code.claude.com)
 [![License](https://img.shields.io/badge/license-MIT-purple?style=for-the-badge)](./LICENSE)
 
 **Make Claude smarter, faster, and more autonomous.**
 
-*44 skills covering multi-agent orchestration, prompt quality validation, agent reliability, security testing, code intelligence, and domain expertise across 20+ fields. Includes an autoloader that forces relevant skills to fire automatically — same pattern as superpowers.*
+*46 skills covering evolving cognition, paper-to-code research translation, multi-agent orchestration, prompt quality validation, agent reliability, security testing, code intelligence, and domain expertise across 20+ fields. Includes an autoloader that forces relevant skills to fire automatically — same pattern as superpowers.*
 
 ---
 
@@ -25,11 +25,11 @@
 
 Skills are lightweight — they load on-demand and don't bloat your context window. Unlike MCP servers that inject tool schemas into every message, skills activate only when relevant, adding zero overhead the rest of the time.
 
-## What's New (v1.5.0)
+## What's New (v1.7.0)
 
-- **Autoloader (`using-ghengis-skills`)** — Forces relevant skills to fire automatically, mirroring the superpowers pattern. No more skills sitting unused while you wing it.
-- **Auto Project Sync (`auto-project-sync`)** — After major work batches (plan execution, feature builds), automatically updates CLAUDE.md, MEMORY.md, and project indexes to reflect current state. Plus `/sync` slash command for manual triggers.
-- **Aggressive auto-fire for `agent-teams` and `blueprint-compilation`** — These skills now fire proactively when conditions match (multiple perspectives needed, repeated workflows detected).
+- **Evolving Cognition (`evolving-cognition`)** — ASI-Evolve-inspired pattern for agents that learn from measurable outcomes. Covers fitness signal design, cognition store schema, UCB1 retrieval, Analyzer prompts, poison mitigations (contradiction flags, confidence decay, retirement thresholds), and audit loops. Auto-fires on "feedback loop", "agents getting smarter", "learn from outcomes".
+- **Paper to Code (`paper-to-code`)** — Turn any research paper, engineering blog, or technical doc into shipping code. Strategic reading order, contribution mapping tables, explicit "what NOT to adopt" phase, spec-delta writing. Auto-fires on arxiv URLs, paper links, "apply this research".
+- **Multi-Stage Verification (enhanced `completion-enforcer`)** — New Check 6 adds the ASI-Evolve 3-tier evaluation pattern: proxy (lint/type-check) -> functional (tests) -> full (manual/UI verification). Catches "tests pass but I didn't actually try it" false completions.
 
 ## Why Use This
 
@@ -56,7 +56,7 @@ In Claude Code, run:
 
 The first two install the plugin. The third configures autonomous permissions — safe dev tools are auto-allowed, dangerous operations are blocked. Restart Claude Code after setup.
 
-All 42 skills are now available in every session — CLI, desktop app, and mobile. Claude loads them automatically when it detects a matching task.
+All 46 skills are now available in every session — CLI, desktop app, and mobile. Claude loads them automatically when it detects a matching task.
 
 ### For Teams
 
