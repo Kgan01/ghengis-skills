@@ -124,23 +124,41 @@ Propagate reusable permissions from this project's `.claude/settings.local.json`
 
 **Filter heuristic (what counts as "reusable"):**
 
+Broad strokes: accept anything with a wildcard unless it's pinned to an exact home-directory file. Generalize project-specific names (venvs, dated paths) so one approval covers similar future patterns.
+
 ```python
+import re
+
+def generalize(perm: str) -> str:
+    """Rewrite project-specific tokens into patterns so one allow covers future siblings."""
+    # venv_kronos, venv_weather, env_myproject -> venv*, env*
+    perm = re.sub(r"\b(venv|env)_[A-Za-z0-9_-]+", r"\1_*", perm)
+    # Date-stamped paths: 2026-04-17 -> *
+    perm = re.sub(r"\b20\d{2}-\d{2}-\d{2}\b", "*", perm)
+    # Specific python version pinning: python@3.13/3.13.7 -> python@*/**
+    perm = re.sub(r"python@\d+\.\d+/\d+\.\d+\.\d+", "python@*", perm)
+    return perm
+
 def is_reusable_permission(perm: str) -> bool:
     # Tool-level allows are always reusable
     if perm in ("Read", "Edit", "Write", "WebSearch", "WebFetch"):
         return True
-    # Wildcard patterns are reusable
-    if "*" in perm:
-        # But skip patterns with absolute paths to specific files
-        if "/Users/" in perm or "/private/" in perm or "/tmp/" in perm:
-            return False
-        return True
-    # Domain-scoped WebFetch is reusable
+    # Domain-scoped WebFetch is always reusable
     if perm.startswith("WebFetch(domain:"):
         return True
-    # Everything else is a one-off exact command — skip
-    return False
+    # No wildcard = one-off exact command, skip
+    if "*" not in perm:
+        return False
+    # Wildcard patterns are reusable UNLESS they pin to a home-specific file
+    # (broad paths like /Users/**/Library/** or /usr/local/** are still useful)
+    if re.search(r"/Users/[^/*]+/(Desktop|Documents|Downloads)/[^/*]+/[^*]*\.", perm):
+        return False  # e.g. /Users/kae/Desktop/project/specific-file.txt
+    if "/private/tmp" in perm or "/tmp/" in perm:
+        return False
+    return True
 ```
+
+Run every candidate through `generalize()` before `is_reusable_permission()` so promoted entries cover similar future paths. Dedup against the global allow list after generalization to avoid duplicate patterns.
 
 **Why this matters:** After 10 sessions, the user's global allow list has grown organically from their actual usage. New projects start with all the permissions they've ever found useful. The deny list never shrinks — dangerous operations always require confirmation.
 
