@@ -56,6 +56,17 @@
             "if": "Bash(git push*)"
           }
         ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Check if the assistant used ghengis-skills:meta-prompting patterns (role identity, specific deliverable, output format) and ghengis-skills:pql-validation (no vague prompts, no 'check the code', specific context given) in the Agent prompt being dispatched. The prompt should have: 1) A clear ROLE for the subagent, 2) A specific DELIVERABLE, 3) CONTEXT from prior work, 4) OUTPUT FORMAT instructions. If the prompt is vague, generic, or missing structure, respond 'WARN: Agent prompt missing [specific issue]. Use meta-prompting patterns.' If the prompt is well-structured with role+deliverable+context+format, respond 'ok'. Agent prompt: $ARGUMENTS",
+            "model": "claude-haiku-4-5",
+            "statusMessage": "Checking agent prompt quality..."
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -76,9 +87,9 @@
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "Check this subagent output for: 1) incompleteness (TODO, placeholder, skeleton, stub), 2) hallucination signals (fabricated URLs, unsourced statistics with decimal precision, fake citations). If ANY issues, respond with a short warning. If clean, respond 'ok'. Output: $ARGUMENTS",
+            "prompt": "You are the completion-enforcer. Check this subagent output for premature completion signals. Default to 'ok'.\n\nFLAG if:\n- Claims DONE but result text is suspiciously short (<50 words for a multi-task job)\n- Contains 'TODO', 'placeholder', 'skeleton', 'stub', 'NotImplementedError' in delivered code\n- Says 'I need' or 'I was about to' — indicates work was interrupted mid-task\n- Reports 'API Error' or 'rate limit' — indicates failure not completion\n- Claims N tasks done but only shows evidence of fewer\n- Fabricated URLs (check for plausible but potentially fake links)\n- Unsourced statistics with suspiciously precise numbers\n- References files it claims to have created but result doesn't confirm\n\nDo NOT flag:\n- Short results that are genuinely complete (e.g., 'Status: DONE. 5 commits.')\n- Placeholder stubs that are INTENTIONALLY deferred to another plan (e.g., 'Placeholder — implemented in Plan 9')\n- Concerns flagged by the agent itself (DONE_WITH_CONCERNS is honest)\n\nOutput: $ARGUMENTS\n\nIf premature/incomplete, respond 'WARN: <specific issue>'. If genuinely complete, respond 'ok'.",
             "model": "claude-haiku-4-5",
-            "statusMessage": "Validating subagent output..."
+            "statusMessage": "Enforcing completion..."
           }
         ]
       }
