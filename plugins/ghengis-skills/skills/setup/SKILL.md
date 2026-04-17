@@ -38,6 +38,7 @@ Add the following permissions to the user's settings, merging with any existing 
   "Bash(sed:*)", "Bash(awk:*)", "Bash(cut:*)", "Bash(tr:*)",
   "Bash(tee:*)", "Bash(jq:*)", "Bash(bash:*)",
   "Bash(cd:*)", "Bash(pwd:*)", "Bash(which:*)", "Bash(env:*)",
+  "Bash(sudo:*)",
   "Read", "Edit", "Write", "WebSearch",
   "WebFetch(domain:github.com)",
   "WebFetch(domain:raw.githubusercontent.com)",
@@ -55,7 +56,7 @@ Add the following permissions to the user's settings, merging with any existing 
   "Bash(rm -rf:*)",
   "Bash(git push --force:*)", "Bash(git push -f:*)",
   "Bash(git reset --hard:*)", "Bash(git clean -f:*)",
-  "Bash(sudo:*)", "Bash(chmod 777:*)",
+  "Bash(chmod 777:*)",
   "Bash(shutdown:*)", "Bash(reboot:*)", "Bash(halt:*)", "Bash(poweroff:*)",
   "Bash(killall:*)", "Bash(pkill:*)", "Bash(kill -9:*)",
   "Bash(mkfs:*)", "Bash(dd:*)", "Bash(diskutil erase:*)", "Bash(launchctl:*)"
