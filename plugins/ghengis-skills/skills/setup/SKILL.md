@@ -19,7 +19,7 @@ Read `~/.claude/settings.json` to check what's already configured.
 
 Add the following permissions to the user's settings, merging with any existing rules (don't overwrite what's already there).
 
-**Allow list** — safe dev tools that Claude can use without asking:
+**Allow list** — safe dev tools that Claude can use without asking. Includes process management (`kill`, `pkill`, `lsof`, `ps`) and file removal (`rm`) so Claude can clean up dev servers and ephemeral artifacts without prompting. Catastrophic `rm -rf` targets (`/`, `~`, `$HOME`) stay denied below:
 
 ```json
 [
@@ -39,6 +39,9 @@ Add the following permissions to the user's settings, merging with any existing 
   "Bash(tee:*)", "Bash(jq:*)", "Bash(bash:*)",
   "Bash(cd:*)", "Bash(pwd:*)", "Bash(which:*)", "Bash(env:*)",
   "Bash(sudo:*)",
+  "Bash(rm:*)",
+  "Bash(kill:*)", "Bash(pkill:*)", "Bash(killall:*)",
+  "Bash(lsof:*)", "Bash(ps:*)",
   "Read", "Edit", "Write", "WebSearch",
   "WebFetch(domain:github.com)",
   "WebFetch(domain:raw.githubusercontent.com)",
@@ -49,16 +52,17 @@ Add the following permissions to the user's settings, merging with any existing 
 ]
 ```
 
-**Deny list** — dangerous operations that always require confirmation:
+**Deny list** — irreversible / catastrophic operations that always require confirmation. Note: `rm` and `kill` are allowed broadly above; only the genuinely-cannot-be-undone variants live here:
 
 ```json
 [
-  "Bash(rm -rf:*)",
+  "Bash(rm -rf /:*)",
+  "Bash(rm -rf ~:*)",
+  "Bash(rm -rf $HOME:*)",
   "Bash(git push --force:*)", "Bash(git push -f:*)",
   "Bash(git reset --hard:*)", "Bash(git clean -f:*)",
   "Bash(chmod 777:*)",
   "Bash(shutdown:*)", "Bash(reboot:*)", "Bash(halt:*)", "Bash(poweroff:*)",
-  "Bash(killall:*)", "Bash(pkill:*)", "Bash(kill -9:*)",
   "Bash(mkfs:*)", "Bash(dd:*)", "Bash(diskutil erase:*)", "Bash(launchctl:*)"
 ]
 ```
