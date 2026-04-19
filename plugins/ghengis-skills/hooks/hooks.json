@@ -83,6 +83,15 @@
             "statusMessage": "Checking agent prompt quality..."
           }
         ]
+      },
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/on_task_start.py\""
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -106,6 +115,11 @@
             "prompt": "You are the completion-enforcer. Check this subagent output for premature completion signals. Default to 'ok'.\n\nFLAG if:\n- Claims DONE but result text is suspiciously short (<50 words for a multi-task job)\n- Contains 'TODO', 'placeholder', 'skeleton', 'stub', 'NotImplementedError' in delivered code\n- Says 'I need' or 'I was about to' \u00e2\u20ac\u201d indicates work was interrupted mid-task\n- Reports 'API Error' or 'rate limit' \u00e2\u20ac\u201d indicates failure not completion\n- Claims N tasks done but only shows evidence of fewer\n- Fabricated URLs (check for plausible but potentially fake links)\n- Unsourced statistics with suspiciously precise numbers\n- References files it claims to have created but result doesn't confirm\n\nDo NOT flag:\n- Short results that are genuinely complete (e.g., 'Status: DONE. 5 commits.')\n- Placeholder stubs that are INTENTIONALLY deferred to another plan (e.g., 'Placeholder \u00e2\u20ac\u201d implemented in Plan 9')\n- Concerns flagged by the agent itself (DONE_WITH_CONCERNS is honest)\n\nOutput: $ARGUMENTS\n\nIf premature/incomplete, respond 'WARN: <specific issue>'. If genuinely complete, respond 'ok'.",
             "model": "claude-haiku-4-5",
             "statusMessage": "Enforcing completion..."
+          },
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/on_task_stop.py\"",
+            "async": true
           }
         ]
       }

@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Monitor (Vanilla)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"></noscript>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131c;
+      --surface-raised: #1a1a2e;
+      --glass-bg: rgba(200,210,255,0.055);
+      --glass-border: rgba(140,170,255,0.14);
+      --glass-bg-hover: rgba(160,180,255,0.11);
+      --glass-border-hover: rgba(140,170,255,0.26);
+      --glass-strong-bg: rgba(200,210,255,0.08);
+      --glass-strong-border: rgba(140,170,255,0.18);
+      --primary-400: #8fa0ff;
+      --primary-500: #6b7fff;
+      --accent: #06b6d4;
+      --text-high: #e2e8f0;
+      --text-base: #cbd5e1;
+      --text-muted: #94a3b8;
+      --text-subtle: #64748b;
+      --radius: 16px;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text-high);
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: ''; position: fixed; inset: 0; z-index: -2; pointer-events: none;
+      background: radial-gradient(ellipse at 50% 0%, rgba(107,127,255,0.04) 0%, transparent 60%);
+    }
+
+    body::after {
+      content: ''; position: fixed; inset: 0; opacity: 0.025; z-index: 9999; pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      background-repeat: repeat; background-size: 200px 200px;
+    }
+
+    .glass { background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: var(--radius); }
+    .glass-hover:hover { background: var(--glass-bg-hover); border-color: var(--glass-border-hover); cursor: pointer; }
+    .glass-strong { background: var(--glass-strong-bg); backdrop-filter: blur(24px); border: 1px solid var(--glass-strong-border); border-radius: var(--radius); }
+
+    .title-gradient {
+      display: inline-block;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.95) 0%, rgba(255,255,255,1) 45%, rgba(255,255,255,0.2) 100%);
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(140,170,255,0.12); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(140,170,255,0.24); }
+
+    /* Layout */
+    .app { display: flex; height: 100vh; }
+    .sidebar { display: none; width: 256px; height: 100vh; position: sticky; top: 0; padding: 24px; flex-direction: column; gap: 8px; border-right: 1px solid rgba(140,170,255,0.08); overflow-y: auto; flex-shrink: 0; }
+    .main { flex: 1; padding: 16px; overflow-y: auto; min-height: 0; padding-bottom: 80px; }
+    .bottom-nav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; padding: 4px 8px; border-top: 1px solid rgba(140,170,255,0.08); }
+    .bottom-nav-inner { display: flex; justify-content: space-around; align-items: center; width: 100%; }
+
+    @media (min-width: 768px) {
+      .sidebar { display: flex; }
+      .main { padding: 32px; padding-bottom: 32px; }
+      .bottom-nav { display: none; }
+    }
+
+    /* Nav */
+    .sidebar-title { font-family: 'Syne', system-ui, sans-serif; font-size: 20px; font-weight: 700; letter-spacing: -0.025em; margin-bottom: 4px; }
+    .sidebar-subtitle { font-size: 12px; color: var(--text-subtle); margin-bottom: 32px; }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 12px; font-size: 14px; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: all 0.2s; text-decoration: none; border: 1px solid transparent; }
+    .nav-item:hover { color: var(--text-high); background: rgba(255,255,255,0.05); }
+    .nav-item.active { background: rgba(107,127,255,0.15); color: var(--primary-400); border-color: rgba(107,127,255,0.2); }
+    .bottom-nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 12px; border-radius: 12px; font-size: 11px; font-weight: 500; color: var(--text-subtle); cursor: pointer; text-decoration: none; }
+    .bottom-nav-item.active { color: var(--primary-400); }
+
+    /* Page header */
+    .page-header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+    .page-title { font-family: 'Syne', system-ui, sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -0.025em; }
+
+    /* Badges */
+    .badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 9999px; font-size: 12px; font-weight: 500; }
+    .badge-running { background: rgba(251,191,36,0.2); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+    .badge-completed { background: rgba(52,211,153,0.2); color: #34d399; border: 1px solid rgba(52,211,153,0.3); }
+    .badge-opus { background: rgba(167,139,250,0.2); color: #a78bfa; border: 1px solid rgba(167,139,250,0.3); }
+    .badge-sonnet { background: rgba(96,165,250,0.2); color: #60a5fa; border: 1px solid rgba(96,165,250,0.3); }
+    .badge-haiku { background: rgba(52,211,153,0.2); color: #34d399; border: 1px solid rgba(52,211,153,0.3); }
+    .badge-tool { background: rgba(52,211,153,0.2); color: #34d399; border: 1px solid rgba(52,211,153,0.3); }
+    .badge-count { background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.1); }
+
+    /* Cards */
+    .agent-card { padding: 16px; margin-bottom: 12px; transition: all 0.2s; }
+    .agent-card .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+    .agent-card .prompt { font-size: 14px; color: var(--text-base); line-height: 1.6; margin-bottom: 12px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .agent-card .tools { display: flex; gap: 6px; flex-wrap: wrap; }
+    .agent-card .duration { font-size: 12px; color: var(--text-subtle); margin-left: auto; }
+
+    .pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: #fbbf24; animation: pulse 1.5s ease-in-out infinite; display: inline-block; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    /* Stat cards */
+    .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px; }
+    @media (min-width: 1024px) { .stat-grid { grid-template-columns: repeat(4, 1fr); } }
+    .stat-card { padding: 12px 24px; }
+    .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+    .stat-value { font-family: 'Syne', system-ui, sans-serif; font-size: 28px; font-weight: 500; letter-spacing: -0.025em; margin-top: 4px; }
+
+    /* Agent grid */
+    .agent-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 1024px) { .agent-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    /* Form inputs */
+    .glass-input { width: 100%; padding: 12px 16px; border-radius: 12px; background: rgba(200,210,255,0.04); border: 1px solid rgba(140,170,255,0.12); color: var(--text-high); font-family: inherit; font-size: 14px; outline: none; transition: all 0.2s; }
+    .glass-input:focus { border-color: rgba(107,127,255,0.5); box-shadow: 0 0 0 1px rgba(107,127,255,0.3); }
+    .glass-input::placeholder { color: var(--text-subtle); }
+    .glass-select { padding: 12px 16px; border-radius: 12px; background: rgba(200,210,255,0.04); border: 1px solid rgba(140,170,255,0.12); color: var(--text-high); font-family: inherit; font-size: 14px; outline: none; }
+    .glass-select option { background: var(--surface); }
+
+    /* Filter bar */
+    .filter-bar { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+    .filter-bar .search-wrap { flex: 1; min-width: 200px; }
+
+    /* Button */
+    .btn { padding: 10px 16px; border-radius: 12px; font-weight: 600; font-family: inherit; font-size: 14px; cursor: pointer; transition: all 0.2s; border: none; }
+    .btn-primary { background: var(--primary-500); color: white; }
+    .btn-primary:hover { background: var(--primary-400); transform: translateY(-0.5px); }
+    .btn-secondary { background: rgba(255,255,255,0.05); color: var(--text-high); border: 1px solid rgba(255,255,255,0.1); }
+    .btn-secondary:hover { background: rgba(255,255,255,0.1); }
+    .btn-danger { background: rgba(220,38,38,0.8); color: white; }
+    .btn-danger:hover { background: rgba(239,68,68,0.8); }
+    .btn-sm { padding: 6px 12px; font-size: 13px; }
+
+    /* Detail page */
+    .detail-meta { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    @media (min-width: 768px) { .detail-meta { grid-template-columns: repeat(4, 1fr); } }
+    .meta-label { font-size: 11px; color: var(--text-subtle); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .meta-value { font-size: 12px; color: var(--text-high); font-family: monospace; }
+    .full-prompt { font-size: 14px; color: var(--text-base); white-space: pre-wrap; word-break: break-word; max-height: 384px; overflow-y: auto; line-height: 1.6; }
+
+    /* Timeline */
+    .timeline { display: flex; flex-direction: column; gap: 12px; }
+    .timeline-item { padding: 16px; border-left: 4px solid; }
+    .timeline-item.tool { border-left-color: #34d399; }
+    .timeline-item.text { border-left-color: #60a5fa; }
+    .timeline-item.result { border-left-color: var(--text-subtle); }
+    .timeline-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .timeline-type { font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    .timeline-type.tool { color: #34d399; }
+    .timeline-type.text { color: #60a5fa; }
+    .timeline-type.result { color: var(--text-muted); }
+    .timeline-time { font-size: 11px; color: var(--text-subtle); }
+    .timeline-content { font-size: 13px; color: var(--text-base); white-space: pre-wrap; word-break: break-word; line-height: 1.5; }
+    .timeline-json { background: rgba(200,210,255,0.04); border-radius: 8px; padding: 12px; font-size: 12px; font-family: monospace; color: var(--text-base); overflow-x: auto; white-space: pre-wrap; margin-top: 8px; max-height: 80px; overflow-y: hidden; transition: max-height 0.3s; }
+    .timeline-json.expanded { max-height: none; }
+    .expand-btn { font-size: 12px; color: var(--primary-400); cursor: pointer; margin-top: 4px; background: none; border: none; font-family: inherit; }
+    .expand-btn:hover { color: var(--primary-500); }
+
+    /* Permission card */
+    .permission-card { padding: 16px; border-color: rgba(251,191,36,0.3); animation: permission-glow 2s ease-in-out infinite; margin-bottom: 12px; }
+    @keyframes permission-glow { 0%,100% { border-color: rgba(251,191,36,0.3); } 50% { border-color: rgba(251,191,36,0.6); } }
+    .permission-inner { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+    .permission-info { flex: 1; min-width: 0; }
+    .permission-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+    /* SVG chart */
+    .chart-container { padding: 24px; margin-bottom: 24px; }
+    .chart-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-subtle); margin-bottom: 16px; font-weight: 500; }
+
+    /* Empty state */
+    .empty-state { padding: 48px 16px; text-align: center; }
+    .empty-state p { color: var(--text-muted); font-size: 16px; }
+    .empty-state .sub { color: var(--text-subtle); font-size: 14px; margin-top: 8px; }
+
+    .max-w-3xl { max-width: 768px; }
+    .max-w-5xl { max-width: 1024px; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar glass-strong" id="sidebar"></aside>
+    <main class="main" id="main"></main>
+    <nav class="bottom-nav glass-strong" id="bottom-nav"></nav>
+  </div>
+
+  <script>
+    // State
+    let currentView = 'live';
+    let viewParam = null;
+    let agentsData = null;
+    let permissionsData = [];
+    let historyFilters = { q: '', model: '', type: '' };
+    let historyData = null;
+    let historyOffset = 0;
+    let searchQuery = '';
+    let searchData = null;
+    let statsData = null;
+    let searchDebounce = null;
+    let historyDebounce = null;
+
+    const NAV = [
+      { id: 'live', label: 'Live Monitor', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>' },
+      { id: 'history', label: 'History', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' },
+      { id: 'search', label: 'Search', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' },
+      { id: 'stats', label: 'Stats', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="7" width="4" height="14" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg>' },
+    ];
+
+    // Utils
+    function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+    function formatDuration(s, e) {
+      if (!s) return '-';
+      const ms = (e ? new Date(e) : new Date()) - new Date(s);
+      const secs = Math.floor(ms / 1000);
+      if (secs < 60) return secs + 's';
+      return Math.floor(secs / 60) + 'm ' + (secs % 60) + 's';
+    }
+    function modelBadge(m) {
+      const l = (m || '').toLowerCase();
+      if (l.includes('opus')) return 'badge-opus';
+      if (l.includes('sonnet')) return 'badge-sonnet';
+      if (l.includes('haiku')) return 'badge-haiku';
+      return 'badge-count';
+    }
+    function modelShort(m) {
+      if (m.includes('opus')) return 'opus';
+      if (m.includes('sonnet')) return 'sonnet';
+      if (m.includes('haiku')) return 'haiku';
+      return m.split('-').pop() || m;
+    }
+    function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+
+    // Nav rendering
+    function renderNav() {
+      document.getElementById('sidebar').innerHTML = `
+        <div><div class="sidebar-title"><span class="title-gradient">Agent Monitor</span></div><div class="sidebar-subtitle">Claude Code Agents</div></div>
+        <nav>${NAV.map(n => `<a class="nav-item ${currentView === n.id ? 'active' : ''}" onclick="navigate('${n.id}')">${n.icon} ${n.label}</a>`).join('')}</nav>
+      `;
+      document.getElementById('bottom-nav').innerHTML = `<div class="bottom-nav-inner">${NAV.map(n => `<a class="bottom-nav-item ${currentView === n.id ? 'active' : ''}" onclick="navigate('${n.id}')">${n.icon}<span>${n.label}</span></a>`).join('')}</div>`;
+    }
+
+    function navigate(view, param) {
+      currentView = view;
+      viewParam = param || null;
+      if (view === 'detail' && param) window.location.hash = '#/agent/' + param;
+      else if (view !== 'detail') window.location.hash = '#/' + (view === 'live' ? '' : view);
+      renderNav();
+      render();
+    }
+
+    // Agent card HTML
+    function agentCardHtml(a) {
+      const tools = (a.tool_calls || []).slice(-3);
+      return `<div class="agent-card glass glass-hover" onclick="navigate('detail','${esc(a.id)}')">
+        <div class="badges">
+          <span class="badge ${modelBadge(a.model)}">${esc(modelShort(a.model))}</span>
+          <span class="badge badge-${a.status}">${a.status === 'running' ? '<span class="pulse-dot"></span> Running' : 'Completed'}</span>
+          ${a.type && a.type !== 'unknown' ? `<span class="badge badge-count">${esc(a.type)}</span>` : ''}
+          <span class="duration">${formatDuration(a.started_at, a.ended_at)}</span>
+        </div>
+        <div class="prompt">${esc((a.prompt || 'No prompt').slice(0, 200))}${(a.prompt || '').length > 200 ? '...' : ''}</div>
+        ${tools.length ? `<div class="tools">${tools.map(t => `<span class="badge badge-tool">${esc(t.name)}</span>`).join('')}${(a.tool_calls||[]).length > 3 ? `<span style="font-size:12px;color:var(--text-subtle)">+${(a.tool_calls||[]).length-3} more</span>` : ''}</div>` : ''}
+      </div>`;
+    }
+
+    // Permission card
+    function permissionHtml(p) {
+      const exp = new Date(p.expires_at).getTime();
+      const left = Math.max(0, Math.floor((exp - Date.now()) / 1000));
+      return `<div class="permission-card glass"><div class="permission-inner">
+        <div class="permission-info">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span class="pulse-dot"></span><span style="font-size:14px;font-weight:600;color:#fbbf24">Permission Required</span><span style="font-size:12px;color:var(--text-subtle);margin-left:auto">${left}s</span></div>
+          <div style="font-size:14px;color:var(--text-high);font-weight:500;margin-bottom:4px">${esc(p.tool_name)}</div>
+          <div style="font-size:12px;color:var(--text-muted);font-family:monospace;word-break:break-all">${esc(p.input_preview)}</div>
+        </div>
+        <div class="permission-actions">
+          <button class="btn btn-primary btn-sm" onclick="decidePermission('${p.id}',true)">Approve</button>
+          <button class="btn btn-danger btn-sm" onclick="decidePermission('${p.id}',false)">Deny</button>
+        </div>
+      </div></div>`;
+    }
+
+    // Render views
+    function render() {
+      const main = document.getElementById('main');
+      if (currentView === 'live') renderLive(main);
+      else if (currentView === 'history') renderHistory(main);
+      else if (currentView === 'search') renderSearch(main);
+      else if (currentView === 'stats') renderStats(main);
+      else if (currentView === 'detail') renderDetail(main);
+    }
+
+    function renderLive(el) {
+      const d = agentsData;
+      let html = `<div class="max-w-5xl"><div class="page-header"><h1 class="page-title"><span class="title-gradient">Live Monitor</span></h1>`;
+      if (d && !d._error) {
+        if (d.running_count > 0) html += `<span class="badge badge-running"><span class="pulse-dot"></span>&nbsp;${d.running_count} running</span>`;
+        html += `<span class="badge badge-count">${d.total_count} total</span>`;
+      }
+      html += '</div>';
+      if (permissionsData.length > 0) html += permissionsData.map(permissionHtml).join('');
+      if (!d) html += '<div class="glass empty-state"><p>Connecting...</p><p class="sub">Waiting for API server on port 7686</p></div>';
+      else if (d._error) html += '<div class="glass empty-state"><p>Cannot reach API server</p><p class="sub">Make sure agent_web_dashboard.py is running on port 7686</p></div>';
+      else if (d.agents.length === 0) html += '<div class="glass empty-state"><p>Waiting for agents...</p><p class="sub">Agents will appear here when spawned</p></div>';
+      else {
+        const sorted = [...d.agents].sort((a,b) => (a.status==='running'?0:1)-(b.status==='running'?0:1));
+        html += `<div class="agent-grid">${sorted.map(agentCardHtml).join('')}</div>`;
+      }
+      html += '</div>';
+      el.innerHTML = html;
+    }
+
+    function renderHistory(el) {
+      let html = `<div class="max-w-3xl"><div class="page-header"><h1 class="page-title"><span class="title-gradient">Agent History</span></h1>`;
+      if (historyData) html += `<span class="badge badge-count">${historyData.total} agents</span>`;
+      html += `</div><div class="filter-bar"><div class="search-wrap"><input class="glass-input" placeholder="Search prompts..." value="${esc(historyFilters.q)}" oninput="onHistorySearch(this.value)"></div>
+        <select class="glass-select" onchange="onHistoryModel(this.value)"><option value="">All models</option><option value="opus" ${historyFilters.model==='opus'?'selected':''}>Opus</option><option value="sonnet" ${historyFilters.model==='sonnet'?'selected':''}>Sonnet</option><option value="haiku" ${historyFilters.model==='haiku'?'selected':''}>Haiku</option></select>
+        <select class="glass-select" onchange="onHistoryType(this.value)"><option value="">All types</option><option value="general-purpose" ${historyFilters.type==='general-purpose'?'selected':''}>General Purpose</option><option value="Explore" ${historyFilters.type==='Explore'?'selected':''}>Explore</option><option value="Plan" ${historyFilters.type==='Plan'?'selected':''}>Plan</option></select>
+      </div>`;
+      if (!historyData) html += '<div style="color:var(--text-subtle);text-align:center;padding:48px">Loading...</div>';
+      else if (historyData.agents.length === 0) html += '<div style="color:var(--text-subtle);text-align:center;padding:48px">No agents found</div>';
+      else {
+        html += historyData.agents.map(agentCardHtml).join('');
+        if (historyData.total > historyOffset + 50) html += `<div style="text-align:center;margin-top:16px"><button class="btn btn-secondary" onclick="loadMoreHistory()">Load more</button></div>`;
+      }
+      html += '</div>';
+      el.innerHTML = html;
+    }
+
+    function renderSearch(el) {
+      let html = `<div class="max-w-3xl"><h1 class="page-title" style="margin-bottom:24px"><span class="title-gradient">Search</span></h1>
+        <div style="margin-bottom:24px"><input class="glass-input" style="font-size:18px;padding:16px" placeholder="Search across all agent prompts and transcripts..." value="${esc(searchQuery)}" oninput="onSearchInput(this.value)" autofocus></div>`;
+      if (!searchQuery) html += '<div class="glass empty-state"><p>Search across all agent prompts and transcripts</p></div>';
+      else if (!searchData) html += '<div style="color:var(--text-subtle);text-align:center;padding:32px">Searching...</div>';
+      else if (searchData.agents.length === 0) html += `<div style="color:var(--text-subtle);text-align:center;padding:32px">No results for "${esc(searchQuery)}"</div>`;
+      else {
+        html += `<div style="font-size:12px;color:var(--text-subtle);margin-bottom:8px">${searchData.total} results</div>`;
+        html += searchData.agents.map(agentCardHtml).join('');
+      }
+      html += '</div>';
+      el.innerHTML = html;
+      const input = el.querySelector('input');
+      if (input && document.activeElement !== input) input.focus();
+    }
+
+    function renderStats(el) {
+      if (!statsData) { el.innerHTML = '<div style="color:var(--text-subtle);text-align:center;padding:48px">Loading stats...</div>'; return; }
+      const s = statsData;
+      const topModel = Object.entries(s.by_model || {}).sort((a,b) => b[1]-a[1])[0];
+      const avgDur = s.avg_duration_seconds < 60 ? Math.round(s.avg_duration_seconds) + 's' : Math.floor(s.avg_duration_seconds/60) + 'm ' + Math.round(s.avg_duration_seconds%60) + 's';
+
+      let html = `<div class="max-w-5xl"><h1 class="page-title" style="margin-bottom:24px"><span class="title-gradient">Stats</span></h1>
+        <div class="stat-grid">
+          <div class="stat-card glass"><div class="stat-label">Total Agents</div><div class="stat-value title-gradient">${s.total}</div></div>
+          <div class="stat-card glass"><div class="stat-label">Running Now</div><div class="stat-value title-gradient">${agentsData ? agentsData.running_count : 0}</div></div>
+          <div class="stat-card glass"><div class="stat-label">Avg Duration</div><div class="stat-value title-gradient">${avgDur}</div></div>
+          <div class="stat-card glass"><div class="stat-label">Top Model</div><div class="stat-value title-gradient">${topModel ? topModel[0] : '-'}</div></div>
+        </div>`;
+
+      // Bar chart
+      const dates = Object.entries(s.by_date || {});
+      if (dates.length > 0) {
+        const maxVal = Math.max(...dates.map(d => d[1]));
+        const barW = Math.max(12, Math.floor(600 / dates.length) - 4);
+        const chartW = dates.length * (barW + 4);
+        html += `<div class="chart-container glass"><div class="chart-title">Agents per Day (Last 30 Days)</div>
+          <svg viewBox="0 0 ${chartW} 140" width="100%" style="max-height:180px">
+          ${dates.map((d, i) => {
+            const h = maxVal > 0 ? (d[1] / maxVal) * 110 : 0;
+            return `<rect x="${i*(barW+4)}" y="${120-h}" width="${barW}" height="${h}" fill="var(--primary-500)" rx="3"/>
+              <text x="${i*(barW+4)+barW/2}" y="135" fill="var(--text-subtle)" font-size="8" text-anchor="middle">${d[0].slice(5)}</text>`;
+          }).join('')}
+          </svg></div>`;
+      }
+
+      // Model distribution
+      const models = Object.entries(s.by_model || {});
+      if (models.length > 0) {
+        const colors = ['#6b7fff','#06b6d4','#a78bfa','#34d399','#f59e0b'];
+        const total = models.reduce((a,m) => a+m[1], 0);
+        html += `<div class="chart-container glass"><div class="chart-title">Model Distribution</div><div style="display:flex;align-items:center;gap:32px">
+          <svg width="160" height="160" viewBox="-1 -1 2 2" style="transform:rotate(-90deg)">`;
+        let cumulative = 0;
+        models.forEach((m, i) => {
+          const pct = m[1] / total;
+          const x1 = Math.cos(2 * Math.PI * cumulative);
+          const y1 = Math.sin(2 * Math.PI * cumulative);
+          cumulative += pct;
+          const x2 = Math.cos(2 * Math.PI * cumulative);
+          const y2 = Math.sin(2 * Math.PI * cumulative);
+          const large = pct > 0.5 ? 1 : 0;
+          html += `<path d="M ${x1} ${y1} A 1 1 0 ${large} 1 ${x2} ${y2} L 0 0" fill="${colors[i%colors.length]}"/>`;
+        });
+        html += `</svg><div style="display:flex;flex-direction:column;gap:8px">`;
+        models.forEach((m, i) => {
+          html += `<div style="display:flex;align-items:center;gap:8px;font-size:14px"><span style="width:12px;height:12px;border-radius:50%;background:${colors[i%colors.length]}"></span><span style="color:var(--text-base)">${esc(m[0])}</span><span style="color:var(--text-subtle);margin-left:auto">${m[1]}</span></div>`;
+        });
+        html += '</div></div></div>';
+      }
+      html += '</div>';
+      el.innerHTML = html;
+    }
+
+    function renderDetail(el) {
+      if (!viewParam) { navigate('live'); return; }
+      el.innerHTML = '<div style="color:var(--text-subtle);text-align:center;padding:48px">Loading agent...</div>';
+      fetch('/api/history/' + viewParam).then(r => r.ok ? r.json() : null).then(agent => {
+        if (!agent) {
+          // Try live data
+          if (agentsData) agent = agentsData.agents.find(a => a.id === viewParam);
+          if (!agent) { el.innerHTML = '<div class="max-w-3xl"><button class="btn btn-secondary" onclick="navigate(\'live\')">Back</button><div class="glass empty-state" style="margin-top:16px"><p>Agent not found</p></div></div>'; return; }
+        }
+        const tc = agent.tool_calls || [];
+        const msgs = agent.messages || [];
+        let timeline = [];
+        tc.forEach(t => timeline.push({ type: 'tool', name: t.name, input: t.input, ts: t.timestamp }));
+        msgs.forEach(m => timeline.push({ type: m.type === 'tool_result' ? 'result' : 'text', content: m.content, ts: m.timestamp }));
+        timeline.sort((a,b) => (b.ts||'').localeCompare(a.ts||''));
+
+        let html = `<div style="max-width:896px"><button class="btn btn-secondary" onclick="navigate('live')" style="margin-bottom:16px">Back</button>
+          <div class="glass" style="padding:24px;margin-bottom:24px">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+              <span class="badge ${modelBadge(agent.model)}">${esc(modelShort(agent.model))}</span>
+              <span class="badge badge-${agent.status}">${agent.status}</span>
+              ${agent.type !== 'unknown' ? `<span class="badge badge-count">${esc(agent.type)}</span>` : ''}
+              <span style="font-size:12px;color:var(--text-subtle);margin-left:auto">${formatDuration(agent.started_at, agent.ended_at)}</span>
+            </div>
+            <div class="detail-meta">
+              <div><div class="meta-label">Agent ID</div><div class="meta-value">${esc(agent.id)}</div></div>
+              ${agent.session_id ? `<div><div class="meta-label">Session</div><div class="meta-value">${esc(agent.session_id)}</div></div>` : ''}
+              <div><div class="meta-label">Started</div><div class="meta-value">${agent.started_at ? new Date(agent.started_at).toLocaleString() : '-'}</div></div>
+              <div><div class="meta-label">Ended</div><div class="meta-value">${agent.ended_at ? new Date(agent.ended_at).toLocaleString() : '-'}</div></div>
+            </div>
+          </div>
+          <div class="glass" style="padding:24px;margin-bottom:24px">
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-subtle);margin-bottom:12px;font-weight:500">Full Prompt</div>
+            <div class="full-prompt">${esc(agent.prompt || 'No prompt available')}</div>
+          </div>
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-subtle);margin-bottom:12px;font-weight:500">Activity Timeline (${timeline.length} items)</div>
+          <div class="timeline">${timeline.length === 0 ? '<div style="color:var(--text-subtle);font-size:14px">No activity recorded yet</div>' :
+            timeline.map((item, idx) => {
+              if (item.type === 'tool') {
+                const json = JSON.stringify(item.input, null, 2);
+                const isLong = json.length > 200;
+                return `<div class="timeline-item tool glass"><div class="timeline-header"><span class="timeline-type tool">Tool: ${esc(item.name)}</span><span class="timeline-time">${item.ts ? new Date(item.ts).toLocaleTimeString() : ''}</span></div>
+                  <div class="timeline-json" id="json-${idx}">${esc(json)}</div>${isLong ? `<button class="expand-btn" onclick="toggleJson(${idx})">Expand</button>` : ''}</div>`;
+              }
+              return `<div class="timeline-item ${item.type} glass"><div class="timeline-header"><span class="timeline-type ${item.type}">${item.type === 'result' ? 'Tool Result' : 'Response'}</span><span class="timeline-time">${item.ts ? new Date(item.ts).toLocaleTimeString() : ''}</span></div>
+                <div class="timeline-content" ${item.type === 'result' ? 'style="max-height:200px;overflow-y:auto"' : ''}>${esc(item.content || '')}</div></div>`;
+            }).join('')}
+          </div></div>`;
+        el.innerHTML = html;
+      });
+    }
+
+    // Event handlers
+    window.toggleJson = function(idx) {
+      const el = document.getElementById('json-' + idx);
+      if (el) el.classList.toggle('expanded');
+    };
+
+    window.onHistorySearch = debounce(function(val) {
+      historyFilters.q = val; historyOffset = 0; fetchHistoryData();
+    }, 300);
+    window.onHistoryModel = function(val) { historyFilters.model = val; historyOffset = 0; fetchHistoryData(); };
+    window.onHistoryType = function(val) { historyFilters.type = val; historyOffset = 0; fetchHistoryData(); };
+    window.loadMoreHistory = function() { historyOffset += 50; fetchHistoryData(); };
+    window.onSearchInput = debounce(function(val) { searchQuery = val; fetchSearchData(); }, 400);
+
+    // API calls
+    async function fetchAgents() {
+      try {
+        const r = await fetch('/api/agents');
+        if (r.ok) agentsData = await r.json();
+        else agentsData = agentsData || { _error: true, agents: [], running_count: 0, total_count: 0 };
+      } catch {
+        agentsData = agentsData || { _error: true, agents: [], running_count: 0, total_count: 0 };
+      }
+      if (currentView === 'live') renderLive(document.getElementById('main'));
+    }
+
+    async function fetchPermissions() {
+      try {
+        const r = await fetch('/api/permissions');
+        if (r.ok) { const d = await r.json(); permissionsData = d.permissions || []; }
+      } catch {}
+      if (currentView === 'live') renderLive(document.getElementById('main'));
+    }
+
+    async function fetchHistoryData() {
+      const p = new URLSearchParams();
+      if (historyFilters.q) p.set('q', historyFilters.q);
+      if (historyFilters.model) p.set('model', historyFilters.model);
+      if (historyFilters.type) p.set('type', historyFilters.type);
+      p.set('limit', '50'); p.set('offset', String(historyOffset));
+      try {
+        const r = await fetch('/api/history?' + p);
+        if (r.ok) historyData = await r.json();
+      } catch {}
+      if (currentView === 'history') renderHistory(document.getElementById('main'));
+    }
+
+    async function fetchSearchData() {
+      if (!searchQuery) { searchData = null; if (currentView === 'search') renderSearch(document.getElementById('main')); return; }
+      try {
+        const r = await fetch('/api/history?q=' + encodeURIComponent(searchQuery) + '&limit=50');
+        if (r.ok) searchData = await r.json();
+      } catch {}
+      if (currentView === 'search') renderSearch(document.getElementById('main'));
+    }
+
+    async function fetchStats() {
+      try {
+        const r = await fetch('/api/stats');
+        if (r.ok) statsData = await r.json();
+      } catch {}
+      if (currentView === 'stats') renderStats(document.getElementById('main'));
+    }
+
+    window.decidePermission = async function(id, approved) {
+      try {
+        await fetch('/api/permissions/' + id + '/decide', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ approved })
+        });
+        permissionsData = permissionsData.filter(p => p.id !== id);
+        if (currentView === 'live') renderLive(document.getElementById('main'));
+      } catch {}
+    };
+
+    // Router
+    function route() {
+      const hash = window.location.hash || '#/';
+      if (hash.startsWith('#/agent/')) { currentView = 'detail'; viewParam = hash.slice(8); }
+      else if (hash === '#/history') { currentView = 'history'; fetchHistoryData(); }
+      else if (hash === '#/search') { currentView = 'search'; }
+      else if (hash === '#/stats') { currentView = 'stats'; fetchStats(); }
+      else { currentView = 'live'; }
+      renderNav();
+      render();
+    }
+
+    window.addEventListener('hashchange', route);
+
+    // Init
+    renderNav();
+    route();
+    fetchAgents();
+    fetchPermissions();
+    setInterval(fetchAgents, 1000);
+    setInterval(fetchPermissions, 2000);
+  </script>
+</body>
+</html>

@@ -10,14 +10,14 @@
                      S K I L L S
 ```
 
-[![Skills](https://img.shields.io/badge/skills-47-blue?style=for-the-badge)](./plugins/ghengis-skills/skills/)
+[![Skills](https://img.shields.io/badge/skills-48-blue?style=for-the-badge)](./plugins/ghengis-skills/skills/)
 [![Evals](https://img.shields.io/badge/evals-42-green?style=for-the-badge)](./plugins/ghengis-skills/evals/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange?style=for-the-badge)](https://code.claude.com)
 [![License](https://img.shields.io/badge/license-MIT-purple?style=for-the-badge)](./LICENSE)
 
 **Make Claude smarter, faster, and more autonomous.**
 
-*47 skills covering evolving cognition, paper-to-code research translation, multi-agent orchestration, prompt quality validation, agent reliability, security testing, code intelligence, and domain expertise across 20+ fields. Includes an autoloader that forces relevant skills to fire automatically — same pattern as superpowers.*
+*48 skills covering evolving cognition, paper-to-code research translation, multi-agent orchestration, prompt quality validation, agent reliability, security testing, code intelligence, and domain expertise across 20+ fields. Includes an autoloader that forces relevant skills to fire automatically — same pattern as superpowers.*
 
 ---
 
@@ -25,7 +25,12 @@
 
 Skills are lightweight — they load on-demand and don't bloat your context window. Unlike MCP servers that inject tool schemas into every message, skills activate only when relevant, adding zero overhead the rest of the time.
 
-## What's New (v1.7.0)
+## What's New (v1.9.0)
+
+- **Time Perception (`time-perception`)** — Gives Claude a persistent sense of time. `UserPromptSubmit` hook injects elapsed time, message count, and project-switch detection into every prompt. `Stop` hook logs task durations. Includes a portable Python module (`time_context.py`) for wrapping any LLM API with time awareness.
+- **Agent Monitor (`agent-monitor`)** — Real-time subagent dashboard and terminal status line. Auto-opens a browser dashboard (ports 7685/7686) when 2+ agents are running. Tracks agent lifecycle, project grouping, permissions, and cross-session history. Status line shows model name + color-coded context usage bar.
+
+## Previous (v1.7.0)
 
 - **Evolving Cognition (`evolving-cognition`)** — ASI-Evolve-inspired pattern for agents that learn from measurable outcomes. Covers fitness signal design, cognition store schema, UCB1 retrieval, Analyzer prompts, poison mitigations (contradiction flags, confidence decay, retirement thresholds), and audit loops. Auto-fires on "feedback loop", "agents getting smarter", "learn from outcomes".
 - **Paper to Code (`paper-to-code`)** — Turn any research paper, engineering blog, or technical doc into shipping code. Strategic reading order, contribution mapping tables, explicit "what NOT to adopt" phase, spec-delta writing. Auto-fires on arxiv URLs, paper links, "apply this research".
@@ -56,7 +61,7 @@ In Claude Code, run:
 
 The first two install the plugin. The third configures autonomous permissions — safe dev tools are auto-allowed, dangerous operations are blocked. Restart Claude Code after setup.
 
-All 47 skills are now available in every session — CLI, desktop app, and mobile. Claude loads them automatically when it detects a matching task.
+All 48 skills are now available in every session — CLI, desktop app, and mobile. Claude loads them automatically when it detects a matching task.
 
 ### For Teams
 
@@ -135,6 +140,7 @@ These change how Claude approaches complex work — orchestration patterns extra
 | **oort-cascade** | Multi-agent orchestration — breaks complex tasks into specialized roles (researcher, builder, validator), wires them into dependency DAGs, executes in parallel waves, and runs revision loops until quality passes |
 | **meta-prompting** | 22 role templates for dispatching subagents. Instead of forwarding raw requests, generates tailored instructions per role with context injection, deliverable specs, and execution boundaries |
 | **agent-teams** | Spawns parallel agents with different creative perspectives (Minimalist, Bold, Technical, Playful, Elegant), then synthesizes the strongest elements from each into a final output |
+| **agent-monitor** | Real-time subagent monitoring dashboard and terminal status line — tracks agent spawning, completion, permissions, and history. Auto-opens browser dashboard when agents are active. |
 | **pql-validation** | Prompt Quality Layer — 35 anti-pattern checks across 6 categories (task, context, format, scope, reasoning, agentic). Catches vague verbs, missing constraints, hallucination invitations, and unsafe delegation before execution |
 | **blueprint-compilation** | Recognizes repeated multi-step workflows and compiles them into reusable pipelines. Trace recording, pattern detection, and progressive compilation from ad-hoc to automated |
 | **constitutional-ai** | 9 safety rules across 5 categories (Safety, Cost, Privacy, Transparency, Autonomy). Signal-based pre/post execution checks that prevent irreversible actions, PII exposure, and scope creep |

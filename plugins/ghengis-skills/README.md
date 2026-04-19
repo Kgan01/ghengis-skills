@@ -10,6 +10,7 @@ Updated for Claude Opus 4.6 based on [Anthropic's prompting best practices](http
 
 - **Functional testing in OORT** — Validators now run the output (execute tests, call endpoints, load in browser) instead of just scoring it. Tuned to skepticism.
 - **Subagent guardrails** — oort-cascade, agent-teams, and meta-prompting include dispatch guardrails for Opus 4.6, which has a strong native tendency to spawn subagents. Prevents over-spawning.
+| **agent-monitor** | Real-time subagent monitoring dashboard and terminal status line — tracks agent spawning, completion, permissions, and history. Auto-opens browser dashboard when agents are active. |
 - **Native context awareness** — context-health updated for models that track their own context window. Shift from detection to leveraging native awareness. Fresh-start guidance over compaction.
 - **State management patterns** — execution-harness now includes structured state files (tests.json, progress.txt), setup scripts, and git-as-state-tracking for multi-window workflows.
 - **Model tier updates** — context-health model tiers updated for opus-4.6, sonnet-4.6, haiku-4.5.
