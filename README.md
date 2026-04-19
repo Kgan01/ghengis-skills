@@ -25,7 +25,7 @@
 
 Skills are lightweight — they load on-demand and don't bloat your context window. Unlike MCP servers that inject tool schemas into every message, skills activate only when relevant, adding zero overhead the rest of the time.
 
-## What's New (v1.9.0)
+## What's New (v1.8.1)
 
 - **Time Perception (`time-perception`)** — Gives Claude a persistent sense of time. `UserPromptSubmit` hook injects elapsed time, message count, and project-switch detection into every prompt. `Stop` hook logs task durations. Includes a portable Python module (`time_context.py`) for wrapping any LLM API with time awareness.
 - **Agent Monitor (`agent-monitor`)** — Real-time subagent dashboard and terminal status line. Auto-opens a browser dashboard (ports 7685/7686) when 2+ agents are running. Tracks agent lifecycle, project grouping, permissions, and cross-session history. Status line shows model name + color-coded context usage bar.
