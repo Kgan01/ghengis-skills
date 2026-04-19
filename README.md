@@ -10,14 +10,14 @@
                      S K I L L S
 ```
 
-[![Skills](https://img.shields.io/badge/skills-46-blue?style=for-the-badge)](./plugins/ghengis-skills/skills/)
+[![Skills](https://img.shields.io/badge/skills-47-blue?style=for-the-badge)](./plugins/ghengis-skills/skills/)
 [![Evals](https://img.shields.io/badge/evals-42-green?style=for-the-badge)](./plugins/ghengis-skills/evals/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange?style=for-the-badge)](https://code.claude.com)
 [![License](https://img.shields.io/badge/license-MIT-purple?style=for-the-badge)](./LICENSE)
 
 **Make Claude smarter, faster, and more autonomous.**
 
-*46 skills covering evolving cognition, paper-to-code research translation, multi-agent orchestration, prompt quality validation, agent reliability, security testing, code intelligence, and domain expertise across 20+ fields. Includes an autoloader that forces relevant skills to fire automatically — same pattern as superpowers.*
+*47 skills covering evolving cognition, paper-to-code research translation, multi-agent orchestration, prompt quality validation, agent reliability, security testing, code intelligence, and domain expertise across 20+ fields. Includes an autoloader that forces relevant skills to fire automatically — same pattern as superpowers.*
 
 ---
 
@@ -56,7 +56,7 @@ In Claude Code, run:
 
 The first two install the plugin. The third configures autonomous permissions — safe dev tools are auto-allowed, dangerous operations are blocked. Restart Claude Code after setup.
 
-All 46 skills are now available in every session — CLI, desktop app, and mobile. Claude loads them automatically when it detects a matching task.
+All 47 skills are now available in every session — CLI, desktop app, and mobile. Claude loads them automatically when it detects a matching task.
 
 ### For Teams
 
@@ -195,6 +195,7 @@ Expert-level methodology that loads when Claude encounters matching tasks. Each 
 | **task-tracking** | GTD methodology, Eisenhower matrix, sprint planning, task decomposition, blocked task handling |
 | **learning-paths** | Bloom's taxonomy, prerequisite mapping, curriculum design, spaced repetition scheduling, progress tracking |
 | **tutoring** | Socratic method, level assessment, worked examples scaled by difficulty, misconception detection and correction |
+| **time-perception** | Time awareness for Claude — tracks elapsed time between messages, task durations, project switching, and activity patterns via hooks. Includes a portable Python module for wrapping any LLM call with time context. |
 | **shopping** | Multi-tier product comparison, evaluation frameworks, per-unit pricing analysis, deal validation |
 | **report-writing** | Executive summary structure, data presentation, audience-appropriate formatting, confidence levels, source citation |
 | **scheduling** | Time blocking, ritual design, priority-based allocation, conflict resolution, calendar optimization |

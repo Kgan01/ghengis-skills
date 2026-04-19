@@ -174,6 +174,7 @@ Expert-level methodology that loads when Claude encounters matching tasks. Each 
 | **task-tracking** | GTD methodology, Eisenhower matrix, sprint planning, task decomposition, blocked task handling |
 | **learning-paths** | Bloom's taxonomy, prerequisite mapping, curriculum design, spaced repetition scheduling, progress tracking |
 | **tutoring** | Socratic method, level assessment, worked examples scaled by difficulty, misconception detection and correction |
+| **time-perception** | Time awareness for Claude — tracks elapsed time between messages, task durations, project switching, and activity patterns via hooks. Includes a portable Python module for wrapping any LLM call with time context. |
 | **shopping** | Multi-tier product comparison, evaluation frameworks, per-unit pricing analysis, deal validation |
 | **report-writing** | Executive summary structure, data presentation, audience-appropriate formatting, confidence levels, source citation |
 | **scheduling** | Time blocking, ritual design, priority-based allocation, conflict resolution, calendar optimization |
