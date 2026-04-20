@@ -11,6 +11,34 @@ EDIT_LOG = Path.home() / ".claude" / "edited-files-session.log"
 SUMMARY_LOG = Path.home() / ".claude" / "secret-scan-history.jsonl"
 
 
+# Comment-stripping regexes (applied before secret detection).
+# Heuristic — not a full parser. Handles common comment styles.
+_BLOCK_COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)  # /* ... */
+_HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)  # <!-- ... -->
+_TRIPLE_DOUBLE = re.compile(r'"""[\s\S]*?"""')  # Python docstrings
+_TRIPLE_SINGLE = re.compile(r"'''[\s\S]*?'''")
+_LINE_SLASHSLASH = re.compile(r"//[^\n]*", re.MULTILINE)  # // ... EOL
+# For `#`, only strip when it's clearly a line comment (preceded only by whitespace
+# or after code). Skip inside URLs (http://host#frag) which are usually on the same
+# line as actual URL text, and skip `#!` shebangs.
+_LINE_HASH = re.compile(r"(?m)(?<!:)(?<!#)#(?!!)[^\n]*")
+
+
+def _strip_comments(text: str) -> str:
+    """Remove common comment syntax before secret scanning.
+
+    Reduces false positives from doc examples, regex patterns in comments,
+    and other non-secret strings that happen to match credential regexes.
+    """
+    text = _BLOCK_COMMENT.sub(" ", text)
+    text = _HTML_COMMENT.sub(" ", text)
+    text = _TRIPLE_DOUBLE.sub(" ", text)
+    text = _TRIPLE_SINGLE.sub(" ", text)
+    text = _LINE_SLASHSLASH.sub("", text)
+    text = _LINE_HASH.sub("", text)
+    return text
+
+
 def main():
     if not EDIT_LOG.exists() or EDIT_LOG.stat().st_size == 0:
         return 0
@@ -51,6 +79,9 @@ def main():
             content = p.read_text(encoding="utf-8", errors="ignore")
         except OSError:
             continue
+        # Strip comments before scanning to reduce false positives
+        # (doc examples, regex patterns in comments, etc.)
+        content = _strip_comments(content)
         hits = [label for regex, label in detectors if regex.search(content)]
         if hits:
             findings[file_path] = hits
