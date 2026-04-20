@@ -1,80 +1,87 @@
 #!/bin/bash
 # Stop hook — batch scan all files edited this session for potential secrets.
-# Produces a SINGLE summary at end of task, never blocks mid-flow.
-# Skips test/demo/example files (where hardcoded values are fine).
+# Cross-platform: matches both / and \ as path separators.
 
 EDIT_LOG="$HOME/.claude/edited-files-session.log"
 SUMMARY_LOG="$HOME/.claude/secret-scan-history.jsonl"
 
-# Nothing to scan?
 if [ ! -f "$EDIT_LOG" ] || [ ! -s "$EDIT_LOG" ]; then
   exit 0
 fi
 
-# Dedup file paths
 UNIQUE_FILES=$(awk -F'|' '{print $2}' "$EDIT_LOG" | sort -u)
 
-FINDINGS=""
-SCANNED_COUNT=0
-FINDING_COUNT=0
+# Build findings via Python — avoids bash echo -e mangling Windows paths (\t)
+python3 - "$EDIT_LOG" "$SUMMARY_LOG" << 'PYEOF'
+import json
+import re
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
 
-while IFS= read -r FILE_PATH; do
-  # Skip if file doesn't exist anymore
-  [ ! -f "$FILE_PATH" ] && continue
+edit_log = Path(sys.argv[1])
+summary_log = Path(sys.argv[2])
 
-  # Skip test/demo/example files — hardcoded values are fine there
-  if echo "$FILE_PATH" | grep -qiE '/(test|tests|__tests__|__mocks__|demo|demos|example|examples|fixture|fixtures|sample|samples)/'; then
-    continue
-  fi
-  if echo "$FILE_PATH" | grep -qiE '\.(test|spec|demo|example)\.(js|ts|jsx|tsx|py|rb|go)$'; then
-    continue
-  fi
+# Dedup
+files = sorted({line.split("|", 1)[1].strip()
+                for line in edit_log.read_text().splitlines()
+                if "|" in line})
 
-  SCANNED_COUNT=$((SCANNED_COUNT + 1))
+# Skip patterns — match both / and \ as separators
+SKIP_DIR_PATTERN = re.compile(
+    r"[/\](test|tests|__tests__|__mocks__|demo|demos|example|examples|fixture|fixtures|sample|samples)[/\]",
+    re.IGNORECASE,
+)
+SKIP_FILE_PATTERN = re.compile(r"\.(test|spec|demo|example)\.(js|ts|jsx|tsx|py|rb|go)$", re.IGNORECASE)
 
-  # Simple pattern-based scan (no LLM call — fast, deterministic, no interruption)
-  HITS=""
+# Secret detection patterns
+DETECTORS = [
+    (re.compile(r"AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}"), "AWS access key"),
+    (re.compile(r"ghp_[A-Za-z0-9]{36}|gho_[A-Za-z0-9]{36}|ghs_[A-Za-z0-9]{36}"), "GitHub token"),
+    (re.compile(r"sk_live_[A-Za-z0-9]{24,}|rk_live_[A-Za-z0-9]{24,}"), "Stripe live key"),
+    (re.compile(r"BEGIN.*PRIVATE KEY"), "Private key PEM"),
+    (re.compile(r"(postgres|mysql|mongodb(\+srv)?)://[^:]+:[^@]+@"), "Connection string with password"),
+]
 
-  # AWS keys
-  if grep -qE 'AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}' "$FILE_PATH" 2>/dev/null; then
-    HITS="${HITS}  - AWS access key\n"
-  fi
-  # GitHub tokens
-  if grep -qE 'ghp_[A-Za-z0-9]{36}|gho_[A-Za-z0-9]{36}|ghs_[A-Za-z0-9]{36}' "$FILE_PATH" 2>/dev/null; then
-    HITS="${HITS}  - GitHub token\n"
-  fi
-  # Stripe live keys
-  if grep -qE 'sk_live_[A-Za-z0-9]{24,}|rk_live_[A-Za-z0-9]{24,}' "$FILE_PATH" 2>/dev/null; then
-    HITS="${HITS}  - Stripe live key\n"
-  fi
-  # Private keys
-  if grep -q "BEGIN.*PRIVATE KEY" "$FILE_PATH" 2>/dev/null; then
-    HITS="${HITS}  - Private key PEM\n"
-  fi
-  # Connection strings with password
-  if grep -qE '(postgres|mysql|mongodb(\+srv)?)://[^:]+:[^@]+@' "$FILE_PATH" 2>/dev/null; then
-    HITS="${HITS}  - Connection string with password\n"
-  fi
+scanned = 0
+findings = {}
 
-  if [ -n "$HITS" ]; then
-    FINDING_COUNT=$((FINDING_COUNT + 1))
-    FINDINGS="${FINDINGS}\n${FILE_PATH}:\n${HITS}"
-  fi
-done <<< "$UNIQUE_FILES"
+for file_path in files:
+    p = Path(file_path)
+    if not p.is_file():
+        continue
+    if SKIP_DIR_PATTERN.search(file_path) or SKIP_FILE_PATTERN.search(file_path):
+        continue
+    scanned += 1
+    try:
+        content = p.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        continue
+    hits = [label for regex, label in DETECTORS if regex.search(content)]
+    if hits:
+        findings[file_path] = hits
 
-# Clear the session log regardless
-> "$EDIT_LOG"
+# Clear session log
+edit_log.write_text("")
 
-# Report only if findings
-if [ "$FINDING_COUNT" -gt 0 ]; then
-  NOW_ISO=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-  echo "{\"timestamp\":\"${NOW_ISO}\",\"scanned\":${SCANNED_COUNT},\"findings\":${FINDING_COUNT}}" >> "$SUMMARY_LOG"
+# Report
+if findings:
+    summary_log.parent.mkdir(parents=True, exist_ok=True)
+    with open(summary_log, "a") as f:
+        f.write(json.dumps({
+            "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "scanned": scanned,
+            "findings": len(findings),
+        }) + "\n")
 
-  echo "" >&2
-  echo "[secret-scan] End-of-task review — scanned ${SCANNED_COUNT} files, found potential secrets in ${FINDING_COUNT}:" >&2
-  echo -e "$FINDINGS" >&2
-  echo "" >&2
-  echo "[secret-scan] These may be fine (test fixtures, dev defaults) or may need to move to env vars before production." >&2
-fi
+    print(f"\n[secret-scan] End-of-task review — scanned {scanned} files, "
+          f"found potential secrets in {len(findings)}:\n", file=sys.stderr)
+    for path, hits in findings.items():
+        print(f"  {path}", file=sys.stderr)
+        for hit in hits:
+            print(f"    - {hit}", file=sys.stderr)
+    print("\n[secret-scan] These may be fine (test fixtures, dev defaults) or may need to move to env vars before production.\n",
+          file=sys.stderr)
+PYEOF
 
 exit 0
