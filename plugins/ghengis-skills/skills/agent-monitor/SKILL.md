@@ -89,7 +89,17 @@ The status line applies a linear correction to Claude Code's reported context pe
 
 ### Auto-install (via plugin)
 
-When installed as a ghengis-skills plugin, the hooks are automatically wired. The dashboard launches when you spawn 2+ agents.
+When installed as a ghengis-skills plugin, the hooks are automatically wired. The dashboard server starts silently when agents spawn and prints the URL (`http://localhost:7685`) to stderr.
+
+### Browser Auto-Open (Opt-In)
+
+By default, the dashboard does **not** open a browser tab — it just starts the server and logs the URL. If you want the old behavior where a browser tab opens every time agents spawn, set this environment variable:
+
+```bash
+export GHENGIS_AGENT_MONITOR_AUTO_OPEN=true
+```
+
+Accepted truthy values: `true`, `1`, `yes` (case-insensitive). Any other value or unset = silent mode.
 
 For the status line, add this to your `~/.claude/settings.json`:
 

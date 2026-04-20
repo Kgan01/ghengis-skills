@@ -257,8 +257,14 @@ def launch_dashboard():
             print(f"Warning: Failed to write terminal flag: {e}", file=sys.stderr)
 
         # Open browser using cross-platform utility
+        # Respects GHENGIS_AGENT_MONITOR_AUTO_OPEN env var (default: false)
         url = "http://localhost:7685"
-        open_browser(url)
+        auto_open = os.environ.get("GHENGIS_AGENT_MONITOR_AUTO_OPEN", "false").lower()
+        if auto_open in ("true", "1", "yes"):
+            open_browser(url)
+        else:
+            # Silent mode: print URL to stderr so user can open manually
+            print(f"[agent-monitor] Dashboard running at {url}", file=sys.stderr)
 
     return True
 
