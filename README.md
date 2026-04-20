@@ -10,14 +10,14 @@
                      S K I L L S
 ```
 
-[![Skills](https://img.shields.io/badge/skills-48-blue?style=for-the-badge)](./plugins/ghengis-skills/skills/)
+[![Skills](https://img.shields.io/badge/skills-49-blue?style=for-the-badge)](./plugins/ghengis-skills/skills/)
 [![Evals](https://img.shields.io/badge/evals-42-green?style=for-the-badge)](./plugins/ghengis-skills/evals/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange?style=for-the-badge)](https://code.claude.com)
 [![License](https://img.shields.io/badge/license-MIT-purple?style=for-the-badge)](./LICENSE)
 
 **Make Claude smarter, faster, and more autonomous.**
 
-*48 skills covering evolving cognition, paper-to-code research translation, multi-agent orchestration, prompt quality validation, agent reliability, security testing, code intelligence, and domain expertise across 20+ fields. Includes an autoloader that forces relevant skills to fire automatically — same pattern as superpowers.*
+*49 skills covering evolving cognition, paper-to-code research translation, multi-agent orchestration, prompt quality validation, agent reliability, security testing, code intelligence, and domain expertise across 20+ fields. Includes an autoloader that forces relevant skills to fire automatically — same pattern as superpowers.*
 
 ---
 
@@ -61,7 +61,7 @@ In Claude Code, run:
 
 The first two install the plugin. The third configures autonomous permissions — safe dev tools are auto-allowed, dangerous operations are blocked. Restart Claude Code after setup.
 
-All 48 skills are now available in every session — CLI, desktop app, and mobile. Claude loads them automatically when it detects a matching task.
+All 49 skills are now available in every session — CLI, desktop app, and mobile. Claude loads them automatically when it detects a matching task.
 
 ### For Teams
 
@@ -167,6 +167,7 @@ These help Claude learn, remember, and adapt — building intelligence over time
 | **goal-tracking** | Auto-detects goals from conversation, maintains parent-child hierarchy, tracks state transitions (active/blocked/completed/abandoned), and catches goal staleness with fuzzy matching for related requests |
 | **agent-identity** | Builds an evolving understanding of user preferences, communication style, and working patterns through an observe-extract-synthesize loop. Adapts behavior over time. |
 | **skill-memory** | Accumulates domain knowledge from past tasks in a grepable plain-text format. No vector database needed — plain markdown, searchable via grep, with auto-consolidation when it grows too large. |
+| **skill-chain-supervisor** | Orchestrates multiple ghengis-skills into reliable workflows via a shared JSON scratchpad. Supports sequential, fan-out/merge, conditional, and iterative-loop patterns. First chain: agent-dispatch (PQL → meta-prompting → execution → completion → hallucination → audit). |
 | **audit-ledger** | Hash-chained append-only audit trail for what agents did, when, and why. Tamper-proof via SHA-256 chain, queryable by time/agent/goal, daily rollover. |
 | **compute-adaptation** | 4-tier graceful degradation (Normal, Low, Critical, Offline). Adapts agent behavior when hitting rate limits, budget constraints, or resource pressure — reduces parallelism, downgrades models, queues non-essential work. |
 
