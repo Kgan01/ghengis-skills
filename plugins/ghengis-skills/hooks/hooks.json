@@ -41,6 +41,11 @@
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/run-hook.cmd\" session-stop.sh",
             "async": true
+          },
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/run-hook.cmd\" batch_secret_scan.sh",
+            "async": true
           }
         ]
       }
@@ -81,6 +86,11 @@
             "prompt": "Check if the assistant used ghengis-skills:meta-prompting patterns (role identity, specific deliverable, output format) and ghengis-skills:pql-validation (no vague prompts, no 'check the code', specific context given) in the Agent prompt being dispatched. The prompt should have: 1) A clear ROLE for the subagent, 2) A specific DELIVERABLE, 3) CONTEXT from prior work, 4) OUTPUT FORMAT instructions. If the prompt is vague, generic, or missing structure, respond 'WARN: Agent prompt missing [specific issue]. Use meta-prompting patterns.' If the prompt is well-structured with role+deliverable+context+format, respond 'ok'. Agent prompt: $ARGUMENTS",
             "model": "claude-haiku-4-5",
             "statusMessage": "Checking agent prompt quality..."
+          },
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/run-hook.cmd\" chain_pre_agent.sh",
+            "async": true
           }
         ]
       },
@@ -99,10 +109,9 @@
         "matcher": "Write|Edit",
         "hooks": [
           {
-            "type": "prompt",
-            "prompt": "You are checking one file edit for a REAL secret leak. Default to 'ok' \u00e2\u20ac\u201d only flag obvious, exploitable leaks.\n\nFLAG only these:\n- A literal high-entropy credential value committed as a string: AWS keys (AKIA/ASIA + 16 chars), GitHub tokens (ghp_/gho_/ghs_/ghu_), Stripe keys (sk_live_/rk_live_), Slack tokens (xox[baprs]-...), Google API keys (AIza + 35 chars), JWT (eyJ... three-part), private key PEM blocks (-----BEGIN * PRIVATE KEY-----), connection strings with an embedded password (postgres://user:password@host, mongodb+srv://user:password@host), or random 32+ char hex/base64 strings clearly labeled as a secret.\n- A real email address or phone number being written as actual data (not a comment, not an example, not in documentation).\n\nDo NOT flag any of these:\n- References to env vars: process.env.X, os.environ['X'], os.getenv('X'), ${X}, import.meta.env.X, etc.\n- Environment variable NAMES, even when the name contains PASSWORD/SECRET/TOKEN/KEY \u00e2\u20ac\u201d names are not secrets.\n- Fallback/default string literals that are clearly human-readable identifiers (e.g. 'my-app-dev-key', 'timeclock-kaegan-2026', 'changeme'). These are not exploitable credentials.\n- Usernames inside file paths (/home/bob, C:\\\\Users\\\\bob).\n- URLs, domain names, company identifiers, or dealer/store codes.\n- Test fixtures, example values, placeholder strings, or documentation.\n- Code that reads/uses credentials \u00e2\u20ac\u201d only the credential VALUE itself matters.\n\nFile path and content: $ARGUMENTS\n\nIf you find a REAL leak matching the FLAG list, respond 'WARN: <one short sentence with the specific pattern and where>'. Otherwise respond exactly 'ok'.",
-            "model": "claude-haiku-4-5",
-            "statusMessage": "Checking for secrets..."
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/run-hook.cmd\" log_edited_file.sh",
+            "async": true
           }
         ]
       }
@@ -119,6 +128,11 @@
           {
             "type": "command",
             "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/on_task_stop.py\"",
+            "async": true
+          },
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/run-hook.cmd\" chain_subagent_stop.sh",
             "async": true
           }
         ]
