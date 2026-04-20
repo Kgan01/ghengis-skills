@@ -159,11 +159,35 @@ One-sentence description.
 
 ## Available Chains
 
-See `chains/` directory. As of v1.8.3:
+See `chains/` directory. As of v1.8.5:
 
 - **agent-dispatch** — wraps a subagent spawn with PQL → meta-prompting → execution → completion → hallucination → audit
+- **task-complete** — post-response verification (completion + hallucination + audit). Lighter than agent-dispatch; fires on Stop events.
 
 More chains coming in v1.9.0+.
+
+## Scratchpad Helper
+
+Skills participating in a chain should use `scripts/scratchpad.py` for reliable reads/writes:
+
+```bash
+# Read a subkey
+python ${CLAUDE_SKILL_DIR}/scripts/scratchpad.py read pql_validation.score
+
+# Write a namespaced value
+python ${CLAUDE_SKILL_DIR}/scripts/scratchpad.py write pql_validation.score 0.85
+
+# Merge multiple keys into a subkey (stdin = JSON object)
+echo '{"score":0.85,"anti_patterns":[]}' | python ${CLAUDE_SKILL_DIR}/scripts/scratchpad.py merge pql_validation
+
+# Advance the chain stage pointer
+python ${CLAUDE_SKILL_DIR}/scripts/scratchpad.py advance
+
+# Full dump
+python ${CLAUDE_SKILL_DIR}/scripts/scratchpad.py dump
+```
+
+The helper handles JSON parsing, nested paths, and atomic writes so participant skills don't need to re-implement state management.
 
 ## Debugging
 

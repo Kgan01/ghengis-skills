@@ -1,7 +1,7 @@
 {
   "name": "ghengis-skills",
   "description": "48 skills for Claude Code — evolving-cognition, paper-to-code, autoloader, auto project sync, multi-agent orchestration, prompt quality validation, agent reliability, security testing, code intelligence, and domain expertise",
-  "version": "1.8.4",
+  "version": "1.8.5",
   "author": {
     "name": "Kgan"
   },

@@ -204,3 +204,29 @@ Context from prior roles:
 
 Complete your role's work thoroughly and concisely.
 ```
+
+## Chain Integration
+
+This skill participates in `skill-chain-supervisor` chains via the shared scratchpad at `~/.claude/ghengis-chain-context.json`.
+
+**Role in chain:** Prompt enhancer. Runs when pql_validation flags missing-role or vague-deliverable.
+
+**Scratchpad subkey (namespaced writes):** `meta_prompting.*`
+
+**Reads (input scratchpad keys):**
+- `input.prompt_draft`
+- `pql_validation.anti_patterns`
+
+**Writes (output scratchpad keys):**
+- `meta_prompting.role_selected` — name of the role template applied (e.g. 'researcher', 'builder')
+- `meta_prompting.enhanced_prompt` — the rewritten prompt with role + context + format
+- `meta_prompting.template_version` — which of the 22 templates was used
+
+**Success criteria:** enhanced_prompt exists and passes PQL re-check >= 0.7
+
+When invoked as part of a chain, this skill MUST:
+1. Read prior scratchpad state before starting
+2. Write outputs to the `meta_prompting.*` namespace only — never overwrite another skill's subkey
+3. Report failure via its own subkey (e.g. `meta_prompting.error`) rather than raising
+
+When invoked standalone (not in a chain), scratchpad writes are optional but recommended for auditability.

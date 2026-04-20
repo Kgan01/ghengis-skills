@@ -263,3 +263,28 @@ Total session cost:  $0.47
 | No `fail` entries in a long session | Not recording failures | Recording errors, timeouts, and retries |
 | Chain verification never runs | Ledger exists but is not trusted | Running verification at session end or before audits |
 | Entries have no `goal_id` | Cannot trace actions to objectives | Assigning goal IDs when goals are created |
+
+## Chain Integration
+
+This skill participates in `skill-chain-supervisor` chains via the shared scratchpad at `~/.claude/ghengis-chain-context.json`.
+
+**Role in chain:** Final recorder. Runs last, persists the full chain outcome.
+
+**Scratchpad subkey (namespaced writes):** `audit_ledger.*`
+
+**Reads (input scratchpad keys):**
+- `entire scratchpad`
+
+**Writes (output scratchpad keys):**
+- `audit_ledger.entry_id` — UUID of the ledger entry appended
+- `audit_ledger.hash` — SHA-256 of the entry (for chain integrity)
+- `audit_ledger.prev_hash` — hash of previous ledger entry (hash chain)
+
+**Success criteria:** append succeeds and returns non-empty entry_id + hash
+
+When invoked as part of a chain, this skill MUST:
+1. Read prior scratchpad state before starting
+2. Write outputs to the `audit_ledger.*` namespace only — never overwrite another skill's subkey
+3. Report failure via its own subkey (e.g. `audit_ledger.error`) rather than raising
+
+When invoked standalone (not in a chain), scratchpad writes are optional but recommended for auditability.

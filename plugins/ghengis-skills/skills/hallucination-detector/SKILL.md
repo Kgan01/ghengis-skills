@@ -199,3 +199,28 @@ When in doubt about whether content came from a tool or from the agent's own gen
 ## Cost
 
 $0. Zero LLM calls. All checks are regex pattern matching against the output text. Apply to every agent response, every subagent result, and every output before it reaches the user.
+
+## Chain Integration
+
+This skill participates in `skill-chain-supervisor` chains via the shared scratchpad at `~/.claude/ghengis-chain-context.json`.
+
+**Role in chain:** Output scanner. Runs after any content-generating skill or agent.
+
+**Scratchpad subkey (namespaced writes):** `hallucination_detector.*`
+
+**Reads (input scratchpad keys):**
+- `execution.result`
+
+**Writes (output scratchpad keys):**
+- `hallucination_detector.fabricated_urls` — list of URLs that look fake or uncheckable
+- `hallucination_detector.unsourced_stats` — list of specific claims with no citation
+- `hallucination_detector.suspect_claims` — list of confident assertions without evidence
+
+**Success criteria:** all three lists empty OR claims verified against sources
+
+When invoked as part of a chain, this skill MUST:
+1. Read prior scratchpad state before starting
+2. Write outputs to the `hallucination_detector.*` namespace only — never overwrite another skill's subkey
+3. Report failure via its own subkey (e.g. `hallucination_detector.error`) rather than raising
+
+When invoked standalone (not in a chain), scratchpad writes are optional but recommended for auditability.

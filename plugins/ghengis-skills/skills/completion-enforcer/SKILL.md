@@ -244,3 +244,29 @@ When reviewing a subagent's work, check which tier they reached:
 ## Cost
 
 $0. Zero LLM calls. All checks are string matching and length comparisons. Apply liberally.
+
+## Chain Integration
+
+This skill participates in `skill-chain-supervisor` chains via the shared scratchpad at `~/.claude/ghengis-chain-context.json`.
+
+**Role in chain:** Post-execution verifier. Catches false 'done' claims before they ship.
+
+**Scratchpad subkey (namespaced writes):** `completion_enforcer.*`
+
+**Reads (input scratchpad keys):**
+- `execution.result`
+- `input.user_request`
+
+**Writes (output scratchpad keys):**
+- `completion_enforcer.status` — 'done' | 'partial' | 'incomplete'
+- `completion_enforcer.concerns` — list of premature-completion signals detected
+- `completion_enforcer.evidence_checks` — what was verified (tests ran, files created, etc.)
+
+**Success criteria:** status == 'done' AND concerns is empty
+
+When invoked as part of a chain, this skill MUST:
+1. Read prior scratchpad state before starting
+2. Write outputs to the `completion_enforcer.*` namespace only — never overwrite another skill's subkey
+3. Report failure via its own subkey (e.g. `completion_enforcer.error`) rather than raising
+
+When invoked standalone (not in a chain), scratchpad writes are optional but recommended for auditability.

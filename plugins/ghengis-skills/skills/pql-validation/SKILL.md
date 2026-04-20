@@ -144,3 +144,30 @@ Thoughts that mean your prompt needs work:
 | "Fix it again, it still doesn't work" | No failure context | Including error messages and what you tried |
 | "Write a blog post" (no audience) | Undefined audience | Specifying who will read it |
 | "Make the API fast" | No performance target | Setting a measurable target (e.g., "under 200ms") |
+
+## Chain Integration
+
+This skill participates in `skill-chain-supervisor` chains via the shared scratchpad at `~/.claude/ghengis-chain-context.json`.
+
+**Role in chain:** Pre-execution validator. Runs before any agent dispatch or major task.
+
+**Scratchpad subkey (namespaced writes):** `pql_validation.*`
+
+**Reads (input scratchpad keys):**
+- `input.prompt_draft`
+- `input.user_request`
+
+**Writes (output scratchpad keys):**
+- `pql_validation.score` — float 0-1, overall prompt quality
+- `pql_validation.anti_patterns` — list of detected anti-pattern names
+- `pql_validation.suggested_fixes` — list of fix suggestions (strings)
+- `pql_validation.tier_applied` — 'tier1' | 'tier2' | 'none' — whether auto-fix was used
+
+**Success criteria:** score >= 0.5 OR tier1/tier2 auto-fix applied
+
+When invoked as part of a chain, this skill MUST:
+1. Read prior scratchpad state before starting
+2. Write outputs to the `pql_validation.*` namespace only — never overwrite another skill's subkey
+3. Report failure via its own subkey (e.g. `pql_validation.error`) rather than raising
+
+When invoked standalone (not in a chain), scratchpad writes are optional but recommended for auditability.
