@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+"""End-of-task batch secret scanner. Runs from Stop hook."""
+
+import json
+import re
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+EDIT_LOG = Path.home() / ".claude" / "edited-files-session.log"
+SUMMARY_LOG = Path.home() / ".claude" / "secret-scan-history.jsonl"
+
+
+def main():
+    if not EDIT_LOG.exists() or EDIT_LOG.stat().st_size == 0:
+        return 0
+
+    # Dedup file paths from "timestamp|path" lines
+    files = sorted({
+        line.split("|", 1)[1].strip()
+        for line in EDIT_LOG.read_text().splitlines()
+        if "|" in line
+    })
+
+    # Skip test/demo/example paths — match both / and \ separators
+    skip_dir = re.compile(
+        r"[/\\](test|tests|__tests__|__mocks__|demo|demos|example|examples|fixture|fixtures|sample|samples)[/\\]",
+        re.IGNORECASE,
+    )
+    skip_file = re.compile(r"\.(test|spec|demo|example)\.(js|ts|jsx|tsx|py|rb|go)$", re.IGNORECASE)
+
+    detectors = [
+        (re.compile(r"AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}"), "AWS access key"),
+        (re.compile(r"ghp_[A-Za-z0-9]{36}|gho_[A-Za-z0-9]{36}|ghs_[A-Za-z0-9]{36}"), "GitHub token"),
+        (re.compile(r"sk_live_[A-Za-z0-9]{24,}|rk_live_[A-Za-z0-9]{24,}"), "Stripe live key"),
+        (re.compile(r"BEGIN.*PRIVATE KEY"), "Private key PEM"),
+        (re.compile(r"(postgres|mysql|mongodb(\+srv)?)://[^:]+:[^@]+@"), "Connection string with password"),
+    ]
+
+    scanned = 0
+    findings = {}
+
+    for file_path in files:
+        p = Path(file_path)
+        if not p.is_file():
+            continue
+        if skip_dir.search(file_path) or skip_file.search(file_path):
+            continue
+        scanned += 1
+        try:
+            content = p.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        hits = [label for regex, label in detectors if regex.search(content)]
+        if hits:
+            findings[file_path] = hits
+
+    # Clear session log regardless of findings
+    EDIT_LOG.write_text("")
+
+    if not findings:
+        return 0
+
+    SUMMARY_LOG.parent.mkdir(parents=True, exist_ok=True)
+    with open(SUMMARY_LOG, "a") as f:
+        f.write(json.dumps({
+            "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "scanned": scanned,
+            "findings": len(findings),
+        }) + "\n")
+
+    out = sys.stderr
+    print(f"\n[secret-scan] End-of-task review — scanned {scanned} files, "
+          f"found potential secrets in {len(findings)}:\n", file=out)
+    for path, hits in findings.items():
+        print(f"  {path}", file=out)
+        for hit in hits:
+            print(f"    - {hit}", file=out)
+    print("\n[secret-scan] These may be fine (test fixtures, dev defaults) or may need to move to env vars before production.\n",
+          file=out)
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
