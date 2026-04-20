@@ -45,7 +45,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/run-hook.cmd\" batch_secret_scan.sh",
-            "async": true
+            "async": false
           }
         ]
       }
