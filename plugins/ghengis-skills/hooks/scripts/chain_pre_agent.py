@@ -18,6 +18,30 @@ SCRATCHPAD = HOME / ".claude" / "ghengis-chain-context.json"
 LOG = HOME / ".claude" / "ghengis-chain-log.jsonl"
 HISTORY_DIR = HOME / ".claude" / "ghengis-chain-history"
 
+# Archive retention: keep the most recent N files, delete older ones.
+# 50 covers normal use (back-to-back dispatches) without letting the
+# directory grow unbounded.
+ARCHIVE_RETENTION_COUNT = 50
+
+
+def _prune_archive() -> int:
+    """Delete oldest archive files beyond ARCHIVE_RETENTION_COUNT.
+
+    Returns the number of files deleted.
+    """
+    if not HISTORY_DIR.exists():
+        return 0
+    files = sorted(HISTORY_DIR.glob("interrupted-*.json"), key=lambda p: p.stat().st_mtime)
+    excess = len(files) - ARCHIVE_RETENTION_COUNT
+    deleted = 0
+    for f in files[:excess] if excess > 0 else []:
+        try:
+            f.unlink()
+            deleted += 1
+        except OSError:
+            pass
+    return deleted
+
 
 def main() -> int:
     now = datetime.now(timezone.utc)
@@ -41,6 +65,9 @@ def main() -> int:
                 archived = True
         except (json.JSONDecodeError, OSError):
             pass  # corrupt file, just overwrite
+
+    # Prune archive directory — keep only most recent N files
+    _prune_archive()
 
     # Fresh chain state.
     # current_stage is what's ABOUT to run; stages_remaining excludes it.
