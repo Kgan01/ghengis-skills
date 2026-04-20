@@ -43,10 +43,12 @@ def main():
     if not EDIT_LOG.exists() or EDIT_LOG.stat().st_size == 0:
         return 0
 
-    # Dedup file paths from "timestamp|path" lines
+    # Dedup file paths from "timestamp|path" lines.
+    # Explicit UTF-8 — paths may contain unicode (emoji, CJK, accents).
+    # Default encoding on Windows is cp1252 which crashes on UTF-8 bytes.
     files = sorted({
         line.split("|", 1)[1].strip()
-        for line in EDIT_LOG.read_text().splitlines()
+        for line in EDIT_LOG.read_text(encoding="utf-8", errors="replace").splitlines()
         if "|" in line
     })
 
@@ -61,7 +63,8 @@ def main():
         (re.compile(r"AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}"), "AWS access key"),
         (re.compile(r"ghp_[A-Za-z0-9]{36}|gho_[A-Za-z0-9]{36}|ghs_[A-Za-z0-9]{36}"), "GitHub token"),
         (re.compile(r"sk_live_[A-Za-z0-9]{24,}|rk_live_[A-Za-z0-9]{24,}"), "Stripe live key"),
-        (re.compile(r"BEGIN.*PRIVATE KEY"), "Private key PEM"),
+        # Require PEM dashes — prevents matching regex definitions of the pattern itself
+        (re.compile(r"-----BEGIN[A-Z ]*PRIVATE KEY-----"), "Private key PEM"),
         (re.compile(r"(postgres|mysql|mongodb(\+srv)?)://[^:]+:[^@]+@"), "Connection string with password"),
     ]
 
@@ -87,7 +90,7 @@ def main():
             findings[file_path] = hits
 
     # Clear session log regardless of findings
-    EDIT_LOG.write_text("")
+    EDIT_LOG.write_text("", encoding="utf-8")
 
     if not findings:
         return 0

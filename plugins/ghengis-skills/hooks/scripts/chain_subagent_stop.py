@@ -26,7 +26,7 @@ def main() -> int:
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     try:
-        state = json.loads(SCRATCHPAD.read_text())
+        state = json.loads(SCRATCHPAD.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return 0
 
@@ -39,7 +39,7 @@ def main() -> int:
     state["stages_remaining"] = ["hallucination-detector", "audit-ledger"]
     state["subagent_stopped_at"] = now_iso
 
-    SCRATCHPAD.write_text(json.dumps(state, indent=2))
+    SCRATCHPAD.write_text(json.dumps(state, indent=2), encoding="utf-8")
 
     with open(LOG, "a", encoding="utf-8") as f:
         f.write(json.dumps({

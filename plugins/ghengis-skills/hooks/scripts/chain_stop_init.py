@@ -33,7 +33,7 @@ def main() -> int:
     # scratchpad is empty or from a different chain.
     if CHAIN_STATE.exists():
         try:
-            state = json.loads(CHAIN_STATE.read_text())
+            state = json.loads(CHAIN_STATE.read_text(encoding="utf-8"))
             if state.get("chain") == "agent-dispatch" and state.get("stages_remaining"):
                 # agent-dispatch will handle it
                 return 0
@@ -43,7 +43,7 @@ def main() -> int:
     # Count files edited this turn
     edited = set()
     try:
-        for line in EDIT_LOG.read_text().splitlines():
+        for line in EDIT_LOG.read_text(encoding="utf-8", errors="replace").splitlines():
             if "|" in line:
                 edited.add(line.split("|", 1)[1].strip())
     except OSError:

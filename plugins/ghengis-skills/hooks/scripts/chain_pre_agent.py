@@ -55,13 +55,13 @@ def main() -> int:
     archived = False
     if SCRATCHPAD.exists():
         try:
-            prior = json.loads(SCRATCHPAD.read_text())
+            prior = json.loads(SCRATCHPAD.read_text(encoding="utf-8"))
             if prior.get("stages_remaining"):
                 # In-flight chain — archive it
                 archive_file = HISTORY_DIR / f"interrupted-{archive_stamp}.json"
                 prior["interrupted_at"] = now_iso
                 prior["interrupt_reason"] = "new agent dispatched before chain completed"
-                archive_file.write_text(json.dumps(prior, indent=2))
+                archive_file.write_text(json.dumps(prior, indent=2), encoding="utf-8")
                 archived = True
         except (json.JSONDecodeError, OSError):
             pass  # corrupt file, just overwrite
@@ -86,7 +86,7 @@ def main() -> int:
         "input": {"triggered_by": "PreToolUse(Agent) hook"},
         "hook_triggered": True,
     }
-    SCRATCHPAD.write_text(json.dumps(state, indent=2))
+    SCRATCHPAD.write_text(json.dumps(state, indent=2), encoding="utf-8")
 
     # Append chain log
     log_entry = {
