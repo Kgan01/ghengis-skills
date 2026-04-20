@@ -18,6 +18,21 @@ SETTINGS = CLAUDE_HOME / "settings.json"
 SOURCE_SCRIPT = Path(__file__).parent / "statusline-bar.py"
 
 
+def resolve_python() -> str:
+    """Pick a Python interpreter that exists on this machine.
+
+    Many systems (modern macOS, most Linux) ship `python3` but not `python`.
+    Windows and some distros ship `python` but not `python3`. Prefer `python3`
+    because it's the explicit name; fall back to `python`; last resort, hand
+    back the literal `python3` and hope it's on PATH at statusline time.
+    """
+    for name in ("python3", "python"):
+        found = shutil.which(name)
+        if found:
+            return found
+    return "python3"
+
+
 def main() -> int:
     if not SOURCE_SCRIPT.exists():
         print(f"ERROR: statusline-bar.py not found at {SOURCE_SCRIPT}", file=sys.stderr)
@@ -31,7 +46,8 @@ def main() -> int:
     print(f"[install-statusline] Copied statusline-bar.py to {TARGET_SCRIPT}")
 
     # 2. Merge statusLine into settings.json
-    cmd = f"python {TARGET_SCRIPT.as_posix()}"
+    python_cmd = resolve_python()
+    cmd = f"{python_cmd} {TARGET_SCRIPT.as_posix()}"
     status_entry = {"type": "command", "command": cmd}
 
     if SETTINGS.exists():
