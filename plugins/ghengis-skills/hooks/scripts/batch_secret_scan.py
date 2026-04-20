@@ -69,6 +69,28 @@ def main():
             "findings": len(findings),
         }) + "\n")
 
+    # Also write a human-readable report to pending-scan-report.md.
+    # A UserPromptSubmit hook picks this up on the NEXT turn and injects
+    # it into Claude's context so the user can actually see it.
+    # Command-type hook stderr is not surfaced to the Claude Code transcript;
+    # the pending-report mechanism routes around that limitation.
+    pending_report = Path.home() / ".claude" / "pending-scan-report.md"
+    lines = [
+        f"## [secret-scan] End-of-task review",
+        f"",
+        f"Scanned **{scanned}** file(s), found potential secrets in **{len(findings)}**:",
+        f"",
+    ]
+    for path, hits in findings.items():
+        lines.append(f"- `{path}`")
+        for hit in hits:
+            lines.append(f"  - {hit}")
+    lines.append("")
+    lines.append("_These may be fine (test fixtures, dev defaults) or may need to move to env vars before production._")
+    lines.append("")
+    pending_report.write_text("\n".join(lines), encoding="utf-8")
+
+    # Also print to stderr for logs/debugging (not visible in transcript)
     out = sys.stderr
     print(f"\n[secret-scan] End-of-task review — scanned {scanned} files, "
           f"found potential secrets in {len(findings)}:\n", file=out)

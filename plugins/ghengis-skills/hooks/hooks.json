@@ -7,6 +7,10 @@
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/run-hook.cmd\" time-tracker.sh",
             "statusMessage": "Tracking time..."
+          },
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/run-hook.cmd\" inject_pending_reports.sh"
           }
         ]
       }
