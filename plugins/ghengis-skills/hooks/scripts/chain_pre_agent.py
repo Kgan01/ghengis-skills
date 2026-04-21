@@ -40,13 +40,44 @@ def prune_archive(history_dir: Path) -> int:
     return deleted
 
 
+def _normalize_cwd(cwd_str: str) -> Path:
+    """Convert whatever hook gives us to a valid Path on this OS.
+
+    Handles:
+    - Git-bash / MSYS format: /c/Users/... -> C:/Users/...
+    - Windows native: C:\\Users\\... (pass through)
+    - Unix: /home/user/... (pass through on Unix)
+    - Empty/None: fall back to os.getcwd()
+    """
+    if not cwd_str:
+        return Path(os.getcwd())
+    # Detect /c/ or /C/ prefix (git-bash on Windows)
+    if len(cwd_str) >= 3 and cwd_str[0] == "/" and cwd_str[2] == "/" and cwd_str[1].isalpha():
+        drive = cwd_str[1].upper()
+        rest = cwd_str[3:]
+        return Path(f"{drive}:/{rest}")
+    return Path(cwd_str)
+
+
 def main() -> int:
     try:
         data = json.load(sys.stdin)
     except (json.JSONDecodeError, ValueError):
         data = {}
 
-    cwd = Path(data.get("cwd") or os.getcwd())
+    cwd = _normalize_cwd(data.get("cwd") or "")
+
+    # Debug log — helps diagnose path-format issues. Safe to leave enabled;
+    # file is small and append-only.
+    try:
+        debug_log = Path.home() / ".claude" / "ghengis-chain-hook-debug.log"
+        debug_log.parent.mkdir(parents=True, exist_ok=True)
+        with open(debug_log, "a", encoding="utf-8") as f:
+            f.write(f"{datetime.now(timezone.utc).isoformat()}|chain_pre_agent|"
+                    f"raw_cwd={data.get('cwd')!r}|resolved={cwd}\n")
+    except OSError:
+        pass
+
     paths = chain_paths(cwd)
 
     now = datetime.now(timezone.utc)

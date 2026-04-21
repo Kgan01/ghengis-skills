@@ -12,13 +12,21 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
+def _normalize_cwd(cwd_str: str) -> Path:
+    if not cwd_str:
+        return Path(os.getcwd())
+    if len(cwd_str) >= 3 and cwd_str[0] == "/" and cwd_str[2] == "/" and cwd_str[1].isalpha():
+        return Path(f"{cwd_str[1].upper()}:/{cwd_str[3:]}")
+    return Path(cwd_str)
+
+
 def main() -> int:
     try:
         data = json.load(sys.stdin)
     except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
         return 0
 
-    cwd = Path(data.get("cwd") or os.getcwd())
+    cwd = _normalize_cwd(data.get("cwd") or "")
 
     tool_input = data.get("tool_input") or data.get("toolInput") or {}
     file_path = tool_input.get("file_path") or tool_input.get("filePath")
