@@ -2,35 +2,37 @@
 """
 SubagentStop hook for skill-chain-supervisor.
 
-Advances the scratchpad from pre-execution stages (pql-validation,
-meta-prompting, execution) to post-execution stages.
-
-current_stage after this runs: "completion-enforcer"
-stages_remaining after this runs: ["hallucination-detector", "audit-ledger"]
-(current_stage is NOT in stages_remaining — avoids the double-append bug.)
+State location: <cwd>/.claude/ghengis-chain/
+Advances the scratchpad from pre-execution stages to post-execution stages.
 """
 import json
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-HOME = Path.home()
-SCRATCHPAD = HOME / ".claude" / "ghengis-chain-context.json"
-LOG = HOME / ".claude" / "ghengis-chain-log.jsonl"
-
 
 def main() -> int:
-    if not SCRATCHPAD.exists():
+    try:
+        data = json.load(sys.stdin)
+    except (json.JSONDecodeError, ValueError):
+        data = {}
+
+    cwd = Path(data.get("cwd") or os.getcwd())
+    chain_dir = cwd / ".claude" / "ghengis-chain"
+    scratchpad = chain_dir / "context.json"
+    log = chain_dir / "log.jsonl"
+
+    if not scratchpad.exists():
         return 0
 
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     try:
-        state = json.loads(SCRATCHPAD.read_text(encoding="utf-8"))
+        state = json.loads(scratchpad.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return 0
 
-    # Only act on in-flight agent-dispatch chains
     if state.get("chain") != "agent-dispatch":
         return 0
 
@@ -39,9 +41,9 @@ def main() -> int:
     state["stages_remaining"] = ["hallucination-detector", "audit-ledger"]
     state["subagent_stopped_at"] = now_iso
 
-    SCRATCHPAD.write_text(json.dumps(state, indent=2), encoding="utf-8")
+    scratchpad.write_text(json.dumps(state, indent=2), encoding="utf-8")
 
-    with open(LOG, "a", encoding="utf-8") as f:
+    with open(log, "a", encoding="utf-8") as f:
         f.write(json.dumps({
             "event": "subagent_stop",
             "chain": "agent-dispatch",

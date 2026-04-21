@@ -2,50 +2,63 @@
 """
 scratchpad.py — shared-state helper for skill-chain-supervisor chains.
 
+Per-project state at: <project>/.claude/ghengis-chain/context.json
+
+Project root resolution order:
+1. GHENGIS_CHAIN_PROJECT_ROOT env var (explicit override)
+2. Walk up from $PWD looking for .claude/ghengis-chain/
+3. Walk up from $PWD looking for .claude/
+4. Fallback: $PWD itself (chain dir will be created there)
+
 Usage (from any skill's Bash context):
 
-    # Read a subkey
-    python ~/.claude/plugins/cache/.../scripts/scratchpad.py read pql_validation
-    python ~/.claude/plugins/.../scripts/scratchpad.py read pql_validation.score
-
-    # Write a namespaced value (JSON string or primitive)
+    python scratchpad.py read pql_validation.score
     python scratchpad.py write pql_validation.score 0.85
-    python scratchpad.py write pql_validation.anti_patterns '["vague-deliverable","missing-role"]'
-
-    # Update multiple keys at once (JSON on stdin)
-    echo '{"score":0.85,"anti_patterns":[]}' | python scratchpad.py merge pql_validation
-
-    # Advance chain stage
+    echo '{"score":0.85}' | python scratchpad.py merge pql_validation
     python scratchpad.py advance
-
-    # Full dump
     python scratchpad.py dump
+    python scratchpad.py path    # show which file is active
 """
 import json
 import os
 import sys
 from pathlib import Path
 
-SCRATCHPAD = Path(os.environ.get("GHENGIS_CHAIN_SCRATCHPAD",
-                                 os.path.expanduser("~/.claude/ghengis-chain-context.json")))
+
+def resolve_project_root() -> Path:
+    override = os.environ.get("GHENGIS_CHAIN_PROJECT_ROOT")
+    if override:
+        return Path(override)
+    cwd = Path.cwd().resolve()
+    for parent in [cwd] + list(cwd.parents):
+        if (parent / ".claude" / "ghengis-chain").is_dir():
+            return parent
+        if (parent / ".claude").is_dir():
+            return parent
+    return cwd
 
 
-def load():
-    if not SCRATCHPAD.exists():
+def scratchpad_path() -> Path:
+    return resolve_project_root() / ".claude" / "ghengis-chain" / "context.json"
+
+
+def load() -> dict:
+    path = scratchpad_path()
+    if not path.exists():
         return {}
     try:
-        return json.loads(SCRATCHPAD.read_text())
+        return json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return {}
 
 
-def save(state):
-    SCRATCHPAD.parent.mkdir(parents=True, exist_ok=True)
-    SCRATCHPAD.write_text(json.dumps(state, indent=2))
+def save(state: dict):
+    path = scratchpad_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(state, indent=2), encoding="utf-8")
 
 
 def get_path(state, dotted):
-    """Traverse dotted path: 'pql_validation.score' -> state['pql_validation']['score']."""
     parts = dotted.split(".")
     node = state
     for p in parts:
@@ -66,7 +79,6 @@ def set_path(state, dotted, value):
 
 
 def parse_value(raw):
-    """Try JSON parse, fall back to string."""
     try:
         return json.loads(raw)
     except json.JSONDecodeError:
@@ -141,12 +153,18 @@ def cmd_dump(args):
     return 0
 
 
+def cmd_path(args):
+    print(scratchpad_path())
+    return 0
+
+
 COMMANDS = {
     "read": cmd_read,
     "write": cmd_write,
     "merge": cmd_merge,
     "advance": cmd_advance,
     "dump": cmd_dump,
+    "path": cmd_path,
 }
 
 

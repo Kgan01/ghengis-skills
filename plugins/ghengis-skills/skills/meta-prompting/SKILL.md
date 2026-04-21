@@ -207,7 +207,7 @@ Complete your role's work thoroughly and concisely.
 
 ## Chain Integration
 
-This skill participates in `skill-chain-supervisor` chains via the shared scratchpad at `~/.claude/ghengis-chain-context.json`.
+This skill participates in `skill-chain-supervisor` chains via the shared scratchpad at `<project>/.claude/ghengis-chain/context.json`.
 
 **Role in chain:** Prompt enhancer. Runs when pql_validation flags missing-role or vague-deliverable.
 

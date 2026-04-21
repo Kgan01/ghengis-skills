@@ -266,7 +266,7 @@ Total session cost:  $0.47
 
 ## Chain Integration
 
-This skill participates in `skill-chain-supervisor` chains via the shared scratchpad at `~/.claude/ghengis-chain-context.json`.
+This skill participates in `skill-chain-supervisor` chains via the shared scratchpad at `<project>/.claude/ghengis-chain/context.json`.
 
 **Role in chain:** Final recorder. Runs last, persists the full chain outcome.
 

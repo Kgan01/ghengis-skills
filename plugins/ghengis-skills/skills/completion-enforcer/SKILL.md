@@ -247,7 +247,7 @@ $0. Zero LLM calls. All checks are string matching and length comparisons. Apply
 
 ## Chain Integration
 
-This skill participates in `skill-chain-supervisor` chains via the shared scratchpad at `~/.claude/ghengis-chain-context.json`.
+This skill participates in `skill-chain-supervisor` chains via the shared scratchpad at `<project>/.claude/ghengis-chain/context.json`.
 
 **Role in chain:** Post-execution verifier. Catches false 'done' claims before they ship.
 

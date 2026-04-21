@@ -202,7 +202,7 @@ $0. Zero LLM calls. All checks are regex pattern matching against the output tex
 
 ## Chain Integration
 
-This skill participates in `skill-chain-supervisor` chains via the shared scratchpad at `~/.claude/ghengis-chain-context.json`.
+This skill participates in `skill-chain-supervisor` chains via the shared scratchpad at `<project>/.claude/ghengis-chain/context.json`.
 
 **Role in chain:** Output scanner. Runs after any content-generating skill or agent.
 

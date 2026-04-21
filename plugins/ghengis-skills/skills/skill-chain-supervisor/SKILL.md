@@ -22,7 +22,7 @@ Event or user request
     ↓
 Supervisor reads chain spec (chains/<name>.md)
     ↓
-Writes initial state to ~/.claude/ghengis-chain-context.json
+Writes initial state to <project>/.claude/ghengis-chain/context.json
     ↓
 For each stage in chain:
     → Invoke skill (via Skill tool)
@@ -44,7 +44,7 @@ Report final state
 
 ## Scratchpad Schema
 
-Single JSON file at `~/.claude/ghengis-chain-context.json`:
+Single JSON file at `<project>/.claude/ghengis-chain/context.json`:
 
 ```json
 {
@@ -94,7 +94,7 @@ Single JSON file at `~/.claude/ghengis-chain-context.json`:
    - Read scratchpad to see prior stages' output
    - Invoke the stage's skill (via Skill tool) with scratchpad context
    - After skill returns, update scratchpad: move stage from `stages_remaining` to `stages_completed`, advance `current_stage`
-5. **At chain end** — write `completed_at`, optionally archive scratchpad to `~/.claude/ghengis-chain-history/<timestamp>.json`
+5. **At chain end** — write `completed_at`, optionally archive scratchpad to `<project>/.claude/ghengis-chain/history/<timestamp>.json`
 
 ## Built-in Patterns
 
@@ -192,8 +192,8 @@ The helper handles JSON parsing, nested paths, and atomic writes so participant 
 ## Debugging
 
 - Print `current_stage` and recent scratchpad updates to stderr
-- Preserve scratchpad on failure (`~/.claude/ghengis-chain-errors/<timestamp>.json`)
-- Chain execution log at `~/.claude/ghengis-chain-log.jsonl` (one line per stage completion)
+- Preserve scratchpad on failure (`<project>/.claude/ghengis-chain/errors/<timestamp>.json`)
+- Chain execution log at `<project>/.claude/ghengis-chain/log.jsonl` (one line per stage completion)
 
 ## Design Notes
 
