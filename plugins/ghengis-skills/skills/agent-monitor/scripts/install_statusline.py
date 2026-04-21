@@ -72,10 +72,12 @@ def resolve_python():
     return ["python3"]
 
 
-def _shell_quote(part):
+def _shell_quote(part, force=False):
     # Quote argv pieces containing whitespace so the whole command
     # round-trips through a single-string statusLine.command field.
-    if any(c.isspace() for c in part):
+    # `force=True` wraps every part in quotes (used on Windows so drive-letter
+    # paths survive bash parsing regardless of special chars).
+    if force or any(c.isspace() for c in part):
         return '"' + part + '"'
     return part
 
@@ -95,7 +97,15 @@ def main() -> int:
     # 2. Merge statusLine into settings.json
     python_parts = resolve_python()
     cmd_parts = python_parts + [TARGET_SCRIPT.as_posix()]
-    cmd = " ".join(_shell_quote(p) for p in cmd_parts)
+    # Claude Code runs statusLine.command through a shell (bash on Windows via
+    # Git Bash). Backslashes in Windows paths get eaten by bash -- e.g.
+    # C:\WINDOWS\py.EXE becomes C:WINDOWSpy.EXE. Normalize every part to
+    # forward slashes on Windows and always double-quote so paths with spaces
+    # and drive letters survive shell parsing.
+    is_windows = platform.system() == "Windows"
+    if is_windows:
+        cmd_parts = [p.replace("\\", "/") for p in cmd_parts]
+    cmd = " ".join(_shell_quote(p, force=is_windows) for p in cmd_parts)
     status_entry = {"type": "command", "command": cmd}
 
     if SETTINGS.exists():
