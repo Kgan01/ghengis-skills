@@ -11,6 +11,10 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/run-hook.cmd\" inject_pending_reports.sh"
+          },
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/run-hook.cmd\" inject_active_sessions.sh"
           }
         ]
       }
@@ -120,6 +124,11 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/run-hook.cmd\" log_edited_file.sh",
+            "async": true
+          },
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/run-hook.cmd\" track_session_activity.sh",
             "async": true
           }
         ]
