@@ -7,7 +7,9 @@ the statusLine entry into ~/.claude/settings.json (preserving all other
 keys). Idempotent — safe to re-run.
 """
 import json
+import platform
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -18,19 +20,64 @@ SETTINGS = CLAUDE_HOME / "settings.json"
 SOURCE_SCRIPT = Path(__file__).parent / "statusline-bar.py"
 
 
-def resolve_python() -> str:
-    """Pick a Python interpreter that exists on this machine.
+def _is_windowsapps_stub(path: str) -> bool:
+    # Microsoft Store "App Execution Alias" stubs live at
+    # %LOCALAPPDATA%\Microsoft\WindowsApps and pretend to be python/python3
+    # on PATH. Running one exits 49 with a Store-install prompt.
+    return "microsoft\\windowsapps" in path.lower().replace("/", "\\")
 
-    Many systems (modern macOS, most Linux) ship `python3` but not `python`.
-    Windows and some distros ship `python` but not `python3`. Prefer `python3`
-    because it's the explicit name; fall back to `python`; last resort, hand
-    back the literal `python3` and hope it's on PATH at statusline time.
+
+def _probe(argv):
+    # Actually execute `<argv> --version` and confirm it's a working Python.
+    # Catches Store-alias stubs, Xcode CLT prompt stubs, and any other
+    # non-Python binary that happens to sit on PATH under the same name.
+    try:
+        r = subprocess.run(
+            list(argv) + ["--version"],
+            capture_output=True, text=True, timeout=5,
+        )
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+        return False
+    return r.returncode == 0 and "Python" in (r.stdout + r.stderr)
+
+
+def resolve_python():
+    """Return argv list for a working Python 3 interpreter.
+
+    Works across Windows, macOS, and Linux:
+      - Windows: prefer `py -3` (Python Launcher, bundled with every
+        python.org installer, immune to Store-alias collision). Fall back
+        to `python`/`python3` with WindowsApps stubs filtered out.
+      - macOS/Linux: `python3` is canonical; `python` is a rare fallback.
+
+    Every candidate is probed with `--version` before we accept it.
     """
-    for name in ("python3", "python"):
-        found = shutil.which(name)
-        if found:
-            return found
-    return "python3"
+    is_windows = platform.system() == "Windows"
+
+    if is_windows:
+        candidates = [["py", "-3"], ["python"], ["python3"]]
+    else:
+        candidates = [["python3"], ["python"]]
+
+    for parts in candidates:
+        exe = shutil.which(parts[0])
+        if not exe:
+            continue
+        if is_windows and _is_windowsapps_stub(exe):
+            continue
+        resolved = [exe] + parts[1:]
+        if _probe(resolved):
+            return resolved
+
+    return ["python3"]
+
+
+def _shell_quote(part):
+    # Quote argv pieces containing whitespace so the whole command
+    # round-trips through a single-string statusLine.command field.
+    if any(c.isspace() for c in part):
+        return '"' + part + '"'
+    return part
 
 
 def main() -> int:
@@ -46,8 +93,9 @@ def main() -> int:
     print(f"[install-statusline] Copied statusline-bar.py to {TARGET_SCRIPT}")
 
     # 2. Merge statusLine into settings.json
-    python_cmd = resolve_python()
-    cmd = f"{python_cmd} {TARGET_SCRIPT.as_posix()}"
+    python_parts = resolve_python()
+    cmd_parts = python_parts + [TARGET_SCRIPT.as_posix()]
+    cmd = " ".join(_shell_quote(p) for p in cmd_parts)
     status_entry = {"type": "command", "command": cmd}
 
     if SETTINGS.exists():
