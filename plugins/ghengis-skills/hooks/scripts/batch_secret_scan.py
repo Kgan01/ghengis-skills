@@ -92,6 +92,16 @@ def main():
     # Clear session log regardless of findings
     EDIT_LOG.write_text("", encoding="utf-8")
 
+    # Also clear stale pending report — a prior scan may have left one behind.
+    # If the current scan has findings we rewrite it below; if not, a clean
+    # scan should not re-surface old findings on the user's next turn.
+    stale_report = Path.home() / ".claude" / "pending-scan-report.md"
+    if stale_report.exists() and not findings:
+        try:
+            stale_report.unlink()
+        except OSError:
+            pass
+
     if not findings:
         return 0
 

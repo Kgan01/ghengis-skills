@@ -51,18 +51,26 @@ def main() -> int:
     HISTORY_DIR.mkdir(parents=True, exist_ok=True)
     SCRATCHPAD.parent.mkdir(parents=True, exist_ok=True)
 
-    # Archive existing in-flight chain before overwriting
+    # Archive existing in-flight chain before overwriting.
+    # Skip archive if the prior chain never actually progressed — it was a
+    # "phantom" from a PQL-blocked dispatch (chain_pre_agent fires in parallel
+    # with PQL; if PQL WARN-blocks the tool, the subagent never runs and the
+    # scratchpad sits with stages_completed empty). Phantoms aren't worth
+    # archiving — they just clutter history/.
     archived = False
     if SCRATCHPAD.exists():
         try:
             prior = json.loads(SCRATCHPAD.read_text(encoding="utf-8"))
-            if prior.get("stages_remaining"):
-                # In-flight chain — archive it
+            prior_completed = prior.get("stages_completed") or []
+            prior_remaining = prior.get("stages_remaining") or []
+            if prior_remaining and prior_completed:
+                # Real in-flight chain (some stages ran) — archive it
                 archive_file = HISTORY_DIR / f"interrupted-{archive_stamp}.json"
                 prior["interrupted_at"] = now_iso
                 prior["interrupt_reason"] = "new agent dispatched before chain completed"
                 archive_file.write_text(json.dumps(prior, indent=2), encoding="utf-8")
                 archived = True
+            # else: phantom (PQL block) OR complete — silently overwrite
         except (json.JSONDecodeError, OSError):
             pass  # corrupt file, just overwrite
 
