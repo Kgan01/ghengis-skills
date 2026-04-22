@@ -137,7 +137,25 @@ To get the most out of these skills, add this to your `~/.claude/settings.json`.
       "WebFetch(domain:docs.anthropic.com)",
       "WebFetch(domain:pypi.org)",
       "WebFetch(domain:npmjs.com)",
-      "WebFetch(domain:stackoverflow.com)"
+      "WebFetch(domain:stackoverflow.com)",
+      "mcp__claude-in-chrome__tabs_context_mcp",
+      "mcp__claude-in-chrome__tabs_create_mcp",
+      "mcp__claude-in-chrome__navigate",
+      "mcp__claude-in-chrome__read_page",
+      "mcp__claude-in-chrome__get_page_text",
+      "mcp__claude-in-chrome__find",
+      "mcp__claude-in-chrome__form_input",
+      "mcp__claude-in-chrome__read_console_messages",
+      "mcp__claude-in-chrome__read_network_requests",
+      "mcp__claude-in-chrome__javascript_tool",
+      "mcp__claude-in-chrome__shortcuts_list",
+      "mcp__claude-in-chrome__shortcuts_execute",
+      "mcp__claude-in-chrome__resize_window",
+      "mcp__claude-in-chrome__switch_browser",
+      "mcp__claude-in-chrome__upload_image",
+      "mcp__claude-in-chrome__gif_creator",
+      "mcp__claude-in-chrome__update_plan",
+      "mcp__claude-in-chrome__computer"
     ],
     "deny": [
       "Bash(rm -rf:*)",
@@ -152,7 +170,7 @@ To get the most out of these skills, add this to your `~/.claude/settings.json`.
 }
 ```
 
-The allow list covers all common dev tools. The deny list blocks destructive operations — `rm -rf`, force push, `sudo`, disk formatting, process killing. Claude still asks before anything not on either list.
+The allow list covers all common dev tools plus the Claude-in-Chrome browser-automation MCP tools (navigate, read page, click, type, console/network inspection, screenshots). The deny list blocks destructive operations — `rm -rf`, force push, `sudo`, disk formatting, process killing. Claude still asks before anything not on either list.
 
 ## Skills
 
