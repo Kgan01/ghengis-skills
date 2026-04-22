@@ -69,6 +69,25 @@ Then **fully restart Claude Code** — press Ctrl+C or `/exit`, then run `claude
 
 All 49 skills are now available in every session — CLI, desktop app, and mobile. Claude loads them automatically when it detects a matching task.
 
+### Updating / Force Refresh
+
+`/plugin update ghengis-skills` sometimes caches an old version. If the installed version looks stuck, two paths:
+
+**Option 1 — from inside Claude Code:**
+```
+/ghengis-skills:refresh-ghengis
+/reload-plugins
+```
+
+**Option 2 — from any shell (also works for fresh installs):**
+```bash
+curl -fsSL https://raw.githubusercontent.com/Kgan01/ghengis-skills/master/plugins/ghengis-skills/skills/refresh-ghengis/scripts/refresh_plugin.py | python3
+```
+
+Both paths git-fetch the marketplace clone, reset to `origin/master`, refresh the plugin cache, and update `installed_plugins.json`. Idempotent, safe to run repeatedly.
+
+A SessionStart hook also checks for updates every 6 hours and surfaces a notice on your next message if your local version is behind.
+
 ### For Teams
 
 Add the marketplace to your project's `.claude/settings.json` so teammates get it automatically:
