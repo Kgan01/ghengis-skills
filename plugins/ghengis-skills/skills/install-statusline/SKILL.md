@@ -35,12 +35,13 @@ directly. The statusline config has to be opted in via this skill.
 ## Run it
 
 ```bash
-python3 "${CLAUDE_SKILL_DIR}/../agent-monitor/scripts/install_statusline.py" \
-  || python "${CLAUDE_SKILL_DIR}/../agent-monitor/scripts/install_statusline.py"
+python3 "${CLAUDE_SKILL_DIR}/scripts/install_statusline.py" \
+  || python "${CLAUDE_SKILL_DIR}/scripts/install_statusline.py"
 ```
 
 Use whichever Python binary exists on the system — modern macOS and most Linux
 ship `python3` only; Windows and some distros ship `python` only. The installer
 itself then auto-detects the right binary when wiring up `settings.json`.
 
-The script is bundled with the `agent-monitor` skill (not duplicated here).
+Scripts are self-contained inside this skill's `scripts/` directory so the
+skill doesn't depend on sibling skills or cross-directory path traversal.
