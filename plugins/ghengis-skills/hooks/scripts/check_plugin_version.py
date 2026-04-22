@@ -101,7 +101,7 @@ def main() -> int:
             f"## [ghengis-skills] Update available: {installed} → {remote}\n"
             f"\n"
             f"A newer version of ghengis-skills is on GitHub. "
-            f"Run `/refresh-ghengis` (or `/plugin update ghengis-skills`) to upgrade, "
+            f"Run `/reload-ghengis` (or `/plugin update ghengis-skills`) to upgrade, "
             f"then `/reload-plugins`.\n",
             encoding="utf-8",
         )

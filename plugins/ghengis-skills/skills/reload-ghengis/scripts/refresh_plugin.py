@@ -11,8 +11,8 @@ work directly:
   5. Leave stale cache versions in place (safe — they're not read)
 
 Run via:
-  # As a skill: user invokes /refresh-ghengis
-  # Standalone: curl -fsSL https://raw.githubusercontent.com/Kgan01/ghengis-skills/master/plugins/ghengis-skills/skills/refresh-ghengis/scripts/refresh_plugin.py | python
+  # As a skill: user invokes /reload-ghengis
+  # Standalone: curl -fsSL https://raw.githubusercontent.com/Kgan01/ghengis-skills/master/plugins/ghengis-skills/skills/reload-ghengis/scripts/refresh_plugin.py | python
   # Direct:  python refresh_plugin.py
 
 Stdlib only — no dependencies. Works on Windows, macOS, Linux.

@@ -1,11 +1,11 @@
 ---
-name: refresh-ghengis
+name: reload-ghengis
 description: Force-refresh the ghengis-skills plugin from GitHub, bypassing Claude Code's `/plugin update` caching. Use when `/plugin update` claims you're on an old version even after running it, or when you want to guarantee you're on the latest. Idempotent and safe.
 disable-model-invocation: true
 allowed-tools: Bash
 ---
 
-# Refresh ghengis-skills
+# Reload ghengis-skills
 
 Bypass Claude Code's `/plugin update` caching and force-sync the plugin
 from GitHub. Safe to run any time — idempotent, only fixes things if
@@ -53,5 +53,5 @@ If you can't invoke this skill (because the plugin isn't installed),
 use the standalone one-liner:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Kgan01/ghengis-skills/master/plugins/ghengis-skills/skills/refresh-ghengis/scripts/refresh_plugin.py | python3
+curl -fsSL https://raw.githubusercontent.com/Kgan01/ghengis-skills/master/plugins/ghengis-skills/skills/reload-ghengis/scripts/refresh_plugin.py | python3
 ```

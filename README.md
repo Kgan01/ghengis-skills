@@ -75,13 +75,13 @@ All 49 skills are now available in every session — CLI, desktop app, and mobil
 
 **Option 1 — from inside Claude Code:**
 ```
-/ghengis-skills:refresh-ghengis
+/ghengis-skills:reload-ghengis
 /reload-plugins
 ```
 
 **Option 2 — from any shell (also works for fresh installs):**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Kgan01/ghengis-skills/master/plugins/ghengis-skills/skills/refresh-ghengis/scripts/refresh_plugin.py | python3
+curl -fsSL https://raw.githubusercontent.com/Kgan01/ghengis-skills/master/plugins/ghengis-skills/skills/reload-ghengis/scripts/refresh_plugin.py | python3
 ```
 
 Both paths git-fetch the marketplace clone, reset to `origin/master`, refresh the plugin cache, and update `installed_plugins.json`. Idempotent, safe to run repeatedly.
