@@ -1,4 +1,4 @@
 #!/bin/bash
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-python3 "${SCRIPT_DIR}/inject_active_sessions.py"
+"${SCRIPT_DIR}/run-python.sh" "${SCRIPT_DIR}/inject_active_sessions.py"
 exit 0

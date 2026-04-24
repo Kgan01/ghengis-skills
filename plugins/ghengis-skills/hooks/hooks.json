@@ -121,7 +121,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/on_task_start.py\""
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/run-hook.cmd\" on_task_start.sh"
           }
         ]
       }
@@ -154,7 +154,7 @@
           },
           {
             "type": "command",
-            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/on_task_stop.py\"",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/run-hook.cmd\" on_task_stop.sh",
             "async": true
           },
           {

@@ -1,8 +1,9 @@
 #!/bin/bash
 # validate-push.sh — Pre-push safety checks
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 INPUT=$(cat)
-COMMAND=$(echo "$INPUT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('tool_input',{}).get('command',''))" 2>/dev/null)
+COMMAND=$(echo "$INPUT" | "${SCRIPT_DIR}/run-python.sh" -c "import sys,json; print(json.load(sys.stdin).get('tool_input',{}).get('command',''))" 2>/dev/null)
 
 case "$COMMAND" in
     *"git push"*) ;;
