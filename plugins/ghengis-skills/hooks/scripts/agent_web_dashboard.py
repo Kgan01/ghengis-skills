@@ -491,7 +491,8 @@ def _maybe_build_react():
             try:
                 print("Building React dashboard...")
                 subprocess.run(["npm", "run", "build"], cwd=str(react_dir),
-                               capture_output=True, timeout=120)
+                               capture_output=True, timeout=120,
+                               shell=(sys.platform == "win32"))
             except Exception as e:
                 print(f"React build skipped: {e}")
 

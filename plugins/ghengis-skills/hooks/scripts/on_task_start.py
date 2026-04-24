@@ -234,7 +234,7 @@ def launch_dashboard():
                     popen_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
                 else:
                     popen_kwargs["start_new_session"] = True
-                subprocess.Popen(["python", str(dashboard_script)], **popen_kwargs)
+                subprocess.Popen([sys.executable, str(dashboard_script)], **popen_kwargs)
                 time.sleep(0.5)  # Give server time to start
                 new_dashboard_started = True
                 # Get the new dashboard PID
