@@ -12,6 +12,7 @@ Orchestrates ghengis-skills into reliable workflows. Instead of invoking one ski
 
 - **Dispatching a subagent** — run the `agent-dispatch` chain for PQL validation, completion enforcement, and hallucination checking
 - **Finishing a major task** — run the `task-complete` chain to verify + record + learn
+- **Producing a deliverable that needs to actually work** — run the `build-validate` chain for a hard-gated Builder ↔ Validator round-trip
 - **Starting research** — run the `deep-research` chain (deep-research → fact-check → report-writing)
 - **User explicitly asks** — "run the full chain on this" / "validate thoroughly" / "use the pipeline"
 
@@ -163,6 +164,7 @@ See `chains/` directory. As of v1.8.5:
 
 - **agent-dispatch** — wraps a subagent spawn with PQL → meta-prompting → execution → completion → hallucination → audit
 - **task-complete** — post-response verification (completion + hallucination + audit). Lighter than agent-dispatch; fires on Stop events.
+- **build-validate** — minimum-viable cascade: Builder ↔ Validator round-trip with hard-gated revision loop (max 2 iterations). Triage stage skips trivial tasks. Promotes oort-cascade's revision pattern from recipe to enforced stages.
 
 More chains coming in v1.9.0+.
 
