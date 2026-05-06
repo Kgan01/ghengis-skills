@@ -10,14 +10,14 @@
                      S K I L L S
 ```
 
-[![Skills](https://img.shields.io/badge/skills-49-blue?style=for-the-badge)](./plugins/ghengis-skills/skills/)
+[![Skills](https://img.shields.io/badge/skills-50-blue?style=for-the-badge)](./plugins/ghengis-skills/skills/)
 [![Evals](https://img.shields.io/badge/evals-42-green?style=for-the-badge)](./plugins/ghengis-skills/evals/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange?style=for-the-badge)](https://code.claude.com)
 [![License](https://img.shields.io/badge/license-MIT-purple?style=for-the-badge)](./LICENSE)
 
 **Make Claude smarter, faster, and more autonomous.**
 
-*49 skills covering evolving cognition, paper-to-code research translation, multi-agent orchestration, prompt quality validation, agent reliability, security testing, code intelligence, and domain expertise across 20+ fields. Includes an autoloader that forces relevant skills to fire automatically — same pattern as superpowers.*
+*50 skills covering evolving cognition, paper-to-code research translation, multi-agent orchestration, prompt quality validation, agent reliability, security testing, code intelligence, and domain expertise across 20+ fields. Includes an autoloader that forces relevant skills to fire automatically — same pattern as superpowers.*
 
 ---
 
@@ -67,7 +67,7 @@ In Claude Code, run:
 
 Then **fully restart Claude Code** — press Ctrl+C or `/exit`, then run `claude` again. The `statusLine` config is only read at startup; `/reload-plugins` is not enough.
 
-All 49 skills are now available in every session — CLI, desktop app, and mobile. Claude loads them automatically when it detects a matching task.
+All 50 skills are now available in every session — CLI, desktop app, and mobile. Claude loads them automatically when it detects a matching task.
 
 ### Updating / Force Refresh
 
@@ -251,6 +251,7 @@ Expert-level methodology that loads when Claude encounters matching tasks. Each 
 | **scheduling** | Time blocking, ritual design, priority-based allocation, conflict resolution, calendar optimization |
 | **crm-patterns** | Client lifecycle management, project tracking, communication logging, pipeline management, relationship health scoring, and follow-up automation for freelancers and consultants |
 | **file-organization** | 18 manifest types for file categorization, intelligent placement suggestions, naming conventions, directory structure patterns, duplicate detection, and audit trails for file operations |
+| **treefile-organizer** | Reshape an existing project's file tree based on its actual import graph — analyzes connections, proposes an ideal target tree, validates the plan adversarially via build-validate, and only moves files after explicit user confirmation. Atomic per-batch rollback via git. Python + TypeScript v1. |
 | **mcp-patterns** | MCP server configuration, the meta-tool pattern for context reduction, Context7 two-step lookup, registration anti-patterns |
 | **data-analysis** | Statistical methodology, pandas workflows, correlation vs causation, visualization selection, small sample warnings |
 | **content-writing** | Blog posts, documentation, marketing copy — structure, SEO basics, audience targeting, editorial checklists |
