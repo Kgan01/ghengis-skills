@@ -63,22 +63,30 @@ The analyzer uses Python's `ast` module for Python imports (precise) and regex f
 Cross-reference: `code-intelligence` skill provides the broader 6-layer classification methodology this script implements.
 
 ### 2. PROPOSE — what does an "ideal" tree look like
-
-Reference the project type detected by `project-scaffold` (FastAPI service, React/Next.js app, Flutter app, Python library, etc.). Use the appropriate Van Clief 4-layer template as the target shape.
-
-For each file, decide its target location based on:
-- Layer classification (data files → `data/` or `models/`; API routes → `routes/` or `api/`; UI components → `components/`)
-- Coupling: files that import each other heavily belong together
-- Convention: match what the project already does well (don't fight an established pattern; reinforce it)
-
-**Refuse to propose moves for:**
-- Files marked as anchors in step 1
-- Files matched by `.gitignore` (already excluded from version control)
-- Files in test directories that mirror source layout (let them follow their source files)
-
-Output: a target-tree mapping `{current_path: proposed_path}` for every file that should move.
-
 ### 3. PLAN — produce both human-readable and machine-readable artifacts
+
+Stages 2 and 3 are implemented together in `scripts/planner.py`:
+
+```bash
+python <skill_dir>/scripts/planner.py .claude/treefile-organizer/analysis.json \
+    --output-dir .claude/treefile-organizer/
+```
+
+The planner:
+- **Detects project type** from anchors + content (FastAPI service, React/Next.js app, Python library, etc.)
+- **Loads the ideal layout** for that project type from a built-in template (layer → ideal directory)
+- **Proposes moves** for files whose layer doesn't match their current location, skipping anchors, unknown-layer files, and files already in canonical positions
+- **Computes import rewrites** for every move using the analyzer's edge data (per-language: Python dotted-path or relative; TS/JS relative path with `os.path.relpath`)
+- **Detects collisions** — two files moving to the same target, or a target that already exists
+- **Topo-sorts moves** via Kahn's algorithm so dependent files move after their dependencies
+- **Assesses risk** (low / medium / high) based on move ratio, cycle count, and import-rewrite volume
+
+Reference: `plan-format.md` for the full plan.json schema. The planner's output conforms to that exactly.
+
+**Refuses to propose moves for:**
+- Files marked as anchors in stage 1
+- Files in directories matched by `.gitignore` (excluded from analysis upstream)
+- Files classified as `unknown` layer (insufficient confidence)
 
 Generate two files in `<project>/.claude/treefile-organizer/`:
 
