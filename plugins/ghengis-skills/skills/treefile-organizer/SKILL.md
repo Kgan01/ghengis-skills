@@ -46,12 +46,21 @@ A v2 may extend to Go modules and Flutter packages. Don't pretend to support wha
 
 ### 1. ANALYZE — what connects to what
 
-Build the dependency graph of the project. Use `code-intelligence` skill's AST parser.
+Build the dependency graph of the project. Run `scripts/analyzer.py` (Python stdlib only, no deps):
 
-Output:
-- **Files**: every code file in scope with absolute path, language, layer classification (api / service / data / ui / infrastructure / utility — see code-intelligence)
-- **Edges**: every import / require / from statement, with source file → target file
-- **Anchors**: files that should NOT move regardless of layer (entry points, build configs, CI configs, anything in `.github/`, `pyproject.toml`, `package.json`, `tsconfig.json`)
+```bash
+python <skill_dir>/scripts/analyzer.py <project_root> --output .claude/treefile-organizer/analysis.json
+```
+
+Output (analysis.json):
+- **files**: every code file in scope with relative path, language, layer classification (api / service / data / ui / infrastructure / utility / test / unknown), loc, and import list
+- **edges**: every internal import resolved to a project file (source path, target path, line number)
+- **anchors**: files that should NOT move (pyproject.toml, package.json, tsconfig.json, .github/, scripts/, README.md, lockfiles, build configs, CI configs)
+- **stats**: total counts including cycles_detected (graph health proxy)
+
+The analyzer uses Python's `ast` module for Python imports (precise) and regex for TypeScript/JavaScript (~99% accurate; handles `import`, `export from`, `require`, dynamic `import()` with literal strings). External imports are counted but excluded from the per-file `imports` list by default unless `--include-external` is passed.
+
+Cross-reference: `code-intelligence` skill provides the broader 6-layer classification methodology this script implements.
 
 ### 2. PROPOSE — what does an "ideal" tree look like
 
