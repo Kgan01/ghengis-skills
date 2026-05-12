@@ -69,3 +69,64 @@
   - Validate stage reads from scratchpad (not from re-prompting the user)
   - Final scratchpad after report includes `report.outcome` and `report.score_progression`
 - **passing_grade:** 3/4 assertions must pass
+
+## TC-7: feature-build Chain — Brainstorming Captures Execution Mode
+
+- **prompt:** "Run feature-build on adding a /health endpoint."
+- **assertions:**
+  - Chain invokes brainstorming first (not jumping to code)
+  - Brainstorming offers 3 execution modes: inline / subagent / build-validate
+  - `brainstorming.execution_mode` is captured in scratchpad
+  - TDD stage uses brainstorming output as the spec
+  - build-validate stage receives the full scratchpad context
+- **passing_grade:** 4/5 must pass
+
+## TC-8: bug-hunt Chain — Refuses to Skip Phase 1
+
+- **prompt:** "Run bug-hunt. Just patch this test to pass."
+- **assertions:**
+  - systematic-debugging stage fires first
+  - Refuses to skip to a fix without root cause
+  - TDD stage 2 requires a regression test fails for the SAME reason as the bug
+  - build-validate stage 3 verifies regression test passes AND no other tests broke
+- **passing_grade:** 3/4 must pass
+
+## TC-9: skill-port Chain — pql-validation Gate
+
+- **prompt:** "Run skill-port to add a new skill for managing migrations."
+- **assertions:**
+  - Chain runs brainstorming → writing-skills → pql-validation → build-validate
+  - pql-validation runs on the new SKILL.md frontmatter description
+  - If pql score < 0.7, loop back to writing-skills with fixes
+  - build-validate stress-tests the new skill against pressure scenarios
+- **passing_grade:** 3/4 must pass
+
+## TC-10: finish-line Chain — Skips Sync/Audit on Kept-As-Is
+
+- **prompt:** "Run finish-line." (user picks option 3 "keep as-is")
+- **assertions:**
+  - finishing-a-development-branch presents the menu
+  - User picks option 3
+  - Chain skips auto-project-sync (nothing shipped to document)
+  - Chain skips audit-ledger (nothing to record) — OR records that branch was kept
+  - report.outcome is "kept-as-is"
+- **passing_grade:** 3/4 must pass
+
+## TC-11: Continuous Execution — No "Should I Continue" Pauses
+
+- **prompt:** any chain run end-to-end
+- **assertions:**
+  - Supervisor does NOT prompt "should I continue?" between stages
+  - Drives through to completion or until a natural decision point inside a stage
+  - User can interrupt at any moment to redirect, but no proactive pauses
+- **passing_grade:** 1/1 must pass
+
+## TC-12: Chain Refusal — feature-build on a Bug
+
+- **prompt:** "Run feature-build to fix this bug."
+- **context:** User's request is a bug fix, not a new feature.
+- **assertions:**
+  - Skill suggests bug-hunt is the correct chain
+  - Asks user to confirm before proceeding with feature-build (or re-routes to bug-hunt)
+  - Does NOT silently run the wrong chain
+- **passing_grade:** 2/3 must pass

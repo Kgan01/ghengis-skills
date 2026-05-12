@@ -13,6 +13,10 @@ Orchestrates ghengis-skills into reliable workflows. Instead of invoking one ski
 - **Dispatching a subagent** — run the `agent-dispatch` chain for PQL validation, completion enforcement, and hallucination checking
 - **Finishing a major task** — run the `task-complete` chain to verify + record + learn
 - **Producing a deliverable that needs to actually work** — run the `build-validate` chain for a hard-gated Builder ↔ Validator round-trip
+- **Shipping a new feature** — run the `feature-build` chain (brainstorming → TDD → build-validate)
+- **Fixing a bug responsibly** — run the `bug-hunt` chain (systematic-debugging → TDD → build-validate)
+- **Creating or porting a skill** — run the `skill-port` chain (brainstorming → writing-skills → pql-validation → build-validate)
+- **Wrapping up implementation work** — run the `finish-line` chain (finishing-a-development-branch → auto-project-sync → audit-ledger)
 - **Starting research** — run the `deep-research` chain (deep-research → fact-check → report-writing)
 - **User explicitly asks** — "run the full chain on this" / "validate thoroughly" / "use the pipeline"
 
@@ -165,8 +169,14 @@ See `chains/` directory. As of v1.8.5:
 - **agent-dispatch** — wraps a subagent spawn with PQL → meta-prompting → execution → completion → hallucination → audit
 - **task-complete** — post-response verification (completion + hallucination + audit). Lighter than agent-dispatch; fires on Stop events.
 - **build-validate** — minimum-viable cascade: Builder ↔ Validator round-trip with hard-gated revision loop (max 2 iterations). Triage stage skips trivial tasks. Promotes oort-cascade's revision pattern from recipe to enforced stages.
+- **feature-build** — ship a new feature: brainstorming → test-driven-development → build-validate. Brainstorming captures intent + execution mode (inline / subagent / build-validate); TDD writes failing tests first; build-validate runs the full revision loop.
+- **bug-hunt** — fix a bug responsibly: systematic-debugging → test-driven-development (regression test) → build-validate. Iron law: no fixes without root cause. Validator confirms regression test passes AND no other tests broke.
+- **skill-port** — create or port a skill: brainstorming → writing-skills → pql-validation → build-validate. PQL gates description quality; build-validate stress-tests the skill against pressure scenarios.
+- **finish-line** — wrap up integration: finishing-a-development-branch → auto-project-sync → audit-ledger. Verifies tests, presents merge/PR/cleanup options, updates CLAUDE.md/MEMORY.md, records immutable audit entry.
 
-More chains coming in v1.9.0+.
+## Continuous Execution Principle
+
+Chains beyond v1.8.x respect the **continuous execution principle**: the supervisor does NOT pause between stages to ask "should I continue?" Each chain has natural decision points built into its stages (brainstorming asks design questions; build-validate has the revision loop; finishing-a-development-branch presents integration options). Outside those, drive forward. The user can interrupt at any moment to redirect.
 
 ## Scratchpad Helper
 

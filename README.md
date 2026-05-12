@@ -10,14 +10,14 @@
                      S K I L L S
 ```
 
-[![Skills](https://img.shields.io/badge/skills-50-blue?style=for-the-badge)](./plugins/ghengis-skills/skills/)
+[![Skills](https://img.shields.io/badge/skills-55-blue?style=for-the-badge)](./plugins/ghengis-skills/skills/)
 [![Evals](https://img.shields.io/badge/evals-42-green?style=for-the-badge)](./plugins/ghengis-skills/evals/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange?style=for-the-badge)](https://code.claude.com)
 [![License](https://img.shields.io/badge/license-MIT-purple?style=for-the-badge)](./LICENSE)
 
 **Make Claude smarter, faster, and more autonomous.**
 
-*50 skills covering evolving cognition, paper-to-code research translation, multi-agent orchestration, prompt quality validation, agent reliability, security testing, code intelligence, and domain expertise across 20+ fields. Includes an autoloader that forces relevant skills to fire automatically — same pattern as superpowers.*
+*55 skills covering evolving cognition, paper-to-code research translation, multi-agent orchestration, prompt quality validation, agent reliability, security testing, code intelligence, and domain expertise across 20+ fields. Includes an autoloader that forces relevant skills to fire automatically — same pattern as superpowers.*
 
 ---
 
@@ -67,7 +67,7 @@ In Claude Code, run:
 
 Then **fully restart Claude Code** — press Ctrl+C or `/exit`, then run `claude` again. The `statusLine` config is only read at startup; `/reload-plugins` is not enough.
 
-All 50 skills are now available in every session — CLI, desktop app, and mobile. Claude loads them automatically when it detects a matching task.
+All 55 skills are now available in every session — CLI, desktop app, and mobile. Claude loads them automatically when it detects a matching task.
 
 ### Updating / Force Refresh
 
@@ -210,7 +210,7 @@ These help Claude learn, remember, and adapt — building intelligence over time
 | **goal-tracking** | Auto-detects goals from conversation, maintains parent-child hierarchy, tracks state transitions (active/blocked/completed/abandoned), and catches goal staleness with fuzzy matching for related requests |
 | **agent-identity** | Builds an evolving understanding of user preferences, communication style, and working patterns through an observe-extract-synthesize loop. Adapts behavior over time. |
 | **skill-memory** | Accumulates domain knowledge from past tasks in a grepable plain-text format. No vector database needed — plain markdown, searchable via grep, with auto-consolidation when it grows too large. |
-| **skill-chain-supervisor** | Orchestrates multiple ghengis-skills into reliable workflows via a shared JSON scratchpad. Supports sequential, fan-out/merge, conditional, and iterative-loop patterns. Built-in chains: `agent-dispatch` (PQL → meta-prompting → execution → completion → hallucination → audit), `task-complete` (post-task verification), `build-validate` (Builder ↔ Validator round-trip with hard-gated revision loop, max 2 iterations). |
+| **skill-chain-supervisor** | Orchestrates multiple ghengis-skills into reliable workflows via a shared JSON scratchpad. Supports sequential, fan-out/merge, conditional, and iterative-loop patterns. **7 built-in chains:** `agent-dispatch` (subagent dispatch with quality gates), `task-complete` (post-task verification), `build-validate` (Builder ↔ Validator round-trip, max 2 iterations), `feature-build` (brainstorming → TDD → build-validate), `bug-hunt` (systematic-debugging → TDD → build-validate), `skill-port` (brainstorming → writing-skills → pql-validation → build-validate), `finish-line` (finishing-a-development-branch → auto-project-sync → audit-ledger). Continuous execution principle — no "should I continue?" pauses between stages. |
 | **audit-ledger** | Hash-chained append-only audit trail for what agents did, when, and why. Tamper-proof via SHA-256 chain, queryable by time/agent/goal, daily rollover. |
 | **compute-adaptation** | 4-tier graceful degradation (Normal, Low, Critical, Offline). Adapts agent behavior when hitting rate limits, budget constraints, or resource pressure — reduces parallelism, downgrades models, queues non-essential work. |
 
@@ -252,6 +252,11 @@ Expert-level methodology that loads when Claude encounters matching tasks. Each 
 | **crm-patterns** | Client lifecycle management, project tracking, communication logging, pipeline management, relationship health scoring, and follow-up automation for freelancers and consultants |
 | **file-organization** | 18 manifest types for file categorization, intelligent placement suggestions, naming conventions, directory structure patterns, duplicate detection, and audit trails for file operations |
 | **treefile-organizer** | Reshape an existing project's file tree based on its actual import graph — analyzes connections, proposes an ideal target tree, validates the plan adversarially via build-validate, and only moves files after explicit user confirmation. Atomic per-batch rollback via git. Python + TypeScript v1. |
+| **brainstorming** | Turn ideas into shippable designs through inline conversational dialogue. No plan mode, no structured Q&A picker — just back-and-forth in chat. One question per message, multiple-choice with recommended option marked, no question cap. Ends by offering 3 execution modes: inline, subagent, or build-validate chain. Adapted from superpowers:brainstorming. |
+| **writing-skills** | Test-driven development applied to documentation. Write a pressure scenario, watch a subagent fail without the skill, write the skill that makes it pass, then close loopholes. Required reading before porting any skill. Adapted from superpowers:writing-skills with ghengis pql-validation + build-validate integration. |
+| **systematic-debugging** | Iron law: no fixes without root cause investigation. 4-phase methodology — investigate, hypothesize, write regression test (handoff to TDD), fix and verify. Refuses symptom fixes. Adapted from superpowers:systematic-debugging. |
+| **test-driven-development** | RED-GREEN-REFACTOR discipline with bite-sized 2-5 minute steps. Watch the test fail before writing code. Watch it pass after. Commit at every cycle boundary. Adapted from superpowers:test-driven-development with the writing-plans bite-sized step pattern baked in. |
+| **finishing-a-development-branch** | Verify tests → detect workspace shape → present 4-option menu (merge / PR / keep / discard) → execute → cleanup. Refuses to proceed if tests fail. Requires explicit "yes discard" for destructive option. Adapted from superpowers:finishing-a-development-branch. |
 | **mcp-patterns** | MCP server configuration, the meta-tool pattern for context reduction, Context7 two-step lookup, registration anti-patterns |
 | **data-analysis** | Statistical methodology, pandas workflows, correlation vs causation, visualization selection, small sample warnings |
 | **content-writing** | Blog posts, documentation, marketing copy — structure, SEO basics, audience targeting, editorial checklists |
