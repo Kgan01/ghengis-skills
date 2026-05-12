@@ -71,8 +71,21 @@ Add an eval file alongside: `plugins/ghengis-skills/evals/<skill-name>.eval.md` 
 name: skill-name
 description: <single string, see rules below>
 allowed-tools: <space-separated tool names, e.g. Read Write Edit Bash>
+model: <optional: fast | balanced | premium>   # tier hint for skills dispatched to subagents
 ---
 ```
+
+### The `model:` Field (Optional)
+
+When a skill is going to be invoked by a Builder or Validator subagent, the `model:` field hints which capability tier suits the work. Three values:
+
+- **`fast`** — Haiku-tier. Use for mechanical work: read a file, run a known command, parse known output, format. The skill methodology is more important than reasoning depth. Examples: `completion-enforcer` checks, `audit-ledger` appends, mechanical doc updates.
+- **`balanced`** — Sonnet-tier. Default. Use when the skill needs judgment but the domain is bounded. Examples: most engineering skills, refactors, debugging.
+- **`premium`** — Opus-tier. Use when the skill requires architecture decisions, adversarial review, or domain-specific reasoning that benefits from deeper context. Examples: `oort-cascade` cascade design, the Validator stage of `build-validate`, `paper-to-code` translation.
+
+If you omit `model:`, the harness chooses based on the user's default (usually `balanced`). Include it only when the skill has a clear bias — over-specifying creates rigidity.
+
+This field doesn't change Claude's default behavior; it's a hint that skill-chain-supervisor and other dispatching skills can read to make smarter subagent dispatch decisions.
 
 **Description rules** (the trigger):
 - Third-person, focused on WHEN to use (not WHAT it does)

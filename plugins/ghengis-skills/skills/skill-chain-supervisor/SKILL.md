@@ -92,14 +92,15 @@ Single JSON file at `<project>/.claude/ghengis-chain/context.json`:
 
 ## How to Run a Chain
 
-1. **Identify the chain name** (`agent-dispatch`, `task-complete`, `deep-research`, etc.)
+1. **Identify the chain name** (`agent-dispatch`, `task-complete`, `feature-build`, etc.)
 2. **Read the chain spec** at `chains/<name>.md` inside this skill's directory
-3. **Initialize scratchpad** — write `chain`, `started_at`, `input`, `current_stage`, `stages_remaining`
+3. **Initialize scratchpad** — use the helper: `python scripts/scratchpad.py init <chain_name> --input-json '{...}'`
 4. **Execute each stage:**
-   - Read scratchpad to see prior stages' output
+   - Read scratchpad to see prior stages' output: `python scripts/scratchpad.py read <dotted.path>`
    - Invoke the stage's skill (via Skill tool) with scratchpad context
-   - After skill returns, update scratchpad: move stage from `stages_remaining` to `stages_completed`, advance `current_stage`
-5. **At chain end** — write `completed_at`, optionally archive scratchpad to `<project>/.claude/ghengis-chain/history/<timestamp>.json`
+   - After skill returns, update scratchpad: `merge`, `write`, or `advance` as appropriate (see Scratchpad Helper section)
+5. **For nested chain stages** (e.g., `feature-build` → `build-validate`): wrap the nested run with `python scripts/scratchpad.py nested-start <nested>` and `nested-finish <nested>`. The nested chain's output stays namespaced under `<nested>.*` in the parent scratchpad.
+6. **At chain end** — call `python scripts/scratchpad.py finish`. This writes `completed_at`, archives to `<project>/.claude/ghengis-chain/history/<chain>-<ts>.json`, and (if `GHENGIS_COGNITION=true`) emits a structured cognition entry to `cognition.jsonl` derived from the chain's outcome, score, and issues.
 
 ## Built-in Patterns
 
@@ -235,26 +236,67 @@ Chains beyond v1.8.x respect the **continuous execution principle**: the supervi
 
 ## Scratchpad Helper
 
-Skills participating in a chain should use `scripts/scratchpad.py` for reliable reads/writes:
+Skills participating in a chain should use `scripts/scratchpad.py` for reliable reads/writes. Stdlib-only; no deps.
+
+### Chain Lifecycle
 
 ```bash
-# Read a subkey
-python ${CLAUDE_SKILL_DIR}/scripts/scratchpad.py read pql_validation.score
+# Bootstrap a fresh chain (refuses to clobber an in-flight chain unless --force)
+python scripts/scratchpad.py init feature-build --input-json '{"user_request":"add /health endpoint"}'
 
-# Write a namespaced value
-python ${CLAUDE_SKILL_DIR}/scripts/scratchpad.py write pql_validation.score 0.85
-
-# Merge multiple keys into a subkey (stdin = JSON object)
-echo '{"score":0.85,"anti_patterns":[]}' | python ${CLAUDE_SKILL_DIR}/scripts/scratchpad.py merge pql_validation
-
-# Advance the chain stage pointer
-python ${CLAUDE_SKILL_DIR}/scripts/scratchpad.py advance
-
-# Full dump
-python ${CLAUDE_SKILL_DIR}/scripts/scratchpad.py dump
+# Archive scratchpad to history/ and (if GHENGIS_COGNITION=true) emit a cognition entry
+python scripts/scratchpad.py finish
 ```
 
-The helper handles JSON parsing, nested paths, and atomic writes so participant skills don't need to re-implement state management.
+### Read / Write / Advance
+
+```bash
+# Read a subkey (supports dotted paths)
+python scripts/scratchpad.py read pql_validation.score
+python scripts/scratchpad.py read build_validate.report.outcome
+
+# Write a value at a dotted path
+python scripts/scratchpad.py write pql_validation.score 0.85
+
+# Merge a JSON object into a (possibly nested) subkey — stdin = JSON object
+echo '{"score":0.85,"anti_patterns":[]}' | python scripts/scratchpad.py merge pql_validation
+echo '{"score":9}' | python scripts/scratchpad.py merge build_validate.validate
+
+# Advance the chain stage pointer
+python scripts/scratchpad.py advance
+
+# Full dump or path inspection
+python scripts/scratchpad.py dump
+python scripts/scratchpad.py path
+```
+
+### Nested Chain Support
+
+When a chain invokes another chain as a stage, use these helpers to namespace correctly:
+
+```bash
+# Allocate the nested chain's subkey (creates state["build_validate"] = {_nested_status: running})
+python scripts/scratchpad.py nested-start build-validate
+
+# After the nested chain's stages run (writing to build_validate.triage, .build, .validate, .report)
+python scripts/scratchpad.py nested-finish build-validate
+```
+
+The nested chain's own scratchpad commands write to `state["build_validate"]["..."]` — never colliding with the parent's top-level subkeys.
+
+### Cognition Emission
+
+When `GHENGIS_COGNITION=true` (env var), `scratchpad.py finish` automatically appends a structured entry to `<project>/.claude/ghengis-chain/cognition.jsonl` derived from the chain's outcome, score, and issues. Format follows the `evolving-cognition` skill's schema (`id`, `lesson`, `causal_factor`, `applies_when`, `fitness`, `hits`, `wins`, `audit_status`).
+
+Explicit emission (without archiving):
+
+```bash
+GHENGIS_COGNITION=true python scripts/scratchpad.py cognition-emit
+```
+
+Future chain runs can read `cognition.jsonl` before starting to surface relevant past lessons. UCB1 retrieval and Analyzer escalation patterns are documented in the `evolving-cognition` skill — start there if you want to evolve the cognition store over time.
+
+The helper handles JSON parsing, dotted paths, atomic writes, archiving, and cognition emission so participant skills don't need to re-implement state management.
 
 ## Debugging
 

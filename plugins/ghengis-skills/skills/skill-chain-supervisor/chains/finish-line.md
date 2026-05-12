@@ -89,6 +89,7 @@ Drive through stages. The natural decision point is in stage 1 (which integratio
   - `report.what_shipped` (one paragraph)
   - `report.pr_url` (if option 2)
   - `report.next_session_hint` (what the next session should know about this)
+- **Terminate chain via:** `python scripts/scratchpad.py finish` — this archives the scratchpad to `history/<chain>-<ts>.json` AND, if `GHENGIS_COGNITION=true`, emits a structured cognition entry to `cognition.jsonl` (see `evolving-cognition` skill for the schema). Cognition entries from `finish-line` runs are particularly valuable because they capture the WHOLE feature/bug cycle outcome, not just one chain's verdict.
 
 ## Failure Modes
 
