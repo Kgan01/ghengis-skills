@@ -38,7 +38,7 @@ Drive through stages. The natural decision point is at brainstorming (does the s
   "input": {
     "user_request": "<what the skill should do, or which existing skill to port>",
     "source_skill_path": "<optional: absolute path to the source SKILL.md if porting>",
-    "project_root": "/Users/kelemcdaniel/Desktop/ghengis-skills"
+    "project_root": "<absolute path to your ghengis-skills checkout>"
   }
 }
 ```
@@ -58,28 +58,29 @@ Drive through stages. The natural decision point is at brainstorming (does the s
 - **Success:** trigger conditions are specific (not "use when working"), anti-patterns are observable, cross-refs point to real skills
 - **On fail:** scope unclear; user should clarify before proceeding
 
-### 2. writing-skills (TDD on documentation)
+### 2. writing_skills (TDD on documentation)
 - **Skill:** `ghengis-skills:writing-skills`
 - **Reads:** entire scratchpad
 - **Writes:**
-  - `writing.skill_md_path` (absolute path to new SKILL.md)
-  - `writing.eval_path` (absolute path to new eval file)
-  - `writing.baseline_failure_scenario` (one paragraph describing what an agent does wrong WITHOUT the skill)
-  - `writing.with_skill_scenario` (what they should do WITH it)
+  - `writing_skills.skill_md_path` (absolute path to new SKILL.md)
+  - `writing_skills.eval_path` (absolute path to new eval file)
+  - `writing_skills.baseline_failure_scenario` (one paragraph describing what an agent does wrong WITHOUT the skill)
+  - `writing_skills.with_skill_scenario` (what they should do WITH it)
 - **Success:** SKILL.md exists, frontmatter valid, baseline failure documented
 
-### 3. pql-validation
+### 3. pql_validation
 - **Skill:** `ghengis-skills:pql-validation`
-- **Reads:** `writing.skill_md_path` (specifically the frontmatter `description`)
+- **Reads:** `writing_skills.skill_md_path` (specifically the frontmatter `description`)
 - **Writes:**
-  - `pql.score` (0-1)
-  - `pql.anti_patterns_found` (list)
-  - `pql.suggested_fixes` (list)
-- **Success:** `score >= 0.7`. Description has specific triggers, no vague phrasing, no missing scope, no underscores in name.
-- **On fail:** loop back to writing-skills with fixes applied — re-validate
+  - `pql_validation.score` (0-1)
+  - `pql_validation.anti_patterns_found` (list)
+  - `pql_validation.suggested_fixes` (list)
+- **Success:** `score >= 0.7`. Description has specific triggers, no vague phrasing, no missing scope, no underscores in name. Note: `agent-dispatch` chain uses a lower bar of `>= 0.5 OR auto-fix applied` because that chain has a Tier-2 LLM autofix; skill-port skips autofix and requires the higher human-quality bar.
+- **On fail:** loop back to writing_skills with fixes applied — re-validate
 
-### 4. build-validate (adversarial scenario testing)
+### 4. build_validate (adversarial scenario testing, nested chain)
 - **Chain:** `build-validate`
+- **Nested chain output:** namespaced under `build_validate.*` per supervisor SKILL.md "Nested Chain" pattern.
 - **Reads:** entire scratchpad
 - **The "deliverable" is the new SKILL.md.** Validator's job is to construct pressure scenarios that should trigger the skill, dispatch a subagent on them, and verify:
   - The skill loads when expected (description triggers fire)
@@ -114,7 +115,7 @@ Drive through stages. The natural decision point is at brainstorming (does the s
 ```json
 {
   "chain": "skill-port",
-  "stages_completed": ["brainstorming", "writing-skills", "pql-validation", "build-validate", "report"],
+  "stages_completed": ["brainstorming", "writing_skills", "pql_validation", "build_validate", "report"],
   "input": {
     "user_request": "Port systematic-debugging from superpowers, adapt to ghengis conventions",
     "source_skill_path": "~/.claude/plugins/cache/.../superpowers/5.1.0/skills/systematic-debugging/SKILL.md"
@@ -130,19 +131,20 @@ Drive through stages. The natural decision point is at brainstorming (does the s
       "Cross-refs hallucination-detector for error-message verification"
     ]
   },
-  "writing": {
+  "writing_skills": {
     "skill_md_path": "plugins/ghengis-skills/skills/systematic-debugging/SKILL.md",
     "eval_path": "plugins/ghengis-skills/evals/systematic-debugging.eval.md"
   },
-  "pql": {
+  "pql_validation": {
     "score": 0.85,
     "anti_patterns_found": [],
     "suggested_fixes": []
   },
   "build_validate": {
-    "score": 9,
-    "outcome": "shipped",
-    "iterations_used": 1
+    "triage": {"proceed": true, "reason": "New skill, has clear scenario test"},
+    "build": {"iteration": 1, "summary": "Wrote SKILL.md addressing baseline failures"},
+    "validate": {"score": 9, "functional_test_run": true, "issues": []},
+    "report": {"outcome": "shipped", "score_progression": [9]}
   },
   "report": {
     "outcome": "skill-shipped",

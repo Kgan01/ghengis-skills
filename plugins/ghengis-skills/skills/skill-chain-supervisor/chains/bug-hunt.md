@@ -45,33 +45,37 @@ Drive through phases. Don't pause to ask "should I keep debugging?" after every 
 
 ## Stages
 
-### 1. systematic-debugging
+### 1. systematic_debugging
 - **Skill:** `ghengis-skills:systematic-debugging`
 - **Reads:** `input.user_request`, `input.error_messages`, project files
 - **Writes:**
-  - `debug.reproduction_confirmed` (bool — can we trigger the bug deterministically?)
-  - `debug.root_cause` (one-sentence statement)
-  - `debug.root_cause_evidence` (what experiment confirmed it)
-  - `debug.affected_files` (list)
+  - `systematic_debugging.reproduction_confirmed` (bool — can we trigger the bug deterministically?)
+  - `systematic_debugging.root_cause` (one-sentence statement)
+  - `systematic_debugging.root_cause_evidence` (what experiment confirmed it)
+  - `systematic_debugging.affected_files` (list)
 - **Success:** root cause stated in one sentence, with no hedging, AND a confirming experiment was run
-- **On fail:** can't reproduce — exit chain with `outcome: cannot-reproduce`; user should gather more data
+- **On fail:** can't reproduce — exit chain with `outcome: cannot-reproduce`; user should gather more data. The chain refuses to skip this stage — that's the iron law.
 
-### 2. test-driven-development (regression test mode)
+### 2. test_driven_development (regression test mode)
 - **Skill:** `ghengis-skills:test-driven-development`
-- **Reads:** `debug.root_cause`, `debug.affected_files`
-- **Writes:** `tdd.regression_test_file` (path), `tdd.red_confirmed` (bool — test fails for the same reason the user reported)
-- **Success:** the new test fails for the SAME reason the user-reported bug fails (not a different error)
-- **On fail:** test fails for a different reason — investigation isn't done; loop back to systematic-debugging
+- **Reads:** `systematic_debugging.root_cause`, `systematic_debugging.affected_files`
+- **Writes:**
+  - `test_driven_development.regression_test_file` (path)
+  - `test_driven_development.red_confirmed` (bool — test fails for the same reason the user reported)
+  - `test_driven_development.green_after_fix` (bool — test passes after stage 3 fix)
+- **Success:** `red_confirmed = true` AND eventually `green_after_fix = true` (after stage 3)
+- **On fail:** test fails for a different reason — investigation isn't done; loop back to systematic_debugging
 
-### 3. build-validate (fix + verify mode)
+### 3. build_validate (fix + verify, nested chain)
 - **Chain:** `build-validate`
+- **Nested chain output:** namespaced under `build_validate.*` per supervisor SKILL.md "Nested Chain" pattern.
 - **Reads:** entire scratchpad
 - **Builder writes:** the fix
 - **Validator MUST verify:**
-  - The regression test from stage 2 now passes
+  - The regression test from stage 2 now passes (Validator updates `test_driven_development.green_after_fix = true`)
   - The full test suite still passes (no other regressions)
-  - The fix addresses root cause, not symptom (check the change against `debug.root_cause`)
-- **Success:** `score >= 7` AND regression test green AND no other failures
+  - The fix addresses root cause, not symptom (check the change against `systematic_debugging.root_cause`)
+- **Success:** `build_validate.report.outcome` in {"shipped", "shipped-with-notes", "revised-and-shipped"} AND `test_driven_development.green_after_fix = true`
 
 ### 4. report
 - **Not a skill** — supervisor writes summary
@@ -105,24 +109,26 @@ Drive through phases. Don't pause to ask "should I keep debugging?" after every 
 ```json
 {
   "chain": "bug-hunt",
-  "stages_completed": ["systematic-debugging", "tdd", "build-validate", "report"],
+  "stages_completed": ["systematic_debugging", "test_driven_development", "build_validate", "report"],
   "input": {
     "user_request": "BankingGuard accepts 1e-5 as valid amount; should reject"
   },
-  "debug": {
+  "systematic_debugging": {
     "reproduction_confirmed": true,
     "root_cause": "str(amount) returns '1e-05' for 0.00001, which has no '.', so the decimal-place check at line 462 doesn't trigger",
     "root_cause_evidence": "Probe: str(1e-5)='1e-5', no dot, current check returns False",
     "affected_files": ["apps/server/banking_guard.py"]
   },
-  "tdd": {
+  "test_driven_development": {
     "regression_test_file": "tests/test_banking_guard.py::test_amount_scientific_notation_blocked",
-    "red_confirmed": true
+    "red_confirmed": true,
+    "green_after_fix": true
   },
   "build_validate": {
-    "score": 9,
-    "outcome": "shipped",
-    "iterations_used": 2
+    "triage": {"proceed": true, "reason": "Security-sensitive code, has clear functional test"},
+    "build": {"iteration": 2, "summary": "Decimal-based validation; regex pre-check for string inputs"},
+    "validate": {"score": 9, "functional_test_run": true, "issues": []},
+    "report": {"outcome": "revised-and-shipped", "score_progression": [8, 9]}
   },
   "report": {
     "outcome": "fixed",

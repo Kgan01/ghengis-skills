@@ -137,6 +137,39 @@ Repeat a stage until condition or cap.
     until: "pql_validation.score >= 0.8"
 ```
 
+### Nested Chain
+
+A stage can invoke another chain instead of a single skill. The nested chain's scratchpad output is **namespaced under the nested chain's name (underscored)** so it doesn't collide with the parent chain's own subkeys.
+
+```yaml
+- stage: validate-via-build-validate
+  chain: build-validate   # invokes the build-validate chain
+  # Nested writes go under `build_validate.*` in the parent scratchpad:
+  #   build_validate.triage
+  #   build_validate.build
+  #   build_validate.validate
+  #   build_validate.report
+```
+
+**Rules for nesting:**
+
+- The nested chain's top-level subkeys (`triage`, `build`, etc.) are remapped under `<nested_chain_name>.*` in the parent scratchpad — they are NOT promoted to parent top-level.
+- The parent chain can read the nested result via `<nested_chain_name>.report.outcome` (or any other nested subkey).
+- One level of nesting is supported. Deeper nesting is allowed but discouraged — flatten when reasonable.
+- The parent's `pattern` field describes the parent's own execution shape; nested chains inherit their own pattern from their spec.
+
+### Per-Stage on_error Override
+
+The frontmatter `on_error: fail_fast` is the chain default. Individual stages can override it when they are non-blocking (e.g., audit-ledger should not fail-fast the chain if its append fails):
+
+```yaml
+- stage: audit-ledger
+  skill: ghengis-skills:audit-ledger
+  on_error: skip   # non-blocking; record the gap but continue
+```
+
+Use this sparingly. Most stages should respect the chain default.
+
 ## Defining a New Chain
 
 Create a file at `chains/<name>.md` with frontmatter + stages:
@@ -164,7 +197,7 @@ One-sentence description.
 
 ## Available Chains
 
-See `chains/` directory. As of v1.8.5:
+See `chains/` directory. As of v1.12.0:
 
 - **agent-dispatch** — wraps a subagent spawn with PQL → meta-prompting → execution → completion → hallucination → audit
 - **task-complete** — post-response verification (completion + hallucination + audit). Lighter than agent-dispatch; fires on Stop events.

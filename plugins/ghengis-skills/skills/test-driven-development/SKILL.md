@@ -19,10 +19,12 @@ Write the test first. Watch it fail. Write minimal code to make it pass. Commit.
 - Behavior changes
 - Anywhere a function's contract is changing
 
-**Exceptions (ask the user before skipping):**
-- Throwaway prototypes that will be deleted within hours, not days
-- Exploratory spikes where you're not sure what the behavior should be — write tests once you know
-- Hot-fix emergencies where the test framework genuinely doesn't exist (rare; usually a sign the system needs investment)
+**Exceptions (narrow and time-boxed; ask the user before skipping):**
+- **Throwaway code** — code that will be deleted before commit. If it's going to commit, it gets a test.
+- **Exploratory spike** — UP TO 30 MINUTES of investigation to figure out what the behavior should be. Once you know, you write the test and then the code. A spike that's lasted 2 hours is no longer a spike; it's untested code, which the iron law rejects.
+- **Hot-fix emergencies where the test framework genuinely doesn't exist** — rare. Usually a sign the system needs investment in tests. Document the gap explicitly so the next person can fix it.
+
+If you hear yourself rationalize "this is a spike" or "this is throwaway" while writing code that will probably commit, the rationalization is the failure mode. Write the test.
 
 **Don't skip because:**
 - "It's just a one-liner" — one-liners with no test silently regress

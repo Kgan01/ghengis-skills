@@ -37,9 +37,10 @@ If the user explicitly wants a spec doc written to disk, ask first — don't def
 ## When NOT to Use
 
 - The task is purely informational ("how does X work?") — just answer
-- The task is a one-line obvious edit — just do it
 - User has already given a full spec — go to `writing-skills` or build directly
 - User explicitly says "skip the design, just build" — honor that, but flag risks if you see them
+
+For genuinely tiny edits (typo, version bump, change a string constant), this skill still applies — but the design phase compresses to a single sentence ("changing X to Y in Z because W"). Don't skip the design step entirely; just keep it proportional. The anti-pattern "This Is Too Simple To Need A Design" exists specifically to catch the temptation to bypass design on small changes.
 
 ## The Process
 

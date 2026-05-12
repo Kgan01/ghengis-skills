@@ -42,41 +42,44 @@ Drive through stages. The natural decision point is in stage 1 (which integratio
 
 ## Stages
 
-### 1. finishing-a-development-branch
+### 1. finishing_a_development_branch
 - **Skill:** `ghengis-skills:finishing-a-development-branch`
 - **Reads:** project filesystem, git state
 - **Writes:**
-  - `finishing.tests_passed` (bool — gate)
-  - `finishing.workspace_state` ("normal-repo" | "worktree-named" | "worktree-detached")
-  - `finishing.base_branch` (e.g. "main")
-  - `finishing.option_chosen` (1 | 2 | 3 | 4)
-  - `finishing.merge_sha` or `finishing.pr_url` (depending on option)
-  - `finishing.branch_disposition` ("merged" | "pr-opened" | "kept-as-is" | "discarded")
+  - `finishing_a_development_branch.tests_passed` (bool — gate)
+  - `finishing_a_development_branch.workspace_state` ("normal-repo" | "worktree-named" | "worktree-detached")
+  - `finishing_a_development_branch.base_branch` (e.g. "main")
+  - `finishing_a_development_branch.option_chosen` (1=merge | 2=pr | 3=keep | 4=discard)
+  - `finishing_a_development_branch.merge_sha` or `finishing_a_development_branch.pr_url` (depending on option)
+  - `finishing_a_development_branch.branch_disposition` ("merged" | "pr-opened" | "kept-as-is" | "discarded")
+  - `finishing_a_development_branch.force_push_attempted` (bool — flag if user requested it; chain refuses)
 - **Success:** chosen option executed cleanly
 - **On fail:** tests don't pass → exit chain with `outcome: tests-failing`; user must fix before re-running
 
-### 2. auto-project-sync (conditional)
+### 2. auto_project_sync (conditional, non-blocking)
 - **Skill:** `ghengis-skills:auto-project-sync`
-- **When:** `finishing.branch_disposition` is "merged" or "pr-opened" (skip if kept-as-is or discarded)
+- **on_error:** `skip` (per-stage override; non-blocking per supervisor SKILL.md "Per-Stage on_error Override")
+- **When:** `finishing_a_development_branch.branch_disposition` is "merged" or "pr-opened" (skip if kept-as-is or discarded)
 - **Reads:** entire scratchpad, project files (CLAUDE.md, MEMORY.md, indexes, docs)
 - **Writes:**
-  - `sync.claude_md_updated` (bool)
-  - `sync.memory_md_updated` (bool)
-  - `sync.indexes_refreshed` (list of files)
-  - `sync.permissions_propagated` (list — any reusable Bash perms ratcheted to global settings)
-  - `sync.lessons_captured` (list — entries written to skill memory or evolving-cognition)
+  - `auto_project_sync.claude_md_updated` (bool)
+  - `auto_project_sync.memory_md_updated` (bool)
+  - `auto_project_sync.indexes_refreshed` (list of files)
+  - `auto_project_sync.permissions_propagated` (list — any reusable Bash perms ratcheted to global settings)
+  - `auto_project_sync.lessons_captured` (list — entries written to skill memory or evolving-cognition)
 - **Success:** docs reflect what just shipped
-- **On fail:** non-blocking; record what couldn't be auto-synced and surface to user
+- **On fail:** record what couldn't be auto-synced and surface to user; proceed to stage 3
 
-### 3. audit-ledger
+### 3. audit_ledger (non-blocking)
 - **Skill:** `ghengis-skills:audit-ledger`
+- **on_error:** `skip` (per-stage override; audit gaps shouldn't block shipping)
 - **Reads:** entire scratchpad
 - **Writes:**
-  - `audit.entry_id` (unique id)
-  - `audit.hash` (sha256 chain hash)
-  - `audit.summary` (one line: what shipped, when, where)
+  - `audit_ledger.entry_id` (unique id)
+  - `audit_ledger.hash` (sha256 chain hash)
+  - `audit_ledger.summary` (one line: what shipped, when, where)
 - **Success:** entry appended to immutable log
-- **On fail:** non-blocking; record but proceed (audit gaps shouldn't block shipping)
+- **On fail:** record but proceed
 
 ### 4. report
 - **Not a skill** — supervisor writes final summary
@@ -91,11 +94,11 @@ Drive through stages. The natural decision point is in stage 1 (which integratio
 
 | Stage | Failure | Recovery |
 |---|---|---|
-| finishing | Tests failing | Exit `tests-failing`; do NOT proceed to docs/audit (would lie about what shipped) |
-| finishing | Force push to main attempted | Refuse hard; require manual confirmation or different option |
-| finishing | Discard chosen without explicit "yes discard" | Refuse; require unambiguous consent |
-| auto-project-sync | CLAUDE.md update conflicts with manual edits | Non-blocking; record conflict, ask user later |
-| audit-ledger | Hash chain check fails | Surface immediately; this is a tamper signal |
+| finishing_a_development_branch | Tests failing | Exit `tests-failing`; do NOT proceed to docs/audit (would lie about what shipped) |
+| finishing_a_development_branch | Force push to main attempted | Set `force_push_attempted=true`; refuse hard; require manual confirmation or different option |
+| finishing_a_development_branch | Discard chosen without explicit "yes discard" | Refuse; require unambiguous consent |
+| auto_project_sync | CLAUDE.md update conflicts with manual edits | Non-blocking (on_error: skip); record conflict, ask user later |
+| audit_ledger | Hash chain check fails | Surface immediately; this is a tamper signal — still propagate because non-blocking but surface prominently |
 
 ## Skip-Stage Rules
 
@@ -108,26 +111,27 @@ Drive through stages. The natural decision point is in stage 1 (which integratio
 ```json
 {
   "chain": "finish-line",
-  "stages_completed": ["finishing", "auto-project-sync", "audit-ledger", "report"],
+  "stages_completed": ["finishing_a_development_branch", "auto_project_sync", "audit_ledger", "report"],
   "input": {
     "user_request": "Ship the JWT refactor"
   },
-  "finishing": {
+  "finishing_a_development_branch": {
     "tests_passed": true,
     "workspace_state": "normal-repo",
     "base_branch": "main",
     "option_chosen": 1,
     "merge_sha": "ab12c3d",
-    "branch_disposition": "merged"
+    "branch_disposition": "merged",
+    "force_push_attempted": false
   },
-  "sync": {
+  "auto_project_sync": {
     "claude_md_updated": true,
     "memory_md_updated": true,
     "indexes_refreshed": ["docs/INDEX.md"],
     "permissions_propagated": [],
     "lessons_captured": ["JWT migration required handling existing session cookies during cutover"]
   },
-  "audit": {
+  "audit_ledger": {
     "entry_id": "2026-05-12-7f3a",
     "hash": "sha256:abcd...",
     "summary": "Merged JWT auth refactor (ab12c3d) into main; 23 tests, all green"

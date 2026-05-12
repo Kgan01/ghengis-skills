@@ -1,6 +1,6 @@
 ---
 name: writing-skills
-description: Use when creating new skills, editing existing skills, or porting skills from other skill systems (superpowers, anthropic-skills, etc.) into ghengis-skills. Applies test-driven-development to documentation — write the pressure scenario first, watch a subagent fail without the skill, then write the skill that makes it pass. Cross-refs pql-validation for description quality and build-validate chain for full scenario testing.
+description: TRIGGER when user says "let's add a skill", "make a skill for X", "port the Y skill from superpowers", "I keep repeating this instruction", "this should be a skill", "create a skill"; OR when noticing a repeated multi-message instruction pattern that would benefit from being captured once. Use to create or edit any SKILL.md file in plugins/ghengis-skills/skills/.
 allowed-tools: Read Write Edit Bash Grep Glob
 ---
 

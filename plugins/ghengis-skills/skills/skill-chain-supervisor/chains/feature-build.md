@@ -19,6 +19,7 @@ Replaces the loose "let me brainstorm and then code it" pattern with supervised 
 - User says "let's build X", "add a feature to do Y"
 - Non-trivial work that benefits from explicit design before implementation
 - Code that ships (not throwaway prototypes — those can skip the chain)
+- User has chosen the **build-validate execution mode** in brainstorming. The chain is purpose-built for the high-rigor path. If brainstorming returns `execution_mode = "inline"` or `"subagent"`, the chain exits at stage 1 with `outcome: design-only-handoff` — the design is the deliverable and the user implements outside the chain.
 
 ## When NOT To Use
 
@@ -54,20 +55,20 @@ Scratchpad keys expected at chain start:
 - **Success:** user has approved a design AND picked an execution mode
 - **On fail:** user declined or scope was too broad to handle in one chain — exit chain with `outcome: needs-decomposition`
 
-### 2. test-driven-development
+### 2. test_driven_development
 - **Skill:** `ghengis-skills:test-driven-development`
 - **Reads:** `brainstorming.design_summary`, `input.project_root`
-- **Writes:** `tdd.test_files` (list of test file paths created), `tdd.red_confirmed` (bool — did we watch the test fail?), `tdd.green_confirmed` (bool — does it now pass?)
+- **Writes:** `test_driven_development.test_files` (list of test file paths created), `test_driven_development.red_confirmed` (bool — did we watch the test fail?), `test_driven_development.green_confirmed` (bool — does it now pass?)
 - **Success:** `red_confirmed = true` AND `green_confirmed = true`
-- **On fail:** user opted out of TDD ("just build it") — skip to stage 3 with warning recorded in `tdd.skip_reason`
+- **On fail:** user opted out of TDD ("just build it") — skip to stage 3 with warning recorded in `test_driven_development.skip_reason`
 
-### 3. build-validate (nested chain)
+### 3. build_validate (nested chain)
 - **Chain:** `build-validate`
+- **Nested chain output:** namespaced under `build_validate.*` per supervisor SKILL.md "Nested Chain" pattern. Parent reads `build_validate.report.outcome`, `build_validate.report.score_progression`, etc.
 - **Reads:** entire scratchpad
-- **Writes:** `build_validate.score` (int 0-10), `build_validate.outcome` ("shipped" | "shipped-with-notes" | "revised-and-shipped" | "quality-gap-flagged"), `build_validate.iterations_used` (int)
-- **Special handling:** if `brainstorming.execution_mode == "inline"`, skip the build-validate chain and let Claude implement inline with the user watching. If `"subagent"`, dispatch a Builder subagent but skip the Validator stage. If `"build-validate"`, run the full chain.
-- **Success:** `score >= 7`
-- **On fail:** propagate the quality gap to the report stage
+- **The chain itself produces:** `build_validate.triage`, `build_validate.build`, `build_validate.validate`, `build_validate.report` (full structure of the nested chain's scratchpad)
+- **Success:** `build_validate.report.outcome` in {"shipped", "shipped-with-notes", "revised-and-shipped"}
+- **On fail:** `build_validate.report.outcome == "quality-gap-flagged"` — propagate the quality gap to the parent report stage
 
 ### 4. report
 - **Not a skill** — supervisor writes the final summary
@@ -81,7 +82,7 @@ Scratchpad keys expected at chain start:
 |---|---|---|
 | brainstorming | User can't decide / keeps changing scope | Pause, ask user to commit; if they can't, exit chain (this isn't ready to build) |
 | brainstorming | Scope is multi-subsystem | Exit with `needs-decomposition`; user should rerun chain on one sub-project |
-| TDD | User refuses to write tests first | Skip TDD with warning; record `tdd.skip_reason` in scratchpad |
+| test_driven_development | User refuses to write tests first | Skip TDD with warning; record `test_driven_development.skip_reason` in scratchpad |
 | build-validate | Score stays < 7 after 2 iterations | Outcome becomes `quality-gap-flagged`; do NOT silently ship |
 | report | — | This stage doesn't fail; it surfaces what happened |
 
@@ -92,7 +93,7 @@ Scratchpad keys expected at chain start:
   "chain": "feature-build",
   "started_at": "2026-05-12T00:30:00Z",
   "completed_at": "2026-05-12T00:55:00Z",
-  "stages_completed": ["brainstorming", "tdd", "build-validate", "report"],
+  "stages_completed": ["brainstorming", "test_driven_development", "build_validate", "report"],
   "input": {
     "user_request": "Add a /health endpoint that returns DB connectivity status",
     "project_root": "/Users/kgan/code/foo-service"
@@ -102,15 +103,16 @@ Scratchpad keys expected at chain start:
     "execution_mode": "build-validate",
     "scope_decomposed": false
   },
-  "tdd": {
+  "test_driven_development": {
     "test_files": ["tests/test_health.py"],
     "red_confirmed": true,
     "green_confirmed": true
   },
   "build_validate": {
-    "score": 9,
-    "outcome": "shipped",
-    "iterations_used": 1
+    "triage": {"proceed": true, "reason": "Real deliverable with functional test"},
+    "build": {"iteration": 1, "summary": "Added /health route + 3 tests"},
+    "validate": {"score": 9, "functional_test_run": true, "issues": []},
+    "report": {"outcome": "shipped", "score_progression": [9]}
   },
   "report": {
     "outcome": "shipped",
