@@ -25,16 +25,21 @@
 
 Skills are lightweight — they load on-demand and don't bloat your context window. Unlike MCP servers that inject tool schemas into every message, skills activate only when relevant, adding zero overhead the rest of the time.
 
-## What's New (v1.8.1)
+## What's New (v1.14.0)
 
-- **Time Perception (`time-perception`)** — Gives Claude a persistent sense of time. `UserPromptSubmit` hook injects elapsed time, message count, and project-switch detection into every prompt. `Stop` hook logs task durations. Includes a portable Python module (`time_context.py`) for wrapping any LLM API with time awareness.
-- **Agent Monitor (`agent-monitor`)** — Real-time subagent dashboard and terminal status line. Auto-opens a browser dashboard (ports 7685/7686) when 2+ agents are running. Tracks agent lifecycle, project grouping, permissions, and cross-session history. Status line shows model name + color-coded context usage bar.
+- **Closed cognition loop (`skill-chain-supervisor`)** — Chain runs now learn from each other. Set `GHENGIS_COGNITION=true` and every `finish` emits a structured lesson to `cognition.jsonl`; every `init` retrieves the most relevant past lessons via UCB1-weighted Jaccard similarity, bumps `hits`, and bumps `wins` on success. Audit command surfaces entries to retire (high hits, low win-rate). Stdlib-only, opt-in.
+- **5 new workflow skills + 4 new chains (v1.12.0)** — `brainstorming` (inline conversational design, never uses plan mode), `writing-skills` (TDD on documentation), `systematic-debugging` (iron law: no fixes without root cause), `test-driven-development` (RED-GREEN-REFACTOR with bite-sized steps), `finishing-a-development-branch` (verify-tests gate before merge/PR). Plus chains `feature-build`, `bug-hunt`, `skill-port`, `finish-line`.
+- **`treefile-organizer` (v1.11.0)** — Reshape an existing project's file tree based on its actual import graph. Analyzer + planner Python scripts produce a plan.json the build-validate chain validates adversarially before any file moves.
+
+## Previous (v1.8.1)
+
+- **Time Perception (`time-perception`)** — Gives Claude a persistent sense of time. `UserPromptSubmit` hook injects elapsed time, message count, and project-switch detection. Includes a portable Python module for wrapping any LLM API with time awareness.
+- **Agent Monitor (`agent-monitor`)** — Real-time subagent dashboard and terminal status line. Auto-opens browser dashboard on ports 7685/7686 when 2+ agents run.
 
 ## Previous (v1.7.0)
 
-- **Evolving Cognition (`evolving-cognition`)** — ASI-Evolve-inspired pattern for agents that learn from measurable outcomes. Covers fitness signal design, cognition store schema, UCB1 retrieval, Analyzer prompts, poison mitigations (contradiction flags, confidence decay, retirement thresholds), and audit loops. Auto-fires on "feedback loop", "agents getting smarter", "learn from outcomes".
-- **Paper to Code (`paper-to-code`)** — Turn any research paper, engineering blog, or technical doc into shipping code. Strategic reading order, contribution mapping tables, explicit "what NOT to adopt" phase, spec-delta writing. Auto-fires on arxiv URLs, paper links, "apply this research".
-- **Multi-Stage Verification (enhanced `completion-enforcer`)** — New Check 6 adds the ASI-Evolve 3-tier evaluation pattern: proxy (lint/type-check) -> functional (tests) -> full (manual/UI verification). Catches "tests pass but I didn't actually try it" false completions.
+- **Evolving Cognition (`evolving-cognition`)** — ASI-Evolve-inspired pattern for agents that learn from measurable outcomes. Now wired end-to-end via skill-chain-supervisor's cognition commands (see v1.14.0 above).
+- **Paper to Code (`paper-to-code`)** — Turn any research paper or technical doc into shipping code. Auto-fires on arxiv URLs, paper links, "apply this research".
 
 ## Why Use This
 
@@ -46,6 +51,98 @@ Skills are lightweight — they load on-demand and don't bloat your context wind
 - **Adaptive behavior** — Agent identity learns your preferences over time, skill memory accumulates domain knowledge from past tasks, compute adaptation degrades gracefully under resource pressure
 - **Domain expertise on demand** — From double-entry accounting to circadian lighting to 3D print optimization, Claude gets expert-level methodology loaded exactly when needed
 - **More autonomous sessions** — Skills include permission patterns, hook configurations, and structured workflows that let Claude work more independently with fewer interruptions
+
+## Common Workflows
+
+Most usage doesn't require thinking about which skill to invoke — Claude loads them automatically based on the description triggers. But the **chains** in `skill-chain-supervisor` are the highest-leverage entry points and deserve explicit knowledge. Say one of these phrases and a supervised multi-stage pipeline fires.
+
+### "I want to build a new feature"
+
+```
+You: "let's build a feature for X" / "build a feature: X" / "run feature-build on X"
+```
+
+What happens:
+1. **brainstorming** activates — asks clarifying questions one at a time in chat. Picks design with you. Offers 3 execution modes: inline (you watch me code), subagent (dispatch a Builder, sleep), or build-validate chain (Builder + adversarial Validator + revision loop).
+2. **test-driven-development** writes the failing test first; you watch it fail; minimal code to pass; commit.
+3. **build-validate** runs as a nested chain. The Validator's job is to *break* the work — find bypass cases, missing edge handling, broken cross-refs. Score < 7 → loops back to Builder for one revision (cap is 2 iterations).
+
+### "I want to fix a bug"
+
+```
+You: "fix this bug: X" / "track down a bug" / "run bug-hunt on X"
+```
+
+What happens:
+1. **systematic-debugging** Phase 1 — read error, reproduce, check changes. Cannot propose fixes until root cause is stated in one no-hedge sentence with confirming evidence.
+2. **test-driven-development** writes a regression test that fails for the *same* reason the user reported.
+3. **build-validate** verifies the fix passes the regression test AND no other tests broke. Refuses symptom fixes.
+
+### "Let's add a new skill"
+
+```
+You: "add a skill for X" / "port the Y skill from superpowers" / "run skill-port"
+```
+
+What happens:
+1. **brainstorming** clarifies trigger conditions, anti-patterns, cross-refs.
+2. **writing-skills** runs the TDD-on-documentation cycle: pressure scenario → baseline subagent failure → write SKILL.md → re-test.
+3. **pql-validation** gates the frontmatter `description` (score ≥ 0.7 required; vague triggers, process summaries, underscores in `name` all rejected).
+4. **build-validate** stress-tests the new skill against adversarial scenarios. The Validator tries to rationalize past the rules to find loopholes.
+
+### "Ship this branch"
+
+```
+You: "ship this branch" / "wrap up and ship" / "run finish-line"
+```
+
+What happens:
+1. **finishing-a-development-branch** verifies tests pass first (refuses to proceed if any fail). Detects workspace shape (normal repo / worktree). Presents 4-option menu: merge locally / push+PR / keep / discard. Requires explicit "yes discard" for option 4. Refuses force-push to main.
+2. **auto-project-sync** (conditional, non-blocking) updates CLAUDE.md, MEMORY.md, indexes to reflect what shipped.
+3. **audit-ledger** records the integration event with hash-chained provenance.
+
+### "Just review this deliverable"
+
+```
+You: "run build-validate on this" / "ping-pong this" / "validate thoroughly"
+```
+
+When you don't need the whole feature/bug pipeline — just an adversarial check on an existing artifact. Builder produces → Validator independently tests + scores → loops if score < 7.
+
+### Cognition Loop (Opt-In Learning)
+
+The chain system learns from outcomes when `GHENGIS_COGNITION=true`:
+
+```bash
+# Per-session
+export GHENGIS_COGNITION=true
+
+# Per-project — add to .claude/settings.json env block
+{ "env": { "GHENGIS_COGNITION": "true" } }
+
+# Globally — add to ~/.zshrc
+export GHENGIS_COGNITION=true
+```
+
+When enabled:
+- **At chain init:** reads `<project>/.claude/ghengis-chain/cognition.jsonl`, ranks past lessons by UCB1-weighted Jaccard similarity to your current `user_request`, surfaces top 5 as `state.lessons_from_past`. Each surfaced entry's `hits` counter bumps.
+- **At chain finish:** if the outcome was a success (shipped / fixed / revised-and-shipped), `wins` bumps on every previously-retrieved lesson. A new entry is emitted for this run.
+- **Monthly maintenance:** `python scripts/scratchpad.py audit` flags entries with `hits ≥ 5` and `win_rate < 0.4` for retirement. Set `audit_status: "retired"` to exclude from future retrievals without deleting history.
+
+**Turn on for:** repeat-structure projects, long-running work, multi-session contexts where lessons across runs matter.
+**Leave off for:** one-off projects, fast spikes, debugging the chain system itself (don't poison the journal), privacy-sensitive work.
+
+### Direct Skill Invocation
+
+You don't usually need this — skills auto-fire on triggers — but if you want to force one:
+
+```
+You: "use the systematic-debugging skill on this"
+You: "I want brainstorming for this"
+You: "run pql-validation on this prompt"
+```
+
+Or use the Skill tool's exact name from the table below.
 
 ## Installation
 
@@ -178,101 +275,109 @@ The allow list covers all common dev tools plus the Claude-in-Chrome browser-aut
 
 These change how Claude approaches complex work — orchestration patterns extracted from a production multi-agent system.
 
-| Skill | What It Does |
-|-------|-------------|
-| **oort-cascade** | Multi-agent orchestration — breaks complex tasks into specialized roles (researcher, builder, validator), wires them into dependency DAGs, executes in parallel waves, and runs revision loops until quality passes |
-| **meta-prompting** | 22 role templates for dispatching subagents. Instead of forwarding raw requests, generates tailored instructions per role with context injection, deliverable specs, and execution boundaries |
-| **agent-teams** | Spawns parallel agents with different creative perspectives (Minimalist, Bold, Technical, Playful, Elegant), then synthesizes the strongest elements from each into a final output |
-| **agent-monitor** | Real-time subagent monitoring dashboard and terminal status line — tracks agent spawning, completion, permissions, and history. Auto-opens browser dashboard when agents are active. |
-| **pql-validation** | Prompt Quality Layer — 35 anti-pattern checks across 6 categories (task, context, format, scope, reasoning, agentic). Catches vague verbs, missing constraints, hallucination invitations, and unsafe delegation before execution |
-| **blueprint-compilation** | Recognizes repeated multi-step workflows and compiles them into reusable pipelines. Trace recording, pattern detection, and progressive compilation from ad-hoc to automated |
-| **constitutional-ai** | 9 safety rules across 5 categories (Safety, Cost, Privacy, Transparency, Autonomy). Signal-based pre/post execution checks that prevent irreversible actions, PII exposure, and scope creep |
-| **project-scaffold** | Auto-generates a 4-layer project structure: MEMORY.md (project identity), CONTEXT.md (workspace routing), per-workspace guidance, and a modular `.claude/` directory with rules, docs, and settings |
+| Skill | What It Does | How to Use |
+|-------|-------------|-----------|
+| **oort-cascade** | Multi-agent orchestration — breaks complex tasks into specialized roles (researcher, builder, validator), wires them into dependency DAGs, executes in parallel waves, and runs revision loops until quality passes | Auto-fires on complex multi-step requests. Force: *"use oort-cascade on this"*, *"run a cascade"*. Often nested inside `feature-build` and `build-validate` chains. |
+| **meta-prompting** | 22 role templates for dispatching subagents. Instead of forwarding raw requests, generates tailored instructions per role with context injection, deliverable specs, and execution boundaries | Auto-fires when dispatching subagents. Force: *"use meta-prompting for the subagent prompt"*. The `agent-dispatch` chain calls this automatically. |
+| **agent-teams** | Spawns parallel agents with different creative perspectives (Minimalist, Bold, Technical, Playful, Elegant), then synthesizes the strongest elements from each into a final output | Trigger: *"give me 3 different takes on X"*, *"agent teams for this design"*, *"parallel perspectives"*. |
+| **agent-monitor** | Real-time subagent monitoring dashboard and terminal status line — tracks agent spawning, completion, permissions, and history. Auto-opens browser dashboard when agents are active. | Always-on once installed. Browser dashboard at `http://localhost:7685` when 2+ agents run. |
+| **pql-validation** | Prompt Quality Layer — 35 anti-pattern checks across 6 categories (task, context, format, scope, reasoning, agentic). Catches vague verbs, missing constraints, hallucination invitations, and unsafe delegation before execution | Trigger: *"check this prompt"*, *"validate this prompt"*. Wired into `agent-dispatch` (threshold 0.5 + autofix) and `skill-port` chains (threshold 0.7). |
+| **blueprint-compilation** | Recognizes repeated multi-step workflows and compiles them into reusable pipelines. Trace recording, pattern detection, and progressive compilation from ad-hoc to automated | Trigger: *"I keep doing the same thing, let's automate it"*, *"compile this workflow"*. |
+| **constitutional-ai** | 9 safety rules across 5 categories (Safety, Cost, Privacy, Transparency, Autonomy). Signal-based pre/post execution checks that prevent irreversible actions, PII exposure, and scope creep | Always-on guardrail. Doesn't need invocation. Refuses irreversible operations, flags PII before sending to external services. |
+| **project-scaffold** | Auto-generates a 4-layer project structure: MEMORY.md (project identity), CONTEXT.md (workspace routing), per-workspace guidance, and a modular `.claude/` directory with rules, docs, and settings | Trigger: *"scaffold this project"*, *"set up project structure"*, *"new FastAPI service"*. Run `/scaffold-project` slash command. |
 
 ### Agent Reliability (5 skills)
 
 These keep agents honest, healthy, and on track — catching failures that normally go unnoticed until the user finds them.
 
-| Skill | What It Does |
-|-------|-------------|
-| **completion-enforcer** | 70+ signal phrases detect when an agent claims "done" but left placeholders, TODOs, or unfinished work. Five heuristic checks verify structural completeness. Zero cost, instant. |
-| **hallucination-detector** | Signal-based detection of fabricated URLs, unsourced statistics, fake citations, and impossible future claims. Catches confabulation without an LLM verification call. |
-| **context-health** | Monitors context window usage mid-session, detects degradation and task drift, offers three recovery strategies (truncate, checkpoint-restart, re-anchor). Prevents the silent quality collapse that happens in long sessions. |
-| **execution-harness** | Multi-session orchestration for large projects. Decomposes work into 3-15 checkpointed tasks, tracks progress across session boundaries, supports pause/resume, and includes human review gates between phases. |
-| **constitutional-ai** | *(also listed in Agentic Engineering)* Pre/post execution safety checks that prevent irreversible actions before they happen. |
+| Skill | What It Does | How to Use |
+|-------|-------------|-----------|
+| **completion-enforcer** | 70+ signal phrases detect when an agent claims "done" but left placeholders, TODOs, or unfinished work. Five heuristic checks verify structural completeness. Zero cost, instant. | Auto-fires after any "done" / "complete" / "fixed" claim. Force: *"verify this is actually done"*. Built into the `task-complete` and `agent-dispatch` chains. |
+| **hallucination-detector** | Signal-based detection of fabricated URLs, unsourced statistics, fake citations, and impossible future claims. Catches confabulation without an LLM verification call. | Trigger: *"fact-check this"*, *"look for fabrications"*. Wired into `task-complete` chain. |
+| **context-health** | Monitors context window usage mid-session, detects degradation and task drift, offers three recovery strategies (truncate, checkpoint-restart, re-anchor). Prevents the silent quality collapse that happens in long sessions. | Trigger: *"feeling lost"*, *"are we still on track?"*, *"context health check"*. Useful when the conversation has run long. |
+| **execution-harness** | Multi-session orchestration for large projects. Decomposes work into 3-15 checkpointed tasks, tracks progress across session boundaries, supports pause/resume, and includes human review gates between phases. | Trigger: *"this is a multi-session project"*, *"set up the execution harness"*, *"checkpoint this work"*. |
+| **constitutional-ai** | *(also listed in Agentic Engineering)* Pre/post execution safety checks that prevent irreversible actions before they happen. | Always-on; no invocation needed. |
 
 ### Agent Learning & Adaptation (5 skills)
 
 These help Claude learn, remember, and adapt — building intelligence over time rather than starting fresh every session.
 
-| Skill | What It Does |
-|-------|-------------|
-| **goal-tracking** | Auto-detects goals from conversation, maintains parent-child hierarchy, tracks state transitions (active/blocked/completed/abandoned), and catches goal staleness with fuzzy matching for related requests |
-| **agent-identity** | Builds an evolving understanding of user preferences, communication style, and working patterns through an observe-extract-synthesize loop. Adapts behavior over time. |
-| **skill-memory** | Accumulates domain knowledge from past tasks in a grepable plain-text format. No vector database needed — plain markdown, searchable via grep, with auto-consolidation when it grows too large. |
-| **skill-chain-supervisor** | Orchestrates multiple ghengis-skills into reliable workflows via a shared JSON scratchpad. Supports sequential, fan-out/merge, conditional, and iterative-loop patterns. **7 built-in chains:** `agent-dispatch` (subagent dispatch with quality gates), `task-complete` (post-task verification), `build-validate` (Builder ↔ Validator round-trip, max 2 iterations), `feature-build` (brainstorming → TDD → build-validate), `bug-hunt` (systematic-debugging → TDD → build-validate), `skill-port` (brainstorming → writing-skills → pql-validation → build-validate), `finish-line` (finishing-a-development-branch → auto-project-sync → audit-ledger). Continuous execution principle — no "should I continue?" pauses between stages. |
-| **audit-ledger** | Hash-chained append-only audit trail for what agents did, when, and why. Tamper-proof via SHA-256 chain, queryable by time/agent/goal, daily rollover. |
-| **compute-adaptation** | 4-tier graceful degradation (Normal, Low, Critical, Offline). Adapts agent behavior when hitting rate limits, budget constraints, or resource pressure — reduces parallelism, downgrades models, queues non-essential work. |
+| Skill | What It Does | How to Use |
+|-------|-------------|-----------|
+| **goal-tracking** | Auto-detects goals from conversation, maintains parent-child hierarchy, tracks state transitions (active/blocked/completed/abandoned), and catches goal staleness with fuzzy matching for related requests | Auto-fires when you describe a goal. Trigger: *"what was I working on?"*, *"goal status"*. |
+| **agent-identity** | Builds an evolving understanding of user preferences, communication style, and working patterns through an observe-extract-synthesize loop. Adapts behavior over time. | Always-on observation. Trigger explicit update: *"remember this preference"*, *"update my profile"*. |
+| **skill-memory** | Accumulates domain knowledge from past tasks in a grepable plain-text format. No vector database needed — plain markdown, searchable via grep, with auto-consolidation when it grows too large. | Trigger: *"remember this for next time"*, *"what did we learn last time about X?"*. Searchable via grep over `~/.claude/skill-memory/`. |
+| **skill-chain-supervisor** | Orchestrates multiple ghengis-skills into reliable workflows via a shared JSON scratchpad. **7 built-in chains:** `agent-dispatch`, `task-complete`, `build-validate`, `feature-build`, `bug-hunt`, `skill-port`, `finish-line`. Continuous execution principle — no "should I continue?" pauses between stages. Nested chain support. Per-stage `on_error` overrides. Cognition emission + UCB1 retrieval when `GHENGIS_COGNITION=true`. | See **Common Workflows** section above. Trigger phrases: *"run feature-build on X"*, *"bug-hunt this"*, *"port the Y skill"*, *"ship this branch"*, *"validate thoroughly"*. Helper at `scripts/scratchpad.py` exposes `init`, `finish`, `nested-start`, `nested-finish`, `retrieve`, `audit`, `cognition-emit`. |
+| **audit-ledger** | Hash-chained append-only audit trail for what agents did, when, and why. Tamper-proof via SHA-256 chain, queryable by time/agent/goal, daily rollover. | Wired into `finish-line` chain. Trigger explicit query: *"audit log for today"*, *"what did the agents do yesterday?"*. |
+| **compute-adaptation** | 4-tier graceful degradation (Normal, Low, Critical, Offline). Adapts agent behavior when hitting rate limits, budget constraints, or resource pressure — reduces parallelism, downgrades models, queues non-essential work. | Auto-fires when hitting rate limits or budget caps. Trigger: *"we're rate-limited"*, *"budget is tight, slow down"*. |
 
-### Deep Research (1 skill)
+### Deep Research (2 skills)
 
-| Skill | What It Does |
-|-------|-------------|
-| **deep-research** | 7-phase iterative research methodology (Clarify, Draft, Gap Analysis, Targeted Research, Refine, Red Team, Converge). Goes beyond single-pass research with adversarial review, convergence detection, and structured confidence levels. |
+| Skill | What It Does | How to Use |
+|-------|-------------|-----------|
+| **deep-research** | 7-phase iterative research methodology (Clarify, Draft, Gap Analysis, Targeted Research, Refine, Red Team, Converge). Goes beyond single-pass research with adversarial review, convergence detection, and structured confidence levels. | Trigger: *"deep dive into X"*, *"thorough research on Y"*, *"red-team this"*. Auto-fires when a research question needs more than one pass. |
+| **general-research** | Systematic research methodology — CRAAP test source evaluation, iterative refinement, structured findings with confidence levels. Lighter than deep-research; one-pass with rigor. | Trigger: *"research X"*, *"what do we know about Y"*. |
 
 ### Operations (2 skills)
 
-| Skill | What It Does |
-|-------|-------------|
-| **output-formatting** | 8 destination formatters (chat, email, Slack, TTS, PDF, CSV, JSON, markdown) plus document ingestion and chunking patterns. Same content, adapted per target audience and channel. |
-| **proactive-rituals** | Morning briefings, end-of-day summaries, weekly reviews, and custom ritual design. Maps directly to Claude's native cron scheduling. Includes priority queues, sensitivity levels, and event-driven triggers. |
+| Skill | What It Does | How to Use |
+|-------|-------------|-----------|
+| **output-formatting** | 8 destination formatters (chat, email, Slack, TTS, PDF, CSV, JSON, markdown) plus document ingestion and chunking patterns. Same content, adapted per target audience and channel. | Trigger: *"format this for Slack"*, *"make this an email"*, *"export as CSV"*, *"ingest this PDF"*. |
+| **proactive-rituals** | Morning briefings, end-of-day summaries, weekly reviews, and custom ritual design. Maps directly to Claude's native cron scheduling. Includes priority queues, sensitivity levels, and event-driven triggers. | Trigger: *"set up a morning briefing"*, *"daily check-in"*, *"weekly review ritual"*. Pair with `/schedule` slash command. |
 
 ### Security & Code Analysis (2 skills)
 
-| Skill | What It Does |
-|-------|-------------|
-| **security-testing** | OWASP Top 10 coverage, CVSS scoring, reconnaissance methodology, secure coding patterns, vulnerability analysis, exploit proof format, and hardening checklists. Defensive security and authorized testing. |
-| **code-intelligence** | 6-layer architectural classification, AST-based analysis patterns, import graph construction, circular dependency detection, structural code search, and a 5-step codebase understanding methodology. |
+| Skill | What It Does | How to Use |
+|-------|-------------|-----------|
+| **security-testing** | OWASP Top 10 coverage, CVSS scoring, reconnaissance methodology, secure coding patterns, vulnerability analysis, exploit proof format, and hardening checklists. Defensive security and authorized testing. | Trigger: *"security review of this"*, *"check for vulnerabilities"*, *"OWASP audit"*. Also fires on `/security-review` slash command. |
+| **code-intelligence** | 6-layer architectural classification, AST-based analysis patterns, import graph construction, circular dependency detection, structural code search, and a 5-step codebase understanding methodology. | Trigger: *"map the architecture"*, *"trace dependencies"*, *"understand this codebase"*. The `treefile-organizer` analyzer uses this layer classification. |
 
-### Domain Expertise (17 skills)
+### Workflow Skills (5 skills, ported from superpowers)
+
+The development discipline skills. Mostly auto-fire when triggered, but also wire into the chains.
+
+| Skill | What It Does | How to Use |
+|-------|-------------|-----------|
+| **brainstorming** | Turn ideas into shippable designs through inline conversational dialogue. No plan mode, no `AskUserQuestion` picker — just back-and-forth in chat. One question per message, multiple-choice with recommended option marked, no question cap. Ends by offering 3 execution modes: inline / subagent / build-validate chain. | Auto-fires on *"let's build X"*, *"design Y for me"*, *"add a feature: Z"*. Used as stage 1 of `feature-build` and `skill-port` chains. |
+| **writing-skills** | Test-driven development applied to documentation. Write a pressure scenario, watch a subagent fail without the skill, write the skill that makes it pass, then close loopholes. | Trigger: *"let's add a skill"*, *"port the X skill from superpowers"*, *"I keep repeating this instruction"*. Wired into `skill-port` chain. |
+| **systematic-debugging** | Iron law: no fixes without root cause investigation. 4-phase methodology — investigate, hypothesize, write regression test, fix and verify. Refuses symptom fixes. | Auto-fires on *"this is broken"*, *"test is failing"*, *"why is X doing Y"*. Stage 1 of `bug-hunt` chain. |
+| **test-driven-development** | RED-GREEN-REFACTOR discipline with bite-sized 2-5 minute steps. Watch the test fail before writing code. Watch it pass after. Commit at every cycle boundary. | Auto-fires when implementing any new behavior. Stages 2 of `feature-build` and `bug-hunt` chains. Override only for true throwaway code or 30-min spikes. |
+| **finishing-a-development-branch** | Verify tests → detect workspace shape → present 4-option menu (merge / PR / keep / discard) → execute → cleanup. Refuses to proceed if tests fail. | Trigger: *"ship this branch"*, *"merge this branch"*, *"wrap up and ship"*. Stage 1 of `finish-line` chain. |
+
+### Domain Expertise (16 skills)
 
 Expert-level methodology that loads when Claude encounters matching tasks. Each skill contains the actual knowledge — frameworks, formulas, checklists, worked examples — not just generic guidance.
 
-| Skill | What It Does |
-|-------|-------------|
-| **general-research** | Systematic research methodology — CRAAP test source evaluation, iterative refinement, structured findings with confidence levels |
-| **bookkeeping** | Double-entry accounting, chart of accounts, IRS expense categories, bank reconciliation, cash vs accrual basis, month-end close procedures |
-| **task-tracking** | GTD methodology, Eisenhower matrix, sprint planning, task decomposition, blocked task handling |
-| **learning-paths** | Bloom's taxonomy, prerequisite mapping, curriculum design, spaced repetition scheduling, progress tracking |
-| **tutoring** | Socratic method, level assessment, worked examples scaled by difficulty, misconception detection and correction |
-| **time-perception** | Time awareness for Claude — tracks elapsed time between messages, task durations, project switching, and activity patterns via hooks. Includes a portable Python module for wrapping any LLM call with time context. |
-| **shopping** | Multi-tier product comparison, evaluation frameworks, per-unit pricing analysis, deal validation |
-| **report-writing** | Executive summary structure, data presentation, audience-appropriate formatting, confidence levels, source citation |
-| **scheduling** | Time blocking, ritual design, priority-based allocation, conflict resolution, calendar optimization |
-| **crm-patterns** | Client lifecycle management, project tracking, communication logging, pipeline management, relationship health scoring, and follow-up automation for freelancers and consultants |
-| **file-organization** | 18 manifest types for file categorization, intelligent placement suggestions, naming conventions, directory structure patterns, duplicate detection, and audit trails for file operations |
-| **treefile-organizer** | Reshape an existing project's file tree based on its actual import graph — analyzes connections, proposes an ideal target tree, validates the plan adversarially via build-validate, and only moves files after explicit user confirmation. Atomic per-batch rollback via git. Python + TypeScript v1. |
-| **brainstorming** | Turn ideas into shippable designs through inline conversational dialogue. No plan mode, no structured Q&A picker — just back-and-forth in chat. One question per message, multiple-choice with recommended option marked, no question cap. Ends by offering 3 execution modes: inline, subagent, or build-validate chain. Adapted from superpowers:brainstorming. |
-| **writing-skills** | Test-driven development applied to documentation. Write a pressure scenario, watch a subagent fail without the skill, write the skill that makes it pass, then close loopholes. Required reading before porting any skill. Adapted from superpowers:writing-skills with ghengis pql-validation + build-validate integration. |
-| **systematic-debugging** | Iron law: no fixes without root cause investigation. 4-phase methodology — investigate, hypothesize, write regression test (handoff to TDD), fix and verify. Refuses symptom fixes. Adapted from superpowers:systematic-debugging. |
-| **test-driven-development** | RED-GREEN-REFACTOR discipline with bite-sized 2-5 minute steps. Watch the test fail before writing code. Watch it pass after. Commit at every cycle boundary. Adapted from superpowers:test-driven-development with the writing-plans bite-sized step pattern baked in. |
-| **finishing-a-development-branch** | Verify tests → detect workspace shape → present 4-option menu (merge / PR / keep / discard) → execute → cleanup. Refuses to proceed if tests fail. Requires explicit "yes discard" for destructive option. Adapted from superpowers:finishing-a-development-branch. |
-| **mcp-patterns** | MCP server configuration, the meta-tool pattern for context reduction, Context7 two-step lookup, registration anti-patterns |
-| **data-analysis** | Statistical methodology, pandas workflows, correlation vs causation, visualization selection, small sample warnings |
-| **content-writing** | Blog posts, documentation, marketing copy — structure, SEO basics, audience targeting, editorial checklists |
-| **devops** | Solo-dev deployment patterns — Docker multi-stage builds, GitHub Actions CI/CD, SSL, environment management, rollback procedures |
-| **music-curation** | Genre classification, BPM matching and transitions, mood-to-genre mapping, playlist arc design, Spotify audio features |
-| **home-lighting** | Color temperature science, circadian rhythm automation, room profiles, scene composition, Philips Hue API patterns |
-| **3d-modeling** | STL mesh quality, support structure planning, print orientation optimization, dimensional tolerances, prompt engineering for 3D generation |
+| Skill | What It Does | How to Use |
+|-------|-------------|-----------|
+| **bookkeeping** | Double-entry accounting, chart of accounts, IRS expense categories, bank reconciliation, cash vs accrual basis, month-end close procedures | Trigger: *"categorize these expenses"*, *"reconcile this account"*, *"close the books"*. |
+| **task-tracking** | GTD methodology, Eisenhower matrix, sprint planning, task decomposition, blocked task handling | Trigger: *"organize my tasks"*, *"prioritize this list"*, *"break this down"*. |
+| **learning-paths** | Bloom's taxonomy, prerequisite mapping, curriculum design, spaced repetition scheduling, progress tracking | Trigger: *"teach me X"*, *"design a learning path for Y"*, *"prerequisites for Z"*. |
+| **tutoring** | Socratic method, level assessment, worked examples scaled by difficulty, misconception detection and correction | Trigger: *"explain X like I'm a beginner"*, *"walk me through Y"*. |
+| **time-perception** | Time awareness for Claude — tracks elapsed time between messages, task durations, project switching, and activity patterns via hooks. | Always-on once installed. No invocation needed. |
+| **shopping** | Multi-tier product comparison, evaluation frameworks, per-unit pricing analysis, deal validation | Trigger: *"should I buy X"*, *"compare these products"*, *"is this a good deal"*. |
+| **report-writing** | Executive summary structure, data presentation, audience-appropriate formatting, confidence levels, source citation | Trigger: *"write a report on X"*, *"executive summary of Y"*. |
+| **scheduling** | Time blocking, ritual design, priority-based allocation, conflict resolution, calendar optimization | Trigger: *"schedule my week"*, *"optimize my calendar"*. Pair with `/schedule`. |
+| **crm-patterns** | Client lifecycle management, project tracking, communication logging, pipeline management, relationship health scoring, follow-up automation | Trigger: *"track this client"*, *"my pipeline status"*, *"follow up with X"*. |
+| **file-organization** | 18 manifest types for file categorization, intelligent placement suggestions, naming conventions, directory structure patterns, duplicate detection, audit trails | Trigger: *"organize these files"*, *"clean up this directory"*. For deep tree restructuring use `treefile-organizer` instead. |
+| **treefile-organizer** | Reshape an existing project's file tree based on its actual import graph. Analyzer + planner Python scripts produce a plan.json the build-validate chain validates adversarially before any file moves. Python + TypeScript v1. | Trigger: *"reorganize this project"*, *"the structure is a mess"*. Refuses on dirty git tree. Always plan-first; never moves files without explicit "yes proceed". |
+| **mcp-patterns** | MCP server configuration, the meta-tool pattern for context reduction, Context7 two-step lookup, registration anti-patterns | Trigger: *"set up an MCP server"*, *"how do I use the meta-tool pattern"*. |
+| **data-analysis** | Statistical methodology, pandas workflows, correlation vs causation, visualization selection, small sample warnings | Trigger: *"analyze this data"*, *"what does this CSV tell us"*, *"visualize X vs Y"*. |
+| **content-writing** | Blog posts, documentation, marketing copy — structure, SEO basics, audience targeting, editorial checklists | Trigger: *"write a blog post on X"*, *"draft marketing copy for Y"*. |
+| **devops** | Solo-dev deployment patterns — Docker multi-stage builds, GitHub Actions CI/CD, SSL, environment management, rollback procedures | Trigger: *"deploy this"*, *"set up CI/CD"*, *"Docker for this project"*. |
+| **music-curation** | Genre classification, BPM matching and transitions, mood-to-genre mapping, playlist arc design, Spotify audio features | Trigger: *"make a playlist for X"*, *"music for a Y mood"*. |
+| **home-lighting** | Color temperature science, circadian rhythm automation, room profiles, scene composition, Philips Hue API patterns | Trigger: *"design lighting for X room"*, *"circadian scenes for sleep"*, *"Hue automation"*. |
+| **3d-modeling** | STL mesh quality, support structure planning, print orientation optimization, dimensional tolerances, prompt engineering for 3D generation | Trigger: *"3D print this"*, *"prepare this STL for printing"*, *"print orientation for X"*. |
+| **paper-to-code** | Strategic reading, contribution mapping, spec delta writing, "what NOT to adopt" framing for translating research papers into code | Auto-fires on arxiv URLs, *"apply this paper"*, *"read this paper and tell me what's useful"*. |
 
 ### Framework Skills (4 skills)
 
-| Skill | What It Does |
-|-------|-------------|
-| **react-nextjs** | Next.js 15 App Router, server/client component boundaries, dynamic imports, Zustand state management, CSS variable theming |
-| **fastapi** | Async-first patterns, Pydantic v2 (model_dump not dict), dependency injection, WebSocket auth-before-accept, blocking code handling |
-| **flutter-dart** | Widget composition, state management patterns, platform channels (MethodChannel/EventChannel), navigation, theme system |
-| **esp32** | PlatformIO build system, I2S audio configuration, PSRAM allocation, FreeRTOS task pinning, WiFi/BLE patterns, state machine design |
+| Skill | What It Does | How to Use |
+|-------|-------------|-----------|
+| **react-nextjs** | Next.js 15 App Router, server/client component boundaries, dynamic imports, Zustand state management, CSS variable theming | Auto-fires on Next.js / React file edits. Trigger: *"add a server component for X"*, *"client-side hook in Y"*. |
+| **fastapi** | Async-first patterns, Pydantic v2 (model_dump not dict), dependency injection, WebSocket auth-before-accept, blocking code handling | Auto-fires on FastAPI imports / routes. Trigger: *"add an endpoint for X"*, *"FastAPI middleware for Y"*. |
+| **flutter-dart** | Widget composition, state management patterns, platform channels (MethodChannel/EventChannel), navigation, theme system | Auto-fires on `.dart` file edits. Trigger: *"add a widget for X"*, *"platform channel for Y"*. |
+| **esp32** | PlatformIO build system, I2S audio configuration, PSRAM allocation, FreeRTOS task pinning, WiFi/BLE patterns, state machine design | Auto-fires on ESP32 firmware work. Trigger: *"flash this firmware"*, *"I2S audio for X"*, *"BLE service for Y"*. |
 
 ## How Skills Work
 
@@ -282,6 +387,8 @@ Each skill is a markdown file with YAML frontmatter:
 ---
 name: skill-name
 description: When Claude should activate this skill — specific trigger conditions
+allowed-tools: Read Write Edit Bash    # optional
+model: fast | balanced | premium       # optional tier hint for subagent dispatch
 ---
 
 # Skill Name
@@ -291,7 +398,33 @@ Methodology, patterns, examples, checklists...
 
 The `description` field tells Claude when to load the skill. When a task matches, the skill content is injected into the session and guides Claude's approach. When no skills match, nothing is loaded — zero context cost.
 
-Some skills include supporting documents (e.g., `oort-cascade/handoff-protocol.md`, `pql-validation/anti-patterns.md`) that provide deeper reference material.
+**Some skills include supporting docs** (e.g., `oort-cascade/handoff-protocol.md`, `treefile-organizer/plan-format.md`, `pql-validation/anti-patterns.md`) that provide deeper reference material.
+
+**Some skills include executable scripts:**
+- `skill-chain-supervisor/scripts/scratchpad.py` — chain lifecycle helper (init, finish, nested-start, nested-finish, retrieve, audit, cognition-emit)
+- `treefile-organizer/scripts/analyzer.py` — walks a project, extracts import graph, classifies layers, emits analysis JSON
+- `treefile-organizer/scripts/planner.py` — reads analysis, proposes moves with import rewrites, emits plan.json + plan.md
+
+All scripts are stdlib-only Python — no dependencies.
+
+## How Chains Work
+
+Chains compose multiple skills into supervised pipelines via a shared JSON scratchpad at `<project>/.claude/ghengis-chain/context.json`. Each stage:
+
+1. Reads prior stages' output from the scratchpad
+2. Invokes a skill (or another chain, for nesting) with that context
+3. Writes its results back, namespaced under its own underscored subkey
+
+Lifecycle:
+```bash
+# Bootstrap a fresh chain
+python scripts/scratchpad.py init feature-build --input-json '{"user_request":"..."}'
+
+# At chain end — archives to history/, optionally emits cognition entry
+python scripts/scratchpad.py finish
+```
+
+Patterns supported: sequential, fan-out/merge, conditional, iterative loop, **nested chain**. See `skill-chain-supervisor/SKILL.md` for the full schema, per-stage `on_error` overrides, and trigger precedence rules.
 
 ## Evals
 
