@@ -144,6 +144,110 @@ You: "run pql-validation on this prompt"
 
 Or use the Skill tool's exact name from the table below.
 
+## Worked Example: `bug-hunt` Chain End-to-End
+
+Concrete dialogue showing what a chain run looks like from the user's side. This is the actual cycle we ran fixing a real bug in `banking_guard.py` (scientific notation bypass).
+
+```
+You: "run bug-hunt on this — the banking guard validator accepts 1e-5 as a
+      valid amount but should reject it"
+
+Claude: [systematic-debugging stage 1]
+  Reading apps/server/banking_guard.py:454-467...
+
+  Probe: str(0.00001) returns '1e-05' — no '.' — so the existing
+  decimal-place check at line 462 doesn't trigger. Confirmed by running
+  Python REPL directly.
+
+  Root cause: string-based validation misses scientific notation.
+
+  [test-driven-development stage 2]
+  Writing regression test test_amount_scientific_notation_blocked at
+  tests/test_banking_guard.py:411...
+  Running pytest: FAILED as expected ("Expected block for amount '1e-5'")
+  Red confirmed.
+
+  [build-validate stage 3 — nested chain]
+    [Builder] Replacing float-and-string check with Decimal-based logic.
+              Adding NaN/Inf rejection.
+    [Validator] Score 8/10. Found 4 new bypasses you missed: whitespace
+                padding, PEP 515 underscores ('1_000'), leading '+1.00',
+                and the test_amount_nan_blocked assertion is too loose.
+                Revision needed.
+    [Builder iter 2] Added _AMOUNT_STR_PATTERN regex pre-check. Added
+                     9 new regression tests covering all flagged cases.
+    [Validator iter 2] Score 9/10. Found one more: Unicode digits (Devanagari,
+                       Arabic-Indic) bypass because Python \d is Unicode by
+                       default. Documented but not fixed in this run.
+                       Outcome: revised-and-shipped.
+
+  [report]
+  Outcome: fixed. Score progression: 8 → 9.
+  Regression test passes. Full suite 132/132 green.
+  Root cause: string-based decimal check missed scientific notation; replaced
+  with Decimal-based validation + regex pre-check.
+
+You: "ship this branch"
+
+Claude: [finish-line chain → finishing-a-development-branch]
+  Running pytest -q... 132 passed ✓
+  Workspace: normal repo. Base: main.
+  Options:
+    1. Merge to main locally
+    2. Push and open PR
+    3. Keep as-is
+    4. Discard
+  Which?
+
+You: "2"
+
+Claude: Pushing branch fix/banking-decimal-bypass...
+        Creating PR #142: "Fix scientific notation bypass in BankingGuard"
+        Returning URL.
+
+        [auto-project-sync] Updated CLAUDE.md banking_guard section to note
+                           Decimal-based validation.
+        [audit-ledger] Recorded entry 2026-05-12-7f3a:
+                       "Merged scientific notation fix into main; 132 tests green"
+
+        Outcome: integrated.
+```
+
+The Validator finding cases the Builder missed is the whole point — that's the round-trip earning its keep. The known Unicode-digit gap surfaced explicitly so it could be handled separately, not silently shipped.
+
+## Sample `cognition.jsonl` Entry
+
+When `GHENGIS_COGNITION=true`, every chain finish appends one of these:
+
+```json
+{
+  "id": "01577cb27c7d1386",
+  "created_at": "2026-05-12T19:51:12.651889+00:00",
+  "chain": "bug-hunt",
+  "outcome": "fixed",
+  "final_score": 9,
+  "fitness": 0.9,
+  "lesson": "bug-hunt required revision loop; iteration 2 succeeded",
+  "causal_factor": "whitespace ' 1.00 '; PEP 515 underscore '1_000'; leading '+1.00'",
+  "applies_when": "bug-hunt | banking guard validator accepts 1e-5 scientific notation",
+  "started_at": "2026-05-12T19:50:00+00:00",
+  "completed_at": "2026-05-12T19:51:12+00:00",
+  "iterations_used": 2,
+  "hits": 0,
+  "wins": 0,
+  "audit_status": "unchecked"
+}
+```
+
+Three weeks later when you start a similar chain run and `init` fires retrieval:
+- The new task's `user_request` is tokenized (lowercase, stopwords removed)
+- Jaccard similarity computed against each entry's `applies_when`
+- Top 5 entries above min-relevance threshold ranked by `relevance × (0.7 + 0.3 × UCB1)`
+- Each retrieved entry's `hits` bumps to 1
+- Entries land in `state.lessons_from_past` for the chain stages to consult
+
+If the new chain succeeds, the retrieved entries' `wins` bumps too. After 50+ entries, running `python scripts/scratchpad.py audit` flags candidates for retirement (hits ≥ 5 with win_rate < 0.4).
+
 ## Installation
 
 Four commands. Once installed, skills, permissions, and the terminal statusline are set up across all projects forever.
