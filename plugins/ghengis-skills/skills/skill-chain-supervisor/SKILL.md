@@ -312,6 +312,40 @@ win_rate = wins / hits, or 0.5 prior when hits=0
 
 The exploration bonus pulls in untested entries occasionally even when they don't have a win track record yet. Over time, the ones that genuinely help accumulate wins; the ones that mislead accumulate hits without wins. The audit command surfaces the latter for retirement.
 
+### The Analyzer Subagent
+
+The `scratchpad.py finish` command writes a HEURISTIC cognition entry by default — strings like "bug-hunt required revision loop; iteration 2 succeeded". These work as a fallback but are too generic to retrieve usefully.
+
+The **`ghengis-skills:analyzer` subagent** (defined in `agents/analyzer.md`) reads the archived scratchpad after `finish` and produces a structured causal lesson that REPLACES the heuristic entry. Lessons like:
+
+> *"When validating amount strings, use Decimal + regex pre-check — Decimal() alone silently accepts whitespace, PEP 515 underscores, and leading +"*
+
+vs the heuristic:
+
+> *"bug-hunt required revision loop; iteration 2 succeeded"*
+
+The analyzer reads the scratchpad's validator findings, iteration history, and outcome to write specific lessons that name the actual technique / API / edge case that mattered. It also detects contradictions with prior entries and marks superseded entries.
+
+**When to dispatch the analyzer:**
+
+After `finish` writes the heuristic entry, AND when `GHENGIS_COGNITION=true`:
+
+```
+Agent tool with subagent_type=ghengis-skills:analyzer
+Prompt: "The most recent chain finished. Archived scratchpad at:
+        <project>/.claude/ghengis-chain/history/<chain>-<ts>.json
+        Read it, read the last entry of cognition.jsonl, and produce
+        a better lesson + causal_factor + applies_when. Return the
+        REPLACE_LAST_LINE_OF: ... WITH: ... directive so I can update
+        the file."
+```
+
+The analyzer outputs structured guidance; the orchestrator (you) executes the file replacement via Bash. Analyzer is `disallowedTools: Write, Edit` to keep the dispatch clean.
+
+**Cost:** runs on Haiku-tier by default. Most analyses complete in <200 output tokens. Escalates to Sonnet/Opus only when contradicting 3+ existing lessons or scratchpad is unusually large.
+
+**Refusal:** the analyzer declines when scratchpad evidence is too thin to support a non-generic lesson (typical for `cannot-reproduce`, `design-only-handoff` outcomes). In that case the heuristic entry stays — better a generic lesson than a hallucinated one.
+
 ### When to Turn Cognition On / Off
 
 `GHENGIS_COGNITION` is environment-scoped — set it where you want the loop active, leave it unset where you don't.

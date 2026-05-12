@@ -31,6 +31,8 @@ Usage (from any skill's Bash context):
     python scratchpad.py cognition-emit          # explicit emit; finish does this automatically
     python scratchpad.py retrieve --query "..."  # UCB1+similarity ranked entries; default reads input.user_request
     python scratchpad.py audit                   # surface entries with hits>=5 and win_rate<0.4
+    echo '<JSON>' | python scratchpad.py cognition-replace-last --require-id <id>
+                                                  # replace last entry (used by analyzer subagent flow)
 
 UCB1 retrieval formula (within similarity-filtered candidates):
     score = jaccard_similarity(applies_when, query) * (0.7 + 0.3 * ucb1)
@@ -502,6 +504,66 @@ def cmd_retrieve(args):
     return 0
 
 
+def cmd_cognition_replace_last(args):
+    """Replace the last line of cognition.jsonl with a JSON object from stdin.
+
+    Used by the Analyzer subagent dispatch flow: analyzer reads scratchpad,
+    produces a rewritten entry, orchestrator pipes that JSON into this command.
+    Preserves all prior entries unchanged.
+    """
+    parser = argparse.ArgumentParser(prog="scratchpad.py cognition-replace-last")
+    parser.add_argument("--require-id", help="Refuse unless the new entry has this id (safety)")
+    ns = parser.parse_args(args)
+
+    try:
+        new_entry = json.loads(sys.stdin.read())
+    except json.JSONDecodeError as e:
+        print(f"stdin not valid JSON: {e}", file=sys.stderr)
+        return 2
+    if not isinstance(new_entry, dict):
+        print("stdin must be a JSON object", file=sys.stderr)
+        return 2
+
+    path = cognition_path()
+    if not path.exists():
+        print(f"cognition.jsonl does not exist at {path}", file=sys.stderr)
+        return 1
+
+    lines = path.read_text(encoding="utf-8").splitlines()
+    while lines and not lines[-1].strip():
+        lines.pop()
+    if not lines:
+        print("cognition.jsonl has no entries to replace", file=sys.stderr)
+        return 1
+
+    try:
+        existing = json.loads(lines[-1])
+    except json.JSONDecodeError:
+        print("last line of cognition.jsonl is not valid JSON", file=sys.stderr)
+        return 1
+
+    if ns.require_id and existing.get("id") != ns.require_id:
+        print(
+            f"--require-id mismatch: last entry id is {existing.get('id')}, "
+            f"expected {ns.require_id}",
+            file=sys.stderr,
+        )
+        return 1
+
+    # Preserve immutable fields from the existing entry that analyzer must not touch
+    immutable = ("id", "created_at", "started_at", "completed_at", "hits", "wins")
+    for field in immutable:
+        if field in existing:
+            new_entry[field] = existing[field]
+
+    lines[-1] = json.dumps(new_entry, sort_keys=False)
+    tmp = path.with_suffix(".jsonl.tmp")
+    tmp.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    tmp.replace(path)
+    print(f"replaced last entry (id={existing.get('id')})")
+    return 0
+
+
 def cmd_audit(args):
     """List entries with hits>=5 and win_rate<0.4 (candidates for retirement) +
     stale entries (created>90 days ago and unused)."""
@@ -640,6 +702,7 @@ COMMANDS = {
     "nested-start": cmd_nested_start,
     "nested-finish": cmd_nested_finish,
     "cognition-emit": cmd_cognition_emit,
+    "cognition-replace-last": cmd_cognition_replace_last,
     "retrieve": cmd_retrieve,
     "audit": cmd_audit,
 }

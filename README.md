@@ -530,6 +530,20 @@ python scripts/scratchpad.py finish
 
 Patterns supported: sequential, fan-out/merge, conditional, iterative loop, **nested chain**. See `skill-chain-supervisor/SKILL.md` for the full schema, per-stage `on_error` overrides, and trigger precedence rules.
 
+## Subagents
+
+Skills can dispatch specialized subagents with isolated context. The plugin ships 7 (in `plugins/ghengis-skills/agents/`):
+
+| Subagent | Role |
+|---|---|
+| `ghengis-skills:researcher` | Codebase exploration, doc review, context assembly. Returns structured bullet-point findings with sources. Read-only. |
+| `ghengis-skills:validator` | Quality checker. Scores deliverables 0-10 across 5 dimensions (fulfillment, accuracy, completeness, tone, formatting). Returns structured verdict + revision feedback. Used as the V in build-validate. |
+| `ghengis-skills:fact-checker` | Verifies every factual claim. Returns overall accuracy percentage and claim-by-claim VERIFIED/DISPUTED/UNVERIFIABLE classification. |
+| `ghengis-skills:editor` | Polishes content for clarity, tone, flow, conciseness, grammar. Returns the full edited version with [EDITED] markers on significant changes. |
+| `ghengis-skills:analyst` | Data and metrics specialist. Extracts key metrics, comparisons, trends, anomalies. Precise with numbers. |
+| `ghengis-skills:security-reviewer` | Reviews for PII exposure, injection vulnerabilities, credential leaks, OWASP Top 10. Returns APPROVED/FLAGGED with severity levels. |
+| `ghengis-skills:analyzer` | Reads a finished chain's archived scratchpad + tail of cognition.jsonl, writes a high-quality causal lesson that replaces the heuristic entry. Detects contradictions with prior entries and marks supersededs. Runs on Haiku-tier by default. |
+
 ## Evals
 
 Each skill has evaluation test cases in `evals/` — scenarios with specific assertions that verify the skill produces correct, methodology-driven output rather than generic responses.
