@@ -170,6 +170,28 @@ The frontmatter `on_error: fail_fast` is the chain default. Individual stages ca
 
 Use this sparingly. Most stages should respect the chain default.
 
+## Trigger Precedence
+
+When a user message matches keywords in multiple chains, resolve in this order:
+
+1. **Exact chain name** (`run build-validate`, `run skill-port`, `feature-build`) — always wins. The user named the chain explicitly.
+2. **Specific compound phrase** (`build a feature`, `fix this bug`, `port a skill`, `ship this branch`) — these are deliberately distinctive and unambiguous.
+3. **Generic phrase fallback** — if the message says "build" or "ship" or "validate" without context, ask before firing a chain. Generic phrases were removed from the trigger keywords precisely because they fire too often.
+
+If multiple specific matches are still ambiguous (rare), the precedence is:
+
+| Situation | Preferred chain |
+|---|---|
+| New code that ships | `feature-build` |
+| Existing code is broken | `bug-hunt` |
+| Existing code is finished and needs integration | `finish-line` |
+| New skill being added | `skill-port` |
+| Just need an adversarial review of a deliverable | `build-validate` |
+| Just need to fire-and-forget verification at session end | `task-complete` |
+| Dispatching a subagent | `agent-dispatch` |
+
+When in doubt, ask: "this could be `feature-build` or `bug-hunt` — is it new code or a fix?". Never silently fire the wrong chain.
+
 ## Defining a New Chain
 
 Create a file at `chains/<name>.md` with frontmatter + stages:

@@ -3,7 +3,7 @@ name: feature-build
 pattern: sequential
 triggers:
   - event: user_request
-    keywords: ["build a feature", "feature-build", "let's build", "add this feature", "implement this", "run feature-build"]
+    keywords: ["build a feature", "feature-build", "let's build a feature", "add a new feature", "implement a feature", "run feature-build"]
 on_error: fail_fast
 estimated_duration: 5-30 minutes
 ---

@@ -116,9 +116,16 @@ The regression test proves:
 - The fix you're about to write addresses what users saw
 - A future change won't silently re-introduce the same bug
 
-Skip this only if:
-- You're in a non-code system (debugging infra, config, deployment)
-- The test framework genuinely doesn't exist (and you're not in a position to add one)
+**Skip this stage only with explicit justification.** Even non-code systems can have evidence of the fix:
+
+- **Deployment / CI bug:** write a smoke test or health-check script that exercises the broken path. Run it red → green.
+- **Config bug:** add an assertion or schema check (e.g., `terraform validate`, `kubectl apply --dry-run`, a `pytest` fixture that loads the config). Run it red → green.
+- **Infra / network bug:** capture a reproducible probe (curl with expected status, ping/traceroute with expected hops). Run it red → green.
+- **GUI / manual-only bug** with no automatable check: write a runbook entry with the exact steps you used to reproduce, and verify the fix by re-running those steps. The runbook IS the regression test for the next person.
+
+The only legitimate full skip is when there is **no possible automatable OR procedural check** of the fix — which is rare and usually means the bug was unprovable to begin with. Document why you skipped, in the commit message.
+
+If you hear yourself rationalize "this is a special case, no test possible", the rationalization is the failure mode. Find a test.
 
 ### Phase 4: Fix and Verify
 

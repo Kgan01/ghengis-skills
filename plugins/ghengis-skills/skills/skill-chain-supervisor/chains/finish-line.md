@@ -3,7 +3,7 @@ name: finish-line
 pattern: sequential
 triggers:
   - event: user_request
-    keywords: ["finish-line", "ship it", "let's wrap this up", "ready to ship", "integrate this work", "run finish-line"]
+    keywords: ["finish-line", "ship this branch", "wrap up and ship", "ready to integrate", "integrate this branch", "merge this branch", "run finish-line"]
 on_error: fail_fast
 estimated_duration: 2-15 minutes
 ---

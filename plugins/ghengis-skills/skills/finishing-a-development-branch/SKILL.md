@@ -27,25 +27,55 @@ Closes out development work by verifying tests, detecting the workspace shape, p
 
 ### Step 1: Verify tests pass
 
-Before showing any options, run the test suite:
+Test verification is a 2-step process: **detect** the framework first, **then** run it without swallowing errors. The old pattern `pytest 2>/dev/null || npm test 2>/dev/null || ...` is wrong — it can't tell "no framework" from "framework errored" (missing deps, broken config, etc.). Distinguish those cases.
+
+**Step 1a: Detect framework by looking at project files (not by running commands).**
 
 ```bash
-# Try the project's test command in order
-pytest 2>/dev/null || npm test 2>/dev/null || cargo test 2>/dev/null || go test ./... 2>/dev/null || python -m pytest 2>/dev/null
+HAS_PYTEST=$([ -f pyproject.toml ] || [ -f pytest.ini ] || [ -f setup.cfg ] || [ -d tests ] && echo y || echo n)
+HAS_NPM=$([ -f package.json ] && grep -q '"test"' package.json && echo y || echo n)
+HAS_CARGO=$([ -f Cargo.toml ] && echo y || echo n)
+HAS_GO=$([ -f go.mod ] && echo y || echo n)
+HAS_MAKE=$([ -f Makefile ] && grep -q '^test:' Makefile && echo y || echo n)
 ```
 
-If you can't find a test command, check the project for `Makefile`, `package.json` scripts, `pyproject.toml`, or `CLAUDE.md` for hints. Ask the user only as a last resort.
+If multiple frameworks detected, check `CLAUDE.md` or ask the user which is canonical for this project.
+
+**Step 1b: Run the detected framework WITHOUT swallowing errors.**
+
+```bash
+# For Python projects:
+pytest -q
+# Capture exit code: 0 = pass, 1 = test failures, 2-5 = pytest config/usage errors
+```
+
+Distinguish three cases:
+- **Exit 0:** all tests passed → continue to Step 2
+- **Test failures** (exit 1 for pytest, similar for other frameworks, output contains "failed" / "FAIL" / "✗"): hard refuse. Show first 3 failures. Stop.
+- **Framework errored** (exit code outside the expected pass/fail range, OR output contains "ImportError", "ConfigError", "command not found", "module not found"): hard refuse, BUT surface the error as a setup problem, not a test failure. Tell the user to fix the environment first.
+
+**No framework detected at all:**
+
+This is rare and serious. Don't silently continue. Ask the user explicitly:
+
+> No test framework detected (no pyproject.toml, package.json with test script, Cargo.toml, go.mod, or Makefile test target). I'm not willing to ship without verification. Options:
+>
+> 1. Add a minimal test framework before integrating (recommended)
+> 2. Skip verification — document the reason in the commit message and proceed (risky)
+> 3. Cancel
+>
+> Which?
+
+Only option 1 lets the chain continue normally. Option 2 records the skip with an explicit reason in the audit trail. Don't ever silently treat "no tests" as "tests pass".
 
 **If tests fail:**
 > Tests failing (N failures). Must fix before completing:
 >
-> [show first few failures]
+> [show first 3 failures with file:line]
 >
 > Cannot proceed with merge/PR until tests pass.
 
 Stop. Don't proceed to Step 2. This is a hard refusal — the integration options assume green tests.
-
-**If tests pass OR project genuinely has no tests** (rare, document why): continue to Step 2.
 
 ### Step 2: Detect workspace shape
 
