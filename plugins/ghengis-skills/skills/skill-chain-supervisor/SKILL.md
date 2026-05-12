@@ -284,19 +284,73 @@ python scripts/scratchpad.py nested-finish build-validate
 
 The nested chain's own scratchpad commands write to `state["build_validate"]["..."]` — never colliding with the parent's top-level subkeys.
 
-### Cognition Emission
+### Cognition: emit, retrieve, audit
 
-When `GHENGIS_COGNITION=true` (env var), `scratchpad.py finish` automatically appends a structured entry to `<project>/.claude/ghengis-chain/cognition.jsonl` derived from the chain's outcome, score, and issues. Format follows the `evolving-cognition` skill's schema (`id`, `lesson`, `causal_factor`, `applies_when`, `fitness`, `hits`, `wins`, `audit_status`).
+The cognition loop is **opt-in** via `GHENGIS_COGNITION=true`. When enabled, three things happen automatically:
 
-Explicit emission (without archiving):
+1. **Init reads** — `scratchpad.py init` finds relevant past lessons in `cognition.jsonl` using **UCB1-weighted Jaccard similarity** (balances exploitation of proven entries with exploration of untested ones). Top 5 lessons land at `state["lessons_from_past"]` for stages to consult. Bumps each surfaced entry's `hits` counter.
+2. **Finish writes** — emits a new structured entry to `cognition.jsonl` describing this run (chain, outcome, lesson, applies_when target, fitness=score/10).
+3. **Finish bumps wins** — if the chain's outcome was a success (`shipped`, `fixed`, `revised-and-shipped`, etc.), increments `wins` on every lesson that was retrieved at init. The win_rate (`wins/hits`) thus reflects whether surfaced lessons actually helped subsequent runs succeed.
 
 ```bash
+# Explicit emission (rare; finish does this for you)
 GHENGIS_COGNITION=true python scripts/scratchpad.py cognition-emit
+
+# Explicit retrieval (also rare; init does this for you)
+python scripts/scratchpad.py retrieve --query "banking amount validation" --top-k 5
+
+# Audit: surface entries to retire (hits>=5 + win_rate<0.4) or unused (90+ days, hits=0)
+python scripts/scratchpad.py audit
 ```
 
-Future chain runs can read `cognition.jsonl` before starting to surface relevant past lessons. UCB1 retrieval and Analyzer escalation patterns are documented in the `evolving-cognition` skill — start there if you want to evolve the cognition store over time.
+UCB1 formula (within similarity-filtered candidates):
+```
+score    = jaccard(applies_when_tokens, query_tokens) * (0.7 + 0.3 * ucb1)
+ucb1     = win_rate + sqrt(2 * ln(total_retrievals) / max(hits, 1))
+win_rate = wins / hits, or 0.5 prior when hits=0
+```
 
-The helper handles JSON parsing, dotted paths, atomic writes, archiving, and cognition emission so participant skills don't need to re-implement state management.
+The exploration bonus pulls in untested entries occasionally even when they don't have a win track record yet. Over time, the ones that genuinely help accumulate wins; the ones that mislead accumulate hits without wins. The audit command surfaces the latter for retirement.
+
+### When to Turn Cognition On / Off
+
+`GHENGIS_COGNITION` is environment-scoped — set it where you want the loop active, leave it unset where you don't.
+
+**Turn it ON when:**
+
+- **Repeat structure.** You're going to run similar work many times — debugging similar bug classes, building similar features, porting more skills. The loop only pays off when patterns recur.
+- **Long-running project.** Cognition.jsonl grows from your actual work. A 2-day project doesn't generate enough entries; a 6-month project does.
+- **Multi-session work.** Lessons from a session you ran 3 weeks ago show up in today's chain start. That's the whole point.
+- **You're OK with the small overhead.** Reading and writing JSONL on init/finish adds maybe 50ms. Negligible for chains that take minutes.
+
+**Turn it OFF when:**
+
+- **One-off projects** with no repeat structure. Spike work, throwaway prototypes, hackathons.
+- **Debugging the chain system itself.** Cognition entries from broken runs can poison future retrievals. Disable while iterating on chain logic.
+- **Fast spikes.** Adding 50ms to each chain matters when you're running 100 chains in a tight loop. (Not the normal case but worth flagging.)
+- **You're skeptical of feedback loops** and prefer manually curated guidance (CLAUDE.md, project notes). Cognition complements those — it doesn't replace them.
+- **Privacy concerns.** Cognition entries include the `applies_when` field which contains a snippet of `user_request`. Per-project storage limits exposure, but if you're doing sensitive work in a project, consider whether the journal is appropriate.
+
+**Setting it:**
+
+```bash
+# Per-session (works for current shell only)
+export GHENGIS_COGNITION=true
+
+# Per-project (add to project's .claude/settings.json env block)
+{
+  "env": {
+    "GHENGIS_COGNITION": "true"
+  }
+}
+
+# Globally for all sessions (add to ~/.zshrc or ~/.bashrc)
+export GHENGIS_COGNITION=true
+```
+
+**Maintenance cadence:** run `python scripts/scratchpad.py audit` monthly (or after every 50+ entries). Mark flagged entries with `audit_status: "retired"` in the JSONL to exclude them from future retrievals without deleting history.
+
+The helper handles JSON parsing, dotted paths, atomic writes, archiving, cognition emission, UCB1 retrieval, and audit so participant skills don't need to re-implement state management.
 
 ## Debugging
 
