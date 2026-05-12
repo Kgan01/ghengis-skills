@@ -141,6 +141,15 @@
             "async": true
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/run-hook.cmd\" chain_finish_analyzer.sh"
+          }
+        ]
       }
     ],
     "SubagentStop": [
