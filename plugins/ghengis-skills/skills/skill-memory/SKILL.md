@@ -9,6 +9,17 @@ description: Use to accumulate and retrieve domain knowledge from past tasks —
 
 After completing non-trivial tasks, discovering non-obvious patterns, or encountering pitfalls that future sessions should avoid. This skill defines how to accumulate, organize, retrieve, and maintain a plain-text knowledge base that grows over time.
 
+## Feeder Tools (Automatic — not invoked by hand)
+
+SkillMemory is populated by multiple automatic feeders. You rarely call this skill directly — the data shows up in your `<root>/<agent>/SKILL_MEMORY.md` files via:
+
+| Feeder | What it does | Triggered by |
+|---|---|---|
+| `rationale_ingest` (code-graph runner) | Appends HACK / FIXME / XXX rationale nodes from `.jarvis/code-graph.json` as timestamped bullets in the `engineer` agent's SKILL_MEMORY.md | `auto-project-sync` Phase 1 |
+| `extract_and_store` (session-end extraction) | Captures lessons-learned, patterns, and pitfalls from the conversation when the session wraps | SessionEnd hook / manual |
+
+The conventions below (file layout, search via grep, hot-rules at top, dated bullets) apply regardless of which feeder wrote the entry. When *you* are the agent doing the appending (manual capture), follow the same shape so the file stays grepable.
+
 ## The Core Insight
 
 Plain text beats infrastructure for agent knowledge. A well-structured markdown file is:

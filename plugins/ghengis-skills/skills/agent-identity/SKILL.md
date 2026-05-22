@@ -191,3 +191,41 @@ Between synthesis cycles, observations accumulate in a buffer:
 - On synthesis, clear the buffer completely
 - If synthesis fails (interrupted session), preserve the buffer for next attempt
 - Cooldown: minimum 5 minutes between synthesis runs to prevent churn from rapid interactions
+
+## Structural Patterns (where the user actually puts code)
+
+Identity is not only communication style — it also lives in *structural habits*: where does this user put auth files, do they cluster services cohesively, do they prefer flat or nested layouts?
+
+`auto-project-sync` Phase 3 mines this signal across every registered project by running the code-graph `learn_patterns` action against `~/.claude/code-graph/global.json`. The output lands at:
+
+```
+~/.claude/agent_identity/code_patterns.json
+```
+
+**Shape:**
+
+```json
+{
+  "version": 1,
+  "generated_at": "...",
+  "projects_analyzed": 3,
+  "patterns": {
+    "auth_files": {"projects_with": 3, "total_modules": 7, "modal_layer": "service", "high_cohesion": true, "exemplars": ["src/auth/oauth.py", "..."]},
+    "route_files": {"projects_with": 3, "total_modules": 11, "modal_layer": "api", "high_cohesion": true, "exemplars": ["..."]},
+    "service_files": {...},
+    "model_files": {...},
+    "db_files": {...},
+    "test_files": {...}
+  },
+  "note": "Signal too thin: ..."
+}
+```
+
+**How to use it:**
+
+1. When suggesting where new code should go in a project, **read this file alongside** the existing preference signals (communication style, expertise level, etc.).
+2. If a pattern shows `high_cohesion: true` AND `projects_with >= 2`, treat the modal_layer + exemplars as a strong prior — propose the new file follow that convention. Example: if `auth_files.modal_layer == "service"` and exemplars all live under `src/auth/`, suggest `src/auth/<new_file>.py` for a new OAuth handler.
+3. If the file has a `note` field (signal-thinness guard fires when fewer than 2 projects are registered), **treat the patterns as descriptive of one project, not predictive**. Don't generalize aggressively when there isn't a second data point.
+4. Patterns are advisory. They reflect what the user did, not necessarily what they should keep doing — if a pattern conflicts with project-scaffold's recommendation for the current project type, prefer the scaffold (it's based on language/framework conventions, which are stronger priors than personal habit).
+
+If the file doesn't exist (no global registry, fresh install, or fewer than 1 registered project), skip silently — the rest of agent-identity still works without it.

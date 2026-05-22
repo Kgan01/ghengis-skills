@@ -1,12 +1,12 @@
 ---
 name: auto-project-sync
-description: Use after completing a major work batch (plan execution, feature build, multi-task subagent run) to update CLAUDE.md, MEMORY.md, project indexes, documentation, and propagate new permissions to global settings. Captures lessons learned, marks completed plans, ratchets reusable permissions across all projects, and keeps project DNS in sync with reality.
+description: Use after completing a major work batch (plan execution, feature build, multi-task subagent run) to refresh code-graph-derived data in MEMORY.md/CONTEXT.md/SKILL_MEMORY, append dated narrative entries to TODO/CHANGELOG/lessons-learned, mine cross-project structural habits, and ratchet reusable permissions to global settings. Keeps project DNS in sync with reality.
 allowed-tools: Read Write Edit Glob Grep Bash
 ---
 
-# Auto Project Sync
+# Auto Project Sync — The Umbrella
 
-Update project documentation after a significant work batch completes, so the next session starts with current context. The "project DNS keeps drifting from the code" problem — solved.
+Refresh every memory artifact in the project after a significant work batch, so the next session starts with current context. Runs in 4 phases: discover what to update, refresh the mechanical (code-graph-derived) bits, append the narrative (human judgment) bits, and finally ratchet permissions to global. The "project DNS keeps drifting from the code" problem — solved.
 
 ## When to Invoke
 
@@ -16,94 +16,147 @@ Update project documentation after a significant work batch completes, so the ne
 - When user types `/sync` slash command
 - When SessionEnd hook detects unsynced commits beyond threshold (5+ commits since last sync)
 
-**Optional triggers:**
-- After major architectural changes
-- After a plan is fully executed
-- After resolving uncertainties from a research phase
-
 **Do NOT invoke:**
-- Mid-task (creates noise, sync should be terminal)
+- Mid-task (creates noise; sync is terminal)
 - After trivial commits (typo fixes, formatting)
-- Inside a subagent (subagents skip per `<SUBAGENT-STOP>`)
+- Inside a subagent
 
-## What Sync Updates
+## Phase 0 — Discovery (only on first run in a project)
 
-| File | What Changes |
-|---|---|
-| **CLAUDE.md** | Active phase, recent decisions, current focus, agent count if changed |
-| **MEMORY.md** | New feedback/preferences captured this session, lessons learned |
-| **CONTEXT.md** | Workspace routing if new modules added |
-| **docs/superpowers/specs/INDEX.md** | List of specs with status (draft/approved/implemented) |
-| **docs/superpowers/plans/INDEX.md** | List of plans with completion status (% tasks done) |
-| **README.md** | Top-level project description if scope changed |
-| **~/.claude/settings.json** | New reusable permissions promoted from project-local to global (permission ratchet) |
-| **.claude/last_sync** | Timestamp of this sync (used by hooks for threshold checks) |
+If `.jarvis/memory-files.json` doesn't exist, create it by scanning the project. This file is the project's **memory file registry** — auto-project-sync consults it on every subsequent run to know which files to touch.
 
-## Workflow
+**Required entries** (always add if file present; create empty if missing):
 
-### Step 1: Detect Changes Since Last Sync
+| Path | Role | `auto_block` | `append_dated` |
+|---|---|---|---|
+| `MEMORY.md` | `project_dns` | true | false |
+| `CONTEXT.md` | `routing` | true | false |
+| `CLAUDE.md` | `instructions` | false | false |
+| `TODO.md` or `docs/TODO.md` | `todo` | false | true |
+| `CHANGELOG.md` | `changelog` | false | true |
+
+**Discovered entries** (case-insensitive globs; add only what exists):
+
+| Glob | Role | `append_dated` |
+|---|---|---|
+| `**/LESSONS*.md`, `**/NOTES*.md`, `**/PROBLEMS*.md`, `**/JOURNAL*.md` | `lessons` | true |
+| `**/TODO*.md`, `**/BACKLOG*.md`, `**/PLANS*.md` (excluding `docs/plans/`) | `todo` | true |
+| `**/CHANGELOG*.md` | `changelog` | true |
+| `docs/plans/` (directory) | `plans_dir` | n/a |
+
+**If `.jarvis/code-graph.json` is present**, also register a synthetic entry:
+```json
+{"path": "<skill_memory_root>", "role": "skill_memory_feed", "agent": "engineer"}
+```
+This tells Phase 1 to run `rationale_ingest` for the engineer agent.
+
+**Registry file shape:**
+
+```json
+{
+  "version": 1,
+  "memory_files": [
+    {"path": "MEMORY.md", "role": "project_dns", "auto_block": true},
+    {"path": "CONTEXT.md", "role": "routing", "auto_block": true},
+    {"path": "CLAUDE.md", "role": "instructions", "auto_block": false},
+    {"path": "TODO.md", "role": "todo", "append_dated": true},
+    {"path": "CHANGELOG.md", "role": "changelog", "append_dated": true},
+    {"path": "docs/lessons-learned.md", "role": "lessons", "append_dated": true}
+  ]
+}
+```
+
+Once written, future runs skip discovery and just read this file.
+
+## Phase 1 — Mechanical (deterministic, every run)
+
+Run only if `.jarvis/code-graph.json` exists. If absent: **skip silently with one-line notice** (`"No code graph present — skipping mechanical refresh"`) and proceed to Phase 2. This skill does NOT require JARVIS to be installed.
+
+Find the plugin runner once:
+```bash
+PLUGIN_DIR="$(dirname "$(dirname "$(readlink -f .)")")/plugins/ghengis-skills"
+# Or use the absolute path of this skill's parent — see Hook Integration below.
+RUNNER="$PLUGIN_DIR/scripts/code_graph/run.py"
+```
+
+Then iterate `memory_files`:
 
 ```bash
-LAST_SYNC=$(cat .claude/last_sync 2>/dev/null || echo "1970-01-01")
-NEW_COMMITS=$(git log --since="$LAST_SYNC" --oneline | wc -l)
-CHANGED_FILES=$(git log --since="$LAST_SYNC" --name-only --pretty=format: | sort -u | grep -v '^$')
+# For each entry with role == "project_dns":
+python "$RUNNER" memory_map "$PROJECT_ROOT" "$PROJECT_ROOT/$ENTRY_PATH"
+
+# For each entry with role == "routing":
+python "$RUNNER" routing_table "$PROJECT_ROOT" "$PROJECT_ROOT/$ENTRY_PATH"
+
+# For each entry with role == "skill_memory_feed":
+python "$RUNNER" rationale_ingest "$PROJECT_ROOT" "$ENTRY_PATH" --agent "$ENTRY_AGENT"
 ```
 
-If `NEW_COMMITS == 0`, exit early — nothing to sync.
+Each invocation prints one JSON line. Parse `wrote_changes` / `new` / `count` and roll into the final summary. The mechanical step is idempotent — repeated runs only change MEMORY.md/CONTEXT.md when the graph actually changed.
 
-### Step 2: Categorize Changes
+## Phase 2 — Narrative (your judgment — Claude reasoning, dated appends only)
 
-For each commit since last sync, classify by conventional commit prefix:
-- `feat:` → new feature added
-- `fix:` → bug fix
-- `docs:` → documentation update
-- `chore:` → maintenance
-- `refactor:` → code restructure
-- `test:` → test additions
+**Critical rule: never overwrite history. Always append. Always include a `[YYYY-MM-DD]` prefix.**
 
-Build summary:
+Read each entry in `memory_files` and act based on `role`:
+
+### `role: project_dns` (MEMORY.md)
+- Append a dated session-summary bullet **above** the `<!-- AUTO:project-map:start -->` marker (the hand-written section is everything before the AUTO block).
+- Form: `- [YYYY-MM-DD] <one-line summary of what shifted this session>`
+- If the file is empty (Phase 0 just created it), seed it with a `# <Project Name>` header and a `## Project Memory` section, then add your bullet, then leave a blank line for Phase 1 to drop the AUTO block.
+
+### `role: routing` (CONTEXT.md)
+- The AUTO block is owned by Phase 1. The hand-written section above it can hold workspace-specific routing intent. Append dated bullets there only when a new workspace was introduced this session.
+
+### `role: instructions` (CLAUDE.md)
+- Look for a `Last Updated:` line and bump it to today's date.
+- Do NOT add session summaries here — CLAUDE.md is for *instructions*, not history.
+
+### `role: todo`
+- Append new items as `- [ ] [YYYY-MM-DD] <item>` to the end of the file (or under the appropriate section if the file has them).
+- For items completed this session: find the existing `- [ ] [...] <item>` line and replace it with `- [x] [YYYY-MM-DD-completed] ~~<item>~~`. Never delete — strike through.
+
+### `role: lessons`
+- Append per session as:
+  ```markdown
+  ### [YYYY-MM-DD] <topic — 5-8 words>
+
+  <2-4 sentences of takeaway>
+  ```
+- One block per distinct lesson, not one block per session.
+
+### `role: changelog`
+- Append per **batch** (one entry per sync run, multiple bullets):
+  ```markdown
+  ## [YYYY-MM-DD]
+  - <change 1>
+  - <change 2>
+  ```
+- If today's date already has a `## [YYYY-MM-DD]` heading, append bullets under it instead of starting a new section.
+
+### `role: plans_dir`
+- For each plan file referenced as completed this session (e.g., user said "shipped X plan" or all checkboxes in the plan are now `[x]`), append a single line at the file's end:
+  ```markdown
+
+  **Completed**: YYYY-MM-DD
+  ```
+- Skip plans that already have a `**Completed**:` line.
+
+## Phase 3 — Cross-project (only if global registry exists)
+
+If `~/.claude/code-graph/global.json` exists:
+
+```bash
+python "$RUNNER" learn_patterns "$HOME/.claude/code-graph/global.json" "$HOME/.claude/agent_identity"
 ```
-Since last sync (2026-04-15):
-  - 18 features added (modules: outreach, state_local, gsa_application, analytics, documents)
-  - 3 bug fixes
-  - 5 doc updates
-  - 0 refactors
-```
 
-### Step 3: Read Existing Doc State
+This refreshes `~/.claude/agent_identity/code_patterns.json` with the user's structural habits across all registered projects. The `agent-identity` skill reads this file when suggesting where new code should go.
 
-Read current versions:
-- `CLAUDE.md`
-- `MEMORY.md`
-- `CONTEXT.md` (if exists)
-- `docs/superpowers/specs/` (list)
-- `docs/superpowers/plans/` (list)
+If the registry doesn't exist, **skip silently**. Don't create it — that's `analyze_codebase`'s job (or whatever tool the user uses to register projects).
 
-### Step 4: Update Each Doc
+## Phase 4 — Permissions ratchet (existing behavior — keep as-is)
 
-**CLAUDE.md updates:**
-- Update "Active Phase" line to current phase
-- Update agent/module count if changed
-- Add recent significant decisions to "Recent Decisions" section (cap at last 10)
-- Update last-modified timestamp
-
-**MEMORY.md updates:**
-- Append any new feedback/preferences captured during the work batch
-- Maintain the index format (one-line entries pointing to memory files)
-- Don't duplicate existing entries
-
-**Spec/Plan indexes:**
-- Scan `docs/superpowers/specs/*.md` and `docs/superpowers/plans/*.md`
-- Generate or update `INDEX.md` in each directory with:
-  - File name, title, status, date
-  - For plans: % tasks completed (count `- [x]` vs `- [ ]`)
-
-**CONTEXT.md updates:**
-- If new top-level modules added, update workspace routing table
-
-### Step 4.5: Sync Permissions to Global Settings (Permission Ratchet)
-
-Propagate reusable permissions from this project's `.claude/settings.local.json` to the global `~/.claude/settings.json` so they apply across ALL projects. Over time, the user gets fewer and fewer approval prompts.
+Propagate reusable permissions from this project's `.claude/settings.local.json` to the global `~/.claude/settings.json` so they apply across ALL projects.
 
 **Process:**
 
@@ -113,91 +166,73 @@ Propagate reusable permissions from this project's `.claude/settings.local.json`
    - Keep: entries with wildcards (`*`) — e.g., `Bash(brew install *)`, `WebFetch(domain:arxiv.org)`
    - Keep: tool-level allows — e.g., `Read`, `Edit`, `Write`, `WebSearch`
    - Keep: domain-scoped WebFetch — e.g., `WebFetch(domain:docs.anthropic.com)`
-   - **Skip**: exact one-off commands (no `*`, long paths, specific filenames) — these are session artifacts, not reusable patterns
+   - **Skip**: exact one-off commands (no `*`, long paths, specific filenames)
    - **Skip**: anything already in the global allow list (dedup)
    - **Skip**: anything in the global deny list (deny list is immutable)
 4. If new reusable permissions found:
    - Show the user what will be added: "Promoting N permissions to global settings: [list]"
    - Add to `~/.claude/settings.json` `permissions.allow`
-   - NEVER touch `permissions.deny` — the deny list from `setup` is permanent
+   - NEVER touch `permissions.deny`
 5. If nothing to promote, skip silently
 
-**Filter heuristic (what counts as "reusable"):**
-
-Broad strokes: accept anything with a wildcard unless it's pinned to an exact home-directory file. Generalize project-specific names (venvs, dated paths) so one approval covers similar future patterns.
+**Filter heuristic:**
 
 ```python
 import re
 
 def generalize(perm: str) -> str:
     """Rewrite project-specific tokens into patterns so one allow covers future siblings."""
-    # venv_kronos, venv_weather, env_myproject -> venv*, env*
     perm = re.sub(r"\b(venv|env)_[A-Za-z0-9_-]+", r"\1_*", perm)
-    # Date-stamped paths: 2026-04-17 -> *
     perm = re.sub(r"\b20\d{2}-\d{2}-\d{2}\b", "*", perm)
-    # Specific python version pinning: python@3.13/3.13.7 -> python@*/**
     perm = re.sub(r"python@\d+\.\d+/\d+\.\d+\.\d+", "python@*", perm)
     return perm
 
 def is_reusable_permission(perm: str) -> bool:
-    # Tool-level allows are always reusable
     if perm in ("Read", "Edit", "Write", "WebSearch", "WebFetch"):
         return True
-    # Domain-scoped WebFetch is always reusable
     if perm.startswith("WebFetch(domain:"):
         return True
-    # No wildcard = one-off exact command, skip
     if "*" not in perm:
         return False
-    # Wildcard patterns are reusable UNLESS they pin to a home-specific file
-    # (broad paths like /Users/**/Library/** or /usr/local/** are still useful)
     if re.search(r"/Users/[^/*]+/(Desktop|Documents|Downloads)/[^/*]+/[^*]*\.", perm):
-        return False  # e.g. /Users/kae/Desktop/project/specific-file.txt
+        return False
     if "/private/tmp" in perm or "/tmp/" in perm:
         return False
     return True
 ```
 
-Run every candidate through `generalize()` before `is_reusable_permission()` so promoted entries cover similar future paths. Dedup against the global allow list after generalization to avoid duplicate patterns.
+Run every candidate through `generalize()` before `is_reusable_permission()`. Dedup against the global allow list after generalization.
 
-**Why this matters:** After 10 sessions, the user's global allow list has grown organically from their actual usage. New projects start with all the permissions they've ever found useful. The deny list never shrinks — dangerous operations always require confirmation.
+**Why this matters:** After N sessions, the user's global allow list grows organically from their actual usage. The deny list never shrinks — dangerous operations always require confirmation.
 
-### Step 5: Capture Lessons Learned (Optional but Recommended)
-
-Scan recent commits and conversation context for:
-- Repeated mistakes the user corrected → save as feedback memory
-- Decisions made under specific constraints → save as project memory
-- New tools/patterns discovered → save as user memory if pattern, reference memory if external
-
-Use the user's existing memory system at `memory/` directory. Don't create duplicates.
-
-### Step 6: Write Sync Marker
+## Final step — Write sync marker + brief summary
 
 ```bash
 date -u +"%Y-%m-%dT%H:%M:%SZ" > .claude/last_sync
 ```
 
-### Step 7: Brief Summary to User
+Output a 4-6 line summary:
+> "Synced. MEMORY.md project-map refreshed (8 nodes added). CONTEXT.md routing table: 6 communities. TODO.md: 3 items closed, 2 added. lessons-learned.md: 1 new entry. SkillMemory engineer: 4 new HACK/FIXME bullets. Promoted 2 permissions to global."
 
-Output a 3-5 line summary:
-> "Synced project state. Updated CLAUDE.md (active phase → Phase 2 execution), MEMORY.md (added 2 lessons learned), plan index (Phase 1 marked 100% complete, Phase 2 plans drafted). Next session will see current state."
+## Degraded-mode behavior
+
+If `.jarvis/code-graph.json` is missing, Phase 1 prints `"No code graph present — skipping mechanical refresh"` once, then Phase 2 still runs (narrative appends never require a graph). The skill is useful even without any code-graph tooling installed.
 
 ## Anti-Patterns
 
 | Don't | Why |
 |---|---|
-| Rewrite CLAUDE.md from scratch | Loses user customizations and history |
-| Add commit details into CLAUDE.md | That's what `git log` is for |
-| Create new files unprompted | Sync updates existing structure, doesn't expand scope |
-| Run sync mid-task | Creates noise; sync is a terminal action |
-| Sync without checking last_sync timestamp | Wastes effort if nothing changed |
-| Modify spec/plan content | Only the INDEX is auto-generated; specs/plans are source of truth |
+| Rewrite MEMORY.md from scratch | Loses user customizations and history |
+| Overwrite the AUTO block by hand | Phase 1 owns it — your changes go above it |
+| Delete completed TODO items | Strike-through preserves the audit trail |
+| Replace lessons-learned content | Always append new dated sections |
+| Run sync mid-task | Sync is terminal |
+| Skip Phase 0 on a project that has no `memory-files.json` | Phase 1 won't know what to touch |
+| Touch `permissions.deny` in `~/.claude/settings.json` | Deny list is immutable by policy |
 
 ## Hook Integration
 
 ### SessionEnd Hook (Light Detection)
-
-Runs at session end. Doesn't perform full sync — just writes a marker if changes pending:
 
 ```bash
 #!/usr/bin/env bash
@@ -210,8 +245,6 @@ fi
 ```
 
 ### SessionStart Hook (Suggest Sync)
-
-Runs at session start. If pending_sync exists, surface it:
 
 ```bash
 #!/usr/bin/env bash
@@ -230,7 +263,7 @@ User can always run `/sync` to force a sync regardless of triggers or threshold.
 
 This skill complements (does not replace):
 - `superpowers:finishing-a-development-branch` — handles git/PR workflow at branch completion
-- `ghengis-skills:project-scaffold` — initial project structure (one-time)
-- `ghengis-skills:agent-identity` — separate concern (user preferences)
+- `ghengis-skills:project-scaffold` — initial project structure + first-time `.jarvis/memory-files.json` (one-time)
+- `ghengis-skills:agent-identity` — reads `~/.claude/agent_identity/code_patterns.json` written by Phase 3
 
 Run this AFTER `finishing-a-development-branch` if both apply.

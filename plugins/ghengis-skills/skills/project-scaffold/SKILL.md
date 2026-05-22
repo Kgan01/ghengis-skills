@@ -42,6 +42,8 @@ Each type defines its workspace directories and canonical files:
 
 The "DNS of the project." Always read first by any agent or session. Target ~800 tokens.
 
+The template **includes the `AUTO:project-map` markers** so `auto-project-sync` Phase 1 can later drop a generated Project Map block into the file without touching the hand-written content.
+
 ```markdown
 # {Project Name}
 
@@ -52,6 +54,11 @@ The "DNS of the project." Always read first by any agent or session. Target ~800
 **Goal:** {Goal statement}
 **Client:** {Client name, if applicable}
 **Created:** {YYYY-MM-DD}
+
+## Project Memory
+
+<!-- Hand-written session summaries go here. Dated bullets, append-only.
+     auto-project-sync writes the auto-generated Project Map below this section. -->
 
 ## Folder Map
 
@@ -70,11 +77,16 @@ The "DNS of the project." Always read first by any agent or session. Target ~800
 - Stage: IDEA
 - Blockers: none
 - Next action: Review CONTEXT.md and begin work
+
+<!-- AUTO:project-map:start -->
+<!-- AUTO:project-map:end -->
 ```
 
 ### Step 4 — Generate Layer 1 (CONTEXT.md)
 
 The "routing table." Pure task-to-workspace mapping. Target ~300 tokens. Does NO work itself.
+
+The template **includes the `AUTO:routing-table` markers** so `auto-project-sync` Phase 1 can later drop the community-derived workspace table into the file.
 
 ```markdown
 # Project Routing
@@ -93,6 +105,9 @@ The "routing table." Pure task-to-workspace mapping. Target ~300 tokens. Does NO
 1. Every fact lives in ONE file (canonical source). Never duplicate.
 2. Dependencies flow one way. If A references B, B must not reference A.
 3. Load specific sections, not entire files. See workspace CONTEXT.md for guidance.
+
+<!-- AUTO:routing-table:start -->
+<!-- AUTO:routing-table:end -->
 ```
 
 ### Step 5 — Generate Layer 2 (workspace/CONTEXT.md files)
@@ -181,7 +196,54 @@ Based on detected or specified languages/frameworks, generate relevant rule file
 - **C++/Firmware projects:** `.claude/rules/firmware.md` — memory allocation, ISR safety, task pinning
 - **All projects:** `.claude/rules/tests.md` — test isolation, descriptive names, specific assertions
 
-### Step 8 — Handle Existing Projects (Cautious Retrofit)
+### Step 8 — Required Memory Files + Opt-in Artifacts
+
+**Always create** these 5 files if they don't already exist (they're the backbone of every project):
+
+| File | Why | Seed content |
+|---|---|---|
+| `MEMORY.md` | Project DNS, Layer 0 | Already generated in Step 3 |
+| `CONTEXT.md` | Routing, Layer 1 | Already generated in Step 4 |
+| `.claude/CLAUDE.md` (or `CLAUDE.md`) | Instructions for Claude | Already generated in Step 6 |
+| `TODO.md` (or `docs/TODO.md` if `docs/` exists) | Task tracker | `# TODO\n\n- [ ] [YYYY-MM-DD] (none yet)\n` |
+| `CHANGELOG.md` | Change log | `# Changelog\n\nAll notable changes to this project.\n` |
+
+**Interactively offer** opt-in artifacts (ask Y/N for each; only ask if existing project doesn't already have one):
+
+| Artifact | Default | What it is |
+|---|---|---|
+| `docs/lessons-learned.md` | **Y** | Per-session takeaways, auto-appended by sync |
+| `docs/JOURNAL.md` | N | Free-form working journal (longer than lessons) |
+| `docs/PROBLEMS.md` | N | Running list of open problems |
+| `docs/plans/` directory + `docs/plans/README.md` | **Y** | Multi-step plan documents (Van Clief) |
+| Per-workspace `CONTEXT.md` in each Layer 2 dir | N for v1 | Mentioned in Step 5, but mark as future option |
+
+After Y/N round, **write `.jarvis/memory-files.json`** capturing the chosen registry. Shape:
+
+```json
+{
+  "version": 1,
+  "memory_files": [
+    {"path": "MEMORY.md", "role": "project_dns", "auto_block": true},
+    {"path": "CONTEXT.md", "role": "routing", "auto_block": true},
+    {"path": ".claude/CLAUDE.md", "role": "instructions", "auto_block": false},
+    {"path": "TODO.md", "role": "todo", "append_dated": true},
+    {"path": "CHANGELOG.md", "role": "changelog", "append_dated": true},
+    {"path": "docs/lessons-learned.md", "role": "lessons", "append_dated": true},
+    {"path": "docs/plans", "role": "plans_dir"}
+  ]
+}
+```
+
+Only include entries for files/dirs that actually got created (or already existed). Future runs of `auto-project-sync` consult this registry — never re-scan.
+
+### Step 9 — Run auto-project-sync once
+
+After scaffolding finishes, **invoke `auto-project-sync` exactly once** to populate the AUTO blocks. If a code graph sidecar exists at `.jarvis/code-graph.json`, Phase 1 will fill in the Project Map and Routing Table. If not, the AUTO blocks stay empty — that's fine, they'll fill on a later run once `analyze_codebase` (or equivalent) has been run.
+
+Skip this step if scaffolding into an existing project that already has its own sync workflow.
+
+### Step 10 — Handle Existing Projects (Cautious Retrofit)
 
 When scaffolding into an existing project:
 
