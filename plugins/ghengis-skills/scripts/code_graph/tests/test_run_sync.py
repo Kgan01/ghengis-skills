@@ -153,3 +153,42 @@ def test_sync_registry_not_a_list_returns_error(tmp_path: Path):
     code, payload = _run_sync(tmp_path)
     assert code == 1
     assert payload["status"] == "error"
+
+
+def test_sync_continues_batch_when_one_file_has_malformed_markers(tmp_path: Path):
+    """A corrupted MEMORY.md in a 2-entry batch should be reported as an error
+    in details[], but the routing entry must still get processed.
+
+    Regression test for the per-entry ValueError catch in _action_sync — one
+    malformed AUTO marker file shouldn't kill the whole batch.
+    """
+    _write_graph(tmp_path, _sample_graph())
+    # Orphan start marker — update_memory_md will raise ValueError when it
+    # tries to refresh this file.
+    malformed_memory = "# Project DNS\n\n<!-- AUTO:project-map:start -->\n(no end marker)\n"
+    (tmp_path / "MEMORY.md").write_text(malformed_memory, encoding="utf-8")
+    original_memory_bytes = (tmp_path / "MEMORY.md").read_bytes()
+    # CONTEXT.md is fresh — no markers, should append cleanly.
+    _write_registry(tmp_path, [
+        {"path": "MEMORY.md", "role": "project_dns", "auto_block": True},
+        {"path": "CONTEXT.md", "role": "routing", "auto_block": True},
+    ])
+    code, payload = _run_sync(tmp_path)
+    # Batch continues — exit 0 even though one entry failed.
+    assert code == 0, payload
+    assert payload["status"] == "ok"
+    assert payload["files_processed"] == 2
+    assert payload["files_changed"] == 1  # only CONTEXT.md was written
+    # First entry (MEMORY.md) reports the malformed-marker error.
+    details = payload["details"]
+    mem_detail = next(d for d in details if d["role"] == "project_dns")
+    assert mem_detail["wrote_changes"] is False
+    assert "Malformed" in mem_detail.get("error", "")
+    # Second entry (CONTEXT.md) succeeded despite the first one failing.
+    ctx_detail = next(d for d in details if d["role"] == "routing")
+    assert ctx_detail["wrote_changes"] is True
+    assert "error" not in ctx_detail
+    # MEMORY.md is byte-for-byte unchanged; CONTEXT.md got its AUTO block.
+    assert (tmp_path / "MEMORY.md").read_bytes() == original_memory_bytes
+    ctx = (tmp_path / "CONTEXT.md").read_text(encoding="utf-8")
+    assert "AUTO:routing-table:start" in ctx
