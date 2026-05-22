@@ -15,6 +15,8 @@ Actions:
     rationale_ingest  Push HACK/FIXME/XXX from the code graph into SkillMemory.
     treefile_suggest  Write .jarvis/treefile-suggestions.md from communities.
     learn_patterns    Mine cross-project structural habits from global.json.
+    sync              Read .jarvis/memory-files.json and dispatch each entry to
+                      the right writer based on its `role` field.
 
 All actions read a code-graph sidecar at ``<project_root>/.jarvis/code-graph.json``
 (except ``learn_patterns``, which reads a global registry path explicitly).
@@ -27,7 +29,6 @@ import argparse
 import json
 import os
 import sys
-import traceback
 from pathlib import Path
 
 # Make sibling modules importable both as ``python -m`` and ``python <path>``.
@@ -37,11 +38,7 @@ if str(_HERE) not in sys.path:
 
 from memory_map_writer import update_memory_md, render_project_map  # noqa: E402
 from routing_table import compute_routing_rows, render_routing_section, update_context_md  # noqa: E402
-from rationale_ingest import (  # noqa: E402
-    append_to_skill_memory,
-    ingest_rationales,
-    save_state,
-)
+from rationale_ingest import ingest_and_persist  # noqa: E402
 from treefile_advisor import build_suggestions, render_suggestions, write_suggestions  # noqa: E402
 from code_pattern_miner import mine_global_registry, write_patterns  # noqa: E402
 
@@ -99,29 +96,22 @@ def _action_rationale_ingest(args: argparse.Namespace) -> int:
     # JARVIS's behavior — global state would re-ingest the same finding across
     # every project).
     state_dir = project_root / ".jarvis"
-    result = ingest_rationales(graph, state_dir, include_todo=args.include_todo)
-    if result["new_learnings"]:
-        sm_path = append_to_skill_memory(
-            skill_memory_root, args.agent, result["new_learnings"]
-        )
-        save_state(state_dir, list(_load_seen(state_dir)) + result["new_ids"])
-        wrote_to = str(sm_path)
-    else:
-        wrote_to = None
+    # Fix #5 — single atomic helper (was: ingest_rationales + save_state).
+    result = ingest_and_persist(
+        graph,
+        state_dir=state_dir,
+        skill_memory_root=skill_memory_root,
+        agent_name=args.agent,
+        include_todo=args.include_todo,
+    )
     return _ok(
         action="rationale_ingest",
         agent=args.agent,
         candidates=result["candidates"],
-        new=len(result["new_learnings"]),
+        new=result["new_count"],
         already_seen=result["already_seen"],
-        wrote_to=wrote_to,
+        wrote_to=result["skill_memory_path"],
     )
-
-
-def _load_seen(state_dir: Path) -> list:
-    """Re-read the state file's ingested_ids so save_state doesn't drop them."""
-    from rationale_ingest import load_state
-    return load_state(state_dir).get("ingested_ids", [])
 
 
 def _action_treefile_suggest(args: argparse.Namespace) -> int:
@@ -138,6 +128,115 @@ def _action_treefile_suggest(args: argparse.Namespace) -> int:
         action="treefile_suggest",
         wrote_to=out_path,
         count=len(suggestions),
+    )
+
+
+def _action_sync(args: argparse.Namespace) -> int:
+    """Sync action — read .jarvis/memory-files.json registry and dispatch.
+
+    Each entry's `role` selects the writer:
+        - "project_dns" + auto_block=True  → update_memory_md w/ render_project_map
+        - "routing"     + auto_block=True  → update_context_md w/ render_routing_section
+        - any other role                   → reported as skipped (not an error)
+
+    If the code-graph sidecar is missing, every entry reports
+    ``{wrote_changes: false, error: "no sidecar"}`` and the action still exits 0
+    — sync without a graph is a no-op, not a hard failure.
+    """
+    project_root = Path(args.project_root).resolve()
+    registry_path = project_root / ".jarvis" / "memory-files.json"
+
+    if not registry_path.exists():
+        return _err(f"memory-files.json not found at {registry_path}")
+    try:
+        with registry_path.open("r", encoding="utf-8") as fh:
+            registry = json.load(fh)
+    except json.JSONDecodeError as e:
+        return _err(f"Invalid JSON in memory-files.json: {e}")
+
+    if not isinstance(registry, list):
+        return _err(
+            f"memory-files.json must be a JSON list at top level, "
+            f"got {type(registry).__name__}"
+        )
+
+    # Try to load the graph once. If it's missing, every entry becomes a no-op
+    # with a uniform "no sidecar" error — but the sync action itself still
+    # returns 0 (success is "we tried", not "we wrote").
+    sidecar = project_root / SIDECAR_RELPATH
+    graph = None
+    sidecar_error = None
+    if sidecar.exists():
+        try:
+            with sidecar.open("r", encoding="utf-8") as fh:
+                graph = json.load(fh)
+        except json.JSONDecodeError as e:
+            sidecar_error = f"invalid sidecar JSON: {e}"
+    else:
+        sidecar_error = "no sidecar"
+
+    details = []
+    files_changed = 0
+
+    for entry in registry:
+        if not isinstance(entry, dict):
+            details.append({
+                "path": None,
+                "role": None,
+                "wrote_changes": False,
+                "error": f"registry entry not an object: {type(entry).__name__}",
+            })
+            continue
+        rel_path = entry.get("path")
+        role = entry.get("role")
+        auto_block = entry.get("auto_block", False)
+
+        # Resolve target path relative to project_root.
+        if rel_path:
+            target = (project_root / rel_path).resolve()
+        else:
+            target = None
+
+        detail: dict = {"path": rel_path, "role": role, "wrote_changes": False}
+
+        if graph is None:
+            detail["error"] = sidecar_error
+            details.append(detail)
+            continue
+
+        try:
+            if role == "project_dns" and auto_block and target is not None:
+                md = render_project_map(graph)
+                wrote = update_memory_md(target, md)
+                detail["wrote_changes"] = wrote
+                if wrote:
+                    files_changed += 1
+            elif role == "routing" and auto_block and target is not None:
+                rows = compute_routing_rows(graph)
+                md = render_routing_section(rows)
+                wrote = update_context_md(target, md)
+                detail["wrote_changes"] = wrote
+                if wrote:
+                    files_changed += 1
+            else:
+                # Unknown / unhandled role: not an error, just a no-op.
+                # TODO: extend with rationale/learnings/treefile dispatchers
+                # once the v1.18 contract for those roles solidifies.
+                detail["skipped"] = True
+                detail["reason"] = f"unhandled role: {role!r}" if role else "missing role"
+        except ValueError as e:
+            # Malformed AUTO markers (Fix #1) — surface per-entry, not fatal.
+            detail["error"] = str(e)
+        except (PermissionError, IsADirectoryError, FileNotFoundError) as e:
+            detail["error"] = f"{type(e).__name__}: {e}"
+
+        details.append(detail)
+
+    return _ok(
+        action="sync",
+        files_processed=len(registry),
+        files_changed=files_changed,
+        details=details,
     )
 
 
@@ -193,6 +292,9 @@ def main(argv: list | None = None) -> int:
     lp.add_argument("global_json_path")
     lp.add_argument("output_dir")
 
+    sy = sub.add_parser("sync", help="Sync registry-driven docs (.jarvis/memory-files.json)")
+    sy.add_argument("project_root")
+
     args = p.parse_args(argv)
     dispatch = {
         "memory_map": _action_memory_map,
@@ -200,14 +302,30 @@ def main(argv: list | None = None) -> int:
         "rationale_ingest": _action_rationale_ingest,
         "treefile_suggest": _action_treefile_suggest,
         "learn_patterns": _action_learn_patterns,
+        "sync": _action_sync,
     }
     fn = dispatch[args.action]
     try:
         return fn(args)
     except FileNotFoundError as e:
         return _err(str(e))
+    except PermissionError as e:
+        # Fix #3 — clean one-line for read-only / inaccessible files.
+        return _err(f"Permission denied: {e}")
+    except IsADirectoryError as e:
+        return _err(f"Path is a directory, not a file: {e}")
+    except json.JSONDecodeError as e:
+        return _err(f"Invalid JSON: {e}")
+    except ValueError as e:
+        # Fix #1 — malformed marker errors bubble up here when CLI actions
+        # call update_memory_md / update_context_md directly. Surface as a
+        # clean one-line error, no traceback.
+        return _err(str(e))
     except Exception as e:  # noqa: BLE001
-        return _err(f"{type(e).__name__}: {e}", traceback=traceback.format_exc())
+        # Truly unexpected. Include only the final exception message — no
+        # full stack — to keep the JSON line scan-able. The exception type
+        # gives the caller enough context to file a real bug.
+        return _err(f"Unexpected {type(e).__name__}: {e}")
 
 
 if __name__ == "__main__":

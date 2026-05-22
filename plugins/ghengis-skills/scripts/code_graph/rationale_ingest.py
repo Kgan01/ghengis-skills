@@ -10,6 +10,7 @@ module doesn't depend on the JARVIS ``agents.skill_memory`` package.
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
@@ -89,9 +90,17 @@ def load_state(state_dir: Path) -> Dict[str, Any]:
 
 
 def save_state(state_dir: Path, ingested_ids: List[str]) -> None:
+    """Persist ingested ids atomically via tmp-file + os.replace.
+
+    A crash mid-write leaves the existing state file intact rather than
+    half-written. Atomicity is only guaranteed for the state file itself —
+    NOT across state + skill memory. See ``ingest_and_persist``'s docstring
+    for the cross-file failure mode.
+    """
     state_dir.mkdir(parents=True, exist_ok=True)
     p = _state_path(state_dir)
-    p.write_text(
+    tmp = p.with_suffix(p.suffix + ".tmp")
+    tmp.write_text(
         json.dumps({
             "version": 1,
             "ingested_ids": sorted(set(ingested_ids)),
@@ -99,6 +108,7 @@ def save_state(state_dir: Path, ingested_ids: List[str]) -> None:
         }),
         encoding="utf-8",
     )
+    os.replace(tmp, p)
 
 
 def ingest_rationales(
@@ -128,4 +138,52 @@ def ingest_rationales(
         "already_seen": len(candidates) - len(new_learnings),
         "new_learnings": new_learnings,
         "new_ids": new_ids,
+    }
+
+
+def ingest_and_persist(
+    graph: Dict[str, Any],
+    state_dir: Path,
+    skill_memory_root: Path,
+    agent_name: str,
+    include_todo: bool = False,
+) -> Dict[str, Any]:
+    """Combined ingest + skill-memory append + atomic state save.
+
+    Replaces the v1.17 2-step pattern (``ingest_rationales`` + manual
+    ``save_state``) with a single call. Ordering: append to skill memory
+    first, then atomic state-file rename.
+
+    Atomicity caveat: skill memory may receive duplicates on a state-save
+    crash; this is preferred to silently swallowing learnings. State file
+    is itself atomic (tmp + os.replace). The two writes are NOT in a
+    single transaction.
+
+    Returns ``{candidates, new_count, already_seen, state_dir,
+    skill_memory_path}``. ``skill_memory_path`` is None if there were no
+    new learnings (no file is created in that case).
+
+    The old 2-step API (``ingest_rationales`` + ``save_state``) is kept
+    for backward compatibility.
+    """
+    result = ingest_rationales(graph, state_dir, include_todo=include_todo)
+    new_learnings = result["new_learnings"]
+    new_ids = result["new_ids"]
+
+    sm_path: Optional[Path] = None
+    if new_learnings:
+        sm_path = append_to_skill_memory(
+            Path(skill_memory_root), agent_name, new_learnings
+        )
+
+    # Union existing seen ids with the freshly ingested ones.
+    prior = load_state(state_dir).get("ingested_ids", [])
+    save_state(state_dir, list(prior) + new_ids)
+
+    return {
+        "candidates": result["candidates"],
+        "new_count": len(new_learnings),
+        "already_seen": result["already_seen"],
+        "state_dir": str(state_dir),
+        "skill_memory_path": str(sm_path) if sm_path is not None else None,
     }

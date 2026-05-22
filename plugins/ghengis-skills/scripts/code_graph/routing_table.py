@@ -100,8 +100,37 @@ def render_routing_section(rows: List[Dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
+def _check_markers(content: str) -> str | None:
+    """Return None if markers are absent/well-formed; otherwise return a
+    specifics string describing what's wrong. See ``memory_map_writer._check_markers``
+    for the full contract — this is the same check tied to the routing-table
+    marker pair.
+    """
+    has_start = START_MARKER in content
+    has_end = END_MARKER in content
+    if not has_start and not has_end:
+        return None
+    if has_start and not has_end:
+        return "found start marker but no end marker"
+    if has_end and not has_start:
+        return "found end marker but no start marker"
+    start_count = content.count(START_MARKER)
+    end_count = content.count(END_MARKER)
+    if start_count > 1:
+        return f"found {start_count} start markers (expected exactly 1)"
+    if end_count > 1:
+        return f"found {end_count} end markers (expected exactly 1)"
+    if content.index(END_MARKER) < content.index(START_MARKER):
+        return "end marker appears before start marker"
+    return None
+
+
 def update_context_md(context_path, section_md: str) -> bool:
-    """Insert / replace the routing block in CONTEXT.md. Returns True if written."""
+    """Insert / replace the routing block in CONTEXT.md. Returns True if written.
+
+    Raises ValueError if the file already contains markers in an inconsistent
+    state (orphan start, orphan end, end-before-start, multiple markers).
+    """
     from pathlib import Path
     p = Path(context_path)
     block = f"{START_MARKER}\n{section_md}\n{END_MARKER}\n"
@@ -110,6 +139,12 @@ def update_context_md(context_path, section_md: str) -> bool:
         p.write_text(block, encoding="utf-8")
         return True
     current = p.read_text(encoding="utf-8")
+    problem = _check_markers(current)
+    if problem is not None:
+        raise ValueError(
+            f"Malformed AUTO markers in {p}: {problem}. "
+            "Refusing to write to avoid corruption."
+        )
     if START_MARKER in current and END_MARKER in current:
         before = current.split(START_MARKER, 1)[0]
         after = current.split(END_MARKER, 1)[1]

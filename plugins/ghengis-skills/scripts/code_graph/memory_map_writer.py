@@ -15,6 +15,41 @@ END_MARKER = "<!-- AUTO:project-map:end -->"
 TOP_MODULES = 5
 TOP_COMMUNITIES = 5
 
+# Fix #4 — single empty-state string used across all three empty sections
+# (top modules, layers, communities) so users see one consistent indicator.
+EMPTY_STATE_NOTE = "_(none yet)_"
+
+
+def _check_markers(content: str, path: Path) -> str | None:
+    """Return None if markers are absent/well-formed; otherwise return a
+    specifics string describing what's wrong.
+
+    Well-formed = both markers absent OR exactly one start followed by
+    exactly one end. Any other shape (orphan start, orphan end, multiple
+    starts, end-before-start) is malformed and the caller must refuse to
+    write.
+    """
+    has_start = START_MARKER in content
+    has_end = END_MARKER in content
+    if not has_start and not has_end:
+        return None
+    if has_start and not has_end:
+        return "found start marker but no end marker"
+    if has_end and not has_start:
+        return "found end marker but no start marker"
+    start_count = content.count(START_MARKER)
+    end_count = content.count(END_MARKER)
+    if start_count > 1:
+        return f"found {start_count} start markers (expected exactly 1)"
+    if end_count > 1:
+        return f"found {end_count} end markers (expected exactly 1)"
+    # Both present, exactly one of each — check order.
+    start_idx = content.index(START_MARKER)
+    end_idx = content.index(END_MARKER)
+    if end_idx < start_idx:
+        return "end marker appears before start marker"
+    return None
+
 
 def render_project_map(graph: Dict[str, Any]) -> str:
     """Render the Project Map markdown section from a parsed code-graph dict."""
@@ -88,15 +123,18 @@ def render_project_map(graph: Dict[str, Any]) -> str:
                 f"community: {m['community']}, degree: {m['degree']})*"
             )
     else:
-        lines.append("_No module edges yet._")
+        lines.append(EMPTY_STATE_NOTE)
     lines.append("")
 
     lines.append("### Layers")
     lines.append("")
-    for layer_name in sorted(layers.keys()):
-        members = layers.get(layer_name) or []
-        count = len(members) if isinstance(members, list) else int(members)
-        lines.append(f"- **{layer_name}**: {count}")
+    if layers:
+        for layer_name in sorted(layers.keys()):
+            members = layers.get(layer_name) or []
+            count = len(members) if isinstance(members, list) else int(members)
+            lines.append(f"- **{layer_name}**: {count}")
+    else:
+        lines.append(EMPTY_STATE_NOTE)
     lines.append("")
 
     lines.append("### Communities (top by size)")
@@ -107,7 +145,7 @@ def render_project_map(graph: Dict[str, Any]) -> str:
             sample_txt = ", ".join(f"`{s}`" for s in samples) if samples else "_(no module samples)_"
             lines.append(f"- **#{cid}** ({size} nodes) — {sample_txt}")
     else:
-        lines.append("_No communities detected._")
+        lines.append(EMPTY_STATE_NOTE)
     lines.append("")
     return "\n".join(lines)
 
@@ -117,6 +155,11 @@ def update_memory_md(memory_path: Path, project_map_md: str) -> bool:
 
     Returns True if the file was written, False if no change needed.
     Creates the file if it doesn't exist.
+
+    Raises ValueError if the file already contains markers in an
+    inconsistent state (orphan start, orphan end, end-before-start,
+    multiple starts/ends). Refusing to write is safer than silently
+    appending a second start marker and producing nested/corrupted blocks.
     """
     block = f"{START_MARKER}\n{project_map_md}\n{END_MARKER}\n"
     if not memory_path.exists():
@@ -124,6 +167,12 @@ def update_memory_md(memory_path: Path, project_map_md: str) -> bool:
         memory_path.write_text(block, encoding="utf-8")
         return True
     current = memory_path.read_text(encoding="utf-8")
+    problem = _check_markers(current, memory_path)
+    if problem is not None:
+        raise ValueError(
+            f"Malformed AUTO markers in {memory_path}: {problem}. "
+            "Refusing to write to avoid corruption."
+        )
     if START_MARKER in current and END_MARKER in current:
         before = current.split(START_MARKER, 1)[0]
         after = current.split(END_MARKER, 1)[1]
