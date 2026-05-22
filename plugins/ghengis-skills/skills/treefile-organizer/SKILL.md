@@ -42,6 +42,24 @@ A v2 may extend to Go modules and Flutter packages. Don't pretend to support wha
 3. **Move atomically per file group.** If any move fails or any import becomes unresolvable, hard-revert the entire batch via `git reset --hard <pre-checkpoint-sha>`.
 4. **Rewrite imports in the SAME commit as the move.** A commit must never be in a state where files moved but imports still point at old paths.
 
+## Inputs (read these BEFORE planning anything)
+
+The pipeline below produces its own analysis from scratch, but a separate advisor may have already done structural mining you should incorporate.
+
+**Input #1 — Cohesion advisor output** (`.jarvis/treefile-suggestions.md`):
+
+First check whether `<project_root>/.jarvis/treefile-suggestions.md` exists. If it does, the code-graph cohesion advisor has pre-identified files whose graph community disagrees with their directory's dominant community. Read it as the **first input to your planning** — those rows highlight community mismatches you might otherwise miss.
+
+The suggestions are **advisory only**. You still produce your own adversarially-reviewed plan; the advisor's misplacement claims need to survive the same dry-run + collision-detection checks as anything else. But ignoring this file means re-discovering by hand what the advisor already computed.
+
+If the file does NOT exist AND a code-graph sidecar IS present (`.jarvis/code-graph.json`), generate it first by running the runner from the `ghengis-skills` plugin:
+
+```bash
+python "<plugin_root>/scripts/code_graph/run.py" treefile_suggest "<project_root>" [--min-cohesion 0.5] [--min-dir-size 3]
+```
+
+Output lands at `<project_root>/.jarvis/treefile-suggestions.md`. If neither the suggestions file nor the code-graph sidecar exists, skip this input and proceed with the pipeline below as the sole source of structural truth.
+
 ## The 7-Stage Pipeline
 
 ### 1. ANALYZE — what connects to what
