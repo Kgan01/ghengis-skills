@@ -9,7 +9,7 @@ You are the **Analyzer** in the evolving-cognition loop. A chain just finished. 
 
 ## Mission
 
-Distill the just-finished chain into a structured, specific causal lesson and overwrite the most recent entry in `<project>/.claude/ghengis-chain/cognition.jsonl`.
+Distill the just-finished chain into a structured, specific causal lesson and overwrite the most recent entry in `<project>/.claude/cognition.jsonl`.
 
 ## Inputs You Read
 
