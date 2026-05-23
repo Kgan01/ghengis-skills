@@ -107,7 +107,7 @@ Single JSON file at `<project>/.claude/ghengis-chain/context.json`:
    - Invoke the stage's skill (via Skill tool) with scratchpad context
    - After skill returns, update scratchpad: `merge`, `write`, or `advance` as appropriate (see Scratchpad Helper section)
 6. **For nested chain stages** (e.g., `feature-build` → `build-validate`): wrap the nested run with `python scripts/scratchpad.py nested-start <nested>` and `nested-finish <nested>`. The nested chain's output stays namespaced under `<nested>.*` in the parent scratchpad. The cognition opt-in is **inherited from the parent** — do NOT re-prompt for nested chains.
-7. **At chain end** — call `GHENGIS_COGNITION=<cognition_flag> python scripts/scratchpad.py finish`. This writes `completed_at`, archives to `<project>/.claude/ghengis-chain/history/<chain>-<ts>.json`, and (if cognition is enabled) emits a structured cognition entry to `cognition.jsonl` derived from the chain's outcome, score, and issues. If cognition is enabled, dispatch the `ghengis-skills:analyzer` subagent next to replace the heuristic entry with a high-quality causal lesson (see "The Analyzer Subagent" section).
+7. **At chain end** — call `GHENGIS_COGNITION=<cognition_flag> python scripts/scratchpad.py finish`. This writes `completed_at`, archives to `<project>/.claude/ghengis-chain/history/<chain>-<ts>.json`, and (if cognition is enabled) emits a structured cognition entry to `cognition.jsonl` derived from the chain's outcome, score, and issues. **The cognition write defaults to project scope** (`<project>/.claude/cognition.jsonl`) — that's almost always what you want. Pass `--scope global` only when you know up front the lesson generalizes across projects. If cognition is enabled, dispatch the `ghengis-skills:analyzer` subagent next to replace the heuristic entry with a high-quality causal lesson (see "The Analyzer Subagent" section).
 
 ## Built-in Patterns
 
@@ -323,6 +323,50 @@ win_rate = wins / hits, or 0.5 prior when hits=0
 ```
 
 The exploration bonus pulls in untested entries occasionally even when they don't have a win track record yet. Over time, the ones that genuinely help accumulate wins; the ones that mislead accumulate hits without wins. The audit command surfaces the latter for retirement.
+
+### Cognition store: project vs global (v1.19.0+)
+
+Cognition is **per-project by default**. Each project keeps its own JSONL at `<project>/.claude/cognition.jsonl`, and there is also a shared cross-project library at `~/.claude/cognition.jsonl`. The two are independent files; nothing leaks between them automatically.
+
+**Where things land:**
+
+- `scratchpad.py finish` writes to **project** by default — `<project>/.claude/cognition.jsonl`.
+- `scratchpad.py cognition-emit`, `audit`, and `cognition-replace-last` all default to **project**.
+- `scratchpad.py retrieve` (and `init`'s auto-retrieve) default to **merged** — search project first, fall back to global if project has < `top_k` hits. Project entries get a small UCB1 boost (1.1×) so they outrank equal-similarity global entries.
+
+**Choosing a scope:**
+
+- `--scope project` (default for writes) — store this lesson with this project only.
+- `--scope global` — store this lesson in the cross-project library. Use sparingly; lessons that show up out of context waste prompt budget.
+- `--scope merged` (default for reads) — pull from both. Project results outrank equal global results.
+
+**Override precedence:** explicit `--scope` arg > `GHENGIS_COGNITION_SCOPE` env var > default. Set the env var per-project (e.g. in `.claude/settings.json`) when you want a project to always write or always read in a non-default scope.
+
+```bash
+# Per-project (default): writes land in <project>/.claude/cognition.jsonl
+python scripts/scratchpad.py cognition-emit
+
+# Cross-project: writes land in ~/.claude/cognition.jsonl
+python scripts/scratchpad.py cognition-emit --scope global
+
+# Retrieve from only this project (skip the global library)
+python scripts/scratchpad.py retrieve --query "..." --scope project
+
+# Retrieve from the global library only
+python scripts/scratchpad.py retrieve --query "..." --scope global
+```
+
+**Promoting a project lesson to global:**
+
+When a project lesson clearly generalizes (a language API gotcha, a framework footgun, a debugging technique — *not* a project-specific config quirk), promote it:
+
+```bash
+python scripts/scratchpad.py cognition-promote <entry_id>
+```
+
+This appends a copy to `~/.claude/cognition.jsonl` with `promoted_from_project: <project_root>` and `promoted_at: <iso8601>` stamps. The project entry is **not deleted** — it's marked `promoted_to_global: true` so the local audit trail stays intact. A second promote on the same id is rejected.
+
+**When NOT to promote:** project-specific configs, hardcoded paths, secrets, team conventions, codebase-specific architecture choices. If the lesson would confuse you in an unrelated project, it doesn't belong in the global library.
 
 ### The Analyzer Subagent
 
