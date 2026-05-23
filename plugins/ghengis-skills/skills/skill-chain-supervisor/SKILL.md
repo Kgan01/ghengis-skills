@@ -94,13 +94,20 @@ Single JSON file at `<project>/.claude/ghengis-chain/context.json`:
 
 1. **Identify the chain name** (`agent-dispatch`, `task-complete`, `feature-build`, etc.)
 2. **Read the chain spec** at `chains/<name>.md` inside this skill's directory
-3. **Initialize scratchpad** — use the helper: `python scripts/scratchpad.py init <chain_name> --input-json '{...}'`
-4. **Execute each stage:**
+3. **Cognition opt-in (inline prompt)** — BEFORE initializing the scratchpad:
+   - If `GHENGIS_COGNITION=true` is already set in the environment, **skip this step** (always-on mode). Treat cognition as enabled for the rest of the chain.
+   - Otherwise, ask the user inline, in chat: **`Run cognition on this chain? [y/N]`** — one short line, no preamble.
+     - If they answer `y` / `yes` (case-insensitive): treat cognition as enabled for this chain run.
+     - If they answer `n` / `no` / Enter (default) / anything else: treat cognition as disabled for this chain run.
+   - Whichever way the decision lands, propagate it to every `scratchpad.py` invocation in this chain by prefixing the command with `GHENGIS_COGNITION=true` (when enabled) or `GHENGIS_COGNITION=false` (when disabled). Don't rely on the user's shell environment — set it explicitly per-call so the answer follows the chain.
+   - Persist the choice into the scratchpad as `state["cognition_optin"]` so subagents reading the scratchpad can see whether to expect lessons / write contributions.
+4. **Initialize scratchpad** — `GHENGIS_COGNITION=<cognition_flag> python scripts/scratchpad.py init <chain_name> --input-json '{...}'`. When cognition is enabled, init also performs UCB1 retrieval and populates `state["lessons_from_past"]`.
+5. **Execute each stage:**
    - Read scratchpad to see prior stages' output: `python scripts/scratchpad.py read <dotted.path>`
    - Invoke the stage's skill (via Skill tool) with scratchpad context
    - After skill returns, update scratchpad: `merge`, `write`, or `advance` as appropriate (see Scratchpad Helper section)
-5. **For nested chain stages** (e.g., `feature-build` → `build-validate`): wrap the nested run with `python scripts/scratchpad.py nested-start <nested>` and `nested-finish <nested>`. The nested chain's output stays namespaced under `<nested>.*` in the parent scratchpad.
-6. **At chain end** — call `python scripts/scratchpad.py finish`. This writes `completed_at`, archives to `<project>/.claude/ghengis-chain/history/<chain>-<ts>.json`, and (if `GHENGIS_COGNITION=true`) emits a structured cognition entry to `cognition.jsonl` derived from the chain's outcome, score, and issues.
+6. **For nested chain stages** (e.g., `feature-build` → `build-validate`): wrap the nested run with `python scripts/scratchpad.py nested-start <nested>` and `nested-finish <nested>`. The nested chain's output stays namespaced under `<nested>.*` in the parent scratchpad. The cognition opt-in is **inherited from the parent** — do NOT re-prompt for nested chains.
+7. **At chain end** — call `GHENGIS_COGNITION=<cognition_flag> python scripts/scratchpad.py finish`. This writes `completed_at`, archives to `<project>/.claude/ghengis-chain/history/<chain>-<ts>.json`, and (if cognition is enabled) emits a structured cognition entry to `cognition.jsonl` derived from the chain's outcome, score, and issues. If cognition is enabled, dispatch the `ghengis-skills:analyzer` subagent next to replace the heuristic entry with a high-quality causal lesson (see "The Analyzer Subagent" section).
 
 ## Built-in Patterns
 
@@ -286,7 +293,12 @@ The nested chain's own scratchpad commands write to `state["build_validate"]["..
 
 ### Cognition: emit, retrieve, audit
 
-The cognition loop is **opt-in** via `GHENGIS_COGNITION=true`. When enabled, three things happen automatically:
+The cognition loop is **opt-in** per-chain. Two ways to enable it:
+
+- **Inline prompt (default UX, recommended for ad-hoc decisions):** the chain's entry sequence asks `Run cognition on this chain? [y/N]` before init (see step 3 of "How to Run a Chain"). The user's answer is propagated as the `GHENGIS_COGNITION` env var to every `scratchpad.py` invocation for that chain run, and persisted as `state["cognition_optin"]` in the scratchpad.
+- **Always-on env var:** export `GHENGIS_COGNITION=true` in the shell environment to skip the inline prompt and always emit/retrieve. Useful once a user has decided cognition is worth it everywhere.
+
+Whichever path enables it, three things happen automatically:
 
 1. **Init reads** — `scratchpad.py init` finds relevant past lessons in `cognition.jsonl` using **UCB1-weighted Jaccard similarity** (balances exploitation of proven entries with exploration of untested ones). Top 5 lessons land at `state["lessons_from_past"]` for stages to consult. Bumps each surfaced entry's `hits` counter.
 2. **Finish writes** — emits a new structured entry to `cognition.jsonl` describing this run (chain, outcome, lesson, applies_when target, fitness=score/10).
