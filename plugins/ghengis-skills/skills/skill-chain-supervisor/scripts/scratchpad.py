@@ -75,7 +75,47 @@ def history_dir() -> Path:
 
 
 def cognition_path() -> Path:
-    return chain_dir() / "cognition.jsonl"
+    """Back-compat alias. Returns the per-project cognition path (default scope).
+
+    Kept so external callers / older tests that imported this name keep working.
+    New code should call `_resolve_cognition_path(scope=...)` directly.
+    """
+    return _resolve_cognition_path(scope="project")
+
+
+_VALID_SCOPES = ("project", "global", "merged")
+
+
+def _resolve_cognition_path(scope: str | None = None) -> Path:
+    """Return the cognition.jsonl path for the requested scope.
+
+    Scope precedence (highest first):
+      1. Explicit `scope` arg ("project" or "global")
+      2. GHENGIS_COGNITION_SCOPE env var
+      3. Default: "project"
+
+    Paths:
+      project → <resolved_project_root>/.claude/cognition.jsonl
+      global  → <home>/.claude/cognition.jsonl
+
+    Creates the parent directory if missing. Does NOT create the file.
+    "merged" is a retrieval-only mode and has no single file — callers must
+    handle it themselves; passing "merged" to this function raises ValueError.
+    """
+    if scope is None:
+        scope = os.environ.get("GHENGIS_COGNITION_SCOPE", "project").strip().lower()
+    else:
+        scope = scope.strip().lower()
+    if scope == "merged":
+        raise ValueError("merged is a retrieval mode, not a single file path")
+    if scope not in ("project", "global"):
+        raise ValueError(f"invalid scope {scope!r}; expected 'project' or 'global'")
+    if scope == "global":
+        path = Path.home() / ".claude" / "cognition.jsonl"
+    else:
+        path = resolve_project_root() / ".claude" / "cognition.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 def now_iso() -> str:
@@ -211,6 +251,10 @@ def cmd_init(args):
     parser.add_argument("chain_name")
     parser.add_argument("--input-json", default="{}", help="JSON object for input contract")
     parser.add_argument("--force", action="store_true", help="Overwrite existing in-flight chain")
+    parser.add_argument(
+        "--scope", choices=["project", "global", "merged"], default=None,
+        help="Cognition retrieval scope. Default: GHENGIS_COGNITION_SCOPE env or 'merged' (search project, fall back to global).",
+    )
     ns = parser.parse_args(args)
 
     existing = scratchpad_path()
@@ -243,14 +287,26 @@ def cmd_init(args):
     # Auto-retrieve relevant past lessons when cognition is enabled.
     if os.environ.get("GHENGIS_COGNITION", "").lower() in ("true", "1", "yes"):
         query = input_payload.get("user_request", "") if isinstance(input_payload, dict) else ""
-        if query and cognition_path().exists():
-            lessons = retrieve_lessons(query, top_k=5)
+        # Retrieval scope: CLI arg > env var > default "merged"
+        retrieval_scope = ns.scope or os.environ.get("GHENGIS_COGNITION_SCOPE", "merged")
+        if query:
+            lessons = retrieve_lessons(query, top_k=5, scope=retrieval_scope)
             if lessons:
-                _bump_counters([l["id"] for l in lessons], hits_delta=1)
+                # Bump hits in whichever store(s) the lessons came from. Group
+                # ids by origin scope so we don't scan the wrong file.
+                by_scope: dict[str, list[str]] = {}
+                for l in lessons:
+                    by_scope.setdefault(l.get("_origin_scope", "project"), []).append(l["id"])
+                for sc, ids in by_scope.items():
+                    _bump_counters(ids, hits_delta=1, scopes=[sc])
                 state["lessons_from_past"] = lessons
                 save(state)
                 # Surface to stderr so the running chain operator notices
-                print(f"retrieved {len(lessons)} past lesson(s) into lessons_from_past", file=sys.stderr)
+                print(
+                    f"retrieved {len(lessons)} past lesson(s) into lessons_from_past "
+                    f"(scope={retrieval_scope})",
+                    file=sys.stderr,
+                )
 
     print(scratchpad_path())
     return 0
@@ -261,6 +317,10 @@ def cmd_finish(args):
     parser = argparse.ArgumentParser(prog="scratchpad.py finish")
     parser.add_argument("--no-cognition", action="store_true", help="Skip cognition emission even if enabled")
     parser.add_argument("--no-archive", action="store_true", help="Skip moving to history/")
+    parser.add_argument(
+        "--scope", choices=["project", "global"], default=None,
+        help="Where to write the cognition entry. Default: GHENGIS_COGNITION_SCOPE env or 'project'.",
+    )
     ns = parser.parse_args(args)
 
     state = load()
@@ -274,7 +334,7 @@ def cmd_finish(args):
 
     cognition_enabled = os.environ.get("GHENGIS_COGNITION", "").lower() in ("true", "1", "yes")
     if cognition_enabled and not ns.no_cognition:
-        emit_cognition_entry(state)
+        emit_cognition_entry(state, scope=ns.scope)
         # If the chain succeeded, bump wins on the lessons we retrieved at init.
         report = state.get("report", {}) or {}
         outcome = report.get("outcome", "")
@@ -286,9 +346,16 @@ def cmd_finish(args):
         }
         if outcome in success_outcomes:
             retrieved = state.get("lessons_from_past", []) or []
-            ids = [r.get("id") for r in retrieved if r.get("id")]
-            if ids:
-                _bump_counters(ids, wins_delta=1)
+            # Bump wins back in the origin scope of each retrieved lesson so
+            # cross-project boosts settle in the right store.
+            by_scope: dict[str, list[str]] = {}
+            for r in retrieved:
+                rid = r.get("id")
+                if not rid:
+                    continue
+                by_scope.setdefault(r.get("_origin_scope", "project"), []).append(rid)
+            for sc, ids in by_scope.items():
+                _bump_counters(ids, wins_delta=1, scopes=[sc])
 
     if not ns.no_archive:
         history_dir().mkdir(parents=True, exist_ok=True)
@@ -368,8 +435,16 @@ def _jaccard(a: set, b: set) -> float:
     return inter / union if union else 0.0
 
 
-def _read_cognition_entries() -> list:
-    path = cognition_path()
+def _read_cognition_entries(scope: str | None = None) -> list:
+    """Read entries from a single scope ('project' or 'global').
+
+    Returns [] if the file does not exist or cannot be read. Each entry is
+    returned as a plain dict — no scope annotation is added here.
+    """
+    if scope == "merged":
+        raise ValueError("_read_cognition_entries does not accept 'merged'; "
+                         "use retrieve_lessons(scope='merged') instead")
+    path = _resolve_cognition_path(scope=scope)
     if not path.exists():
         return []
     entries = []
@@ -387,9 +462,9 @@ def _read_cognition_entries() -> list:
     return entries
 
 
-def _write_cognition_entries(entries: list):
+def _write_cognition_entries(entries: list, scope: str | None = None):
     """Rewrite cognition.jsonl atomically (used to update hits/wins counters)."""
-    path = cognition_path()
+    path = _resolve_cognition_path(scope=scope)
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".jsonl.tmp")
     with tmp.open("w", encoding="utf-8") as f:
@@ -408,15 +483,94 @@ def _ucb1_score(entry: dict, total_retrievals: int) -> float:
     return win_rate + exploration
 
 
-def retrieve_lessons(query: str, top_k: int = 5, min_relevance: float = 0.08) -> list:
+def retrieve_lessons(
+    query: str,
+    top_k: int = 5,
+    min_relevance: float = 0.08,
+    scope: str | None = None,
+    project_boost: float = 1.1,
+) -> list:
     """Return top_k cognition entries ranked by relevance * UCB1.
 
     Excludes retired entries (audit_status='retired') and superseded ones.
+
+    Scope semantics:
+      - "project": search only the project cognition store
+      - "global":  search only the global cognition store
+      - "merged":  search project first; if it yields < top_k candidates,
+                   also pull from global. Project entries get a small UCB1
+                   multiplier (project_boost, default 1.1×) so they outrank
+                   equal-similarity global entries.
+      - None: defaults to merged behavior (the v1.19.0 default).
+
+    Each returned entry carries an `_origin_scope` annotation ("project" or
+    "global") in addition to the existing `_retrieval` block.
     """
-    entries = _read_cognition_entries()
+    effective = (scope or "merged").strip().lower()
+    if effective not in ("project", "global", "merged"):
+        raise ValueError(f"invalid scope {effective!r}")
+
+    if effective in ("project", "global"):
+        entries = _read_cognition_entries(scope=effective)
+        return _rank_entries(
+            entries,
+            query=query,
+            top_k=top_k,
+            min_relevance=min_relevance,
+            origin_scope=effective,
+            score_multiplier=1.0,
+        )
+
+    # Merged: project first (with boost), then global as fallback if project
+    # didn't fill top_k. Dedupe by entry id (project wins on collision).
+    project_entries = _read_cognition_entries(scope="project")
+    project_ranked = _rank_entries(
+        project_entries,
+        query=query,
+        top_k=max(top_k, 1) * 4,  # over-pull so we can re-rank against global
+        min_relevance=min_relevance,
+        origin_scope="project",
+        score_multiplier=project_boost,
+    )
+    if len(project_ranked) >= top_k:
+        return project_ranked[:top_k]
+
+    global_entries = _read_cognition_entries(scope="global")
+    global_ranked = _rank_entries(
+        global_entries,
+        query=query,
+        top_k=max(top_k, 1) * 4,
+        min_relevance=min_relevance,
+        origin_scope="global",
+        score_multiplier=1.0,
+    )
+
+    # Merge by score; project entries already carry the boost, so a simple
+    # sort by stored _retrieval.score is correct.
+    seen_ids: set[str] = set()
+    merged: list[dict] = []
+    for entry in (*project_ranked, *global_ranked):
+        eid = entry.get("id")
+        if eid in seen_ids:
+            continue
+        seen_ids.add(eid)
+        merged.append(entry)
+    merged.sort(key=lambda e: -e["_retrieval"]["score"])
+    return merged[:top_k]
+
+
+def _rank_entries(
+    entries: list,
+    *,
+    query: str,
+    top_k: int,
+    min_relevance: float,
+    origin_scope: str,
+    score_multiplier: float = 1.0,
+) -> list:
+    """Internal: rank a single-scope entry list and annotate with origin."""
     if not entries:
         return []
-    # Filter retired/superseded
     superseded_ids = set()
     for e in entries:
         for sid in e.get("supersedes", []) or []:
@@ -438,34 +592,49 @@ def retrieve_lessons(query: str, top_k: int = 5, min_relevance: float = 0.08) ->
         if relevance < min_relevance:
             continue
         ucb = _ucb1_score(e, total_retrievals)
-        score = relevance * (0.7 + 0.3 * ucb)
+        score = relevance * (0.7 + 0.3 * ucb) * score_multiplier
         ranked.append((score, relevance, ucb, e))
 
     ranked.sort(key=lambda t: -t[0])
     return [
-        {**e, "_retrieval": {"score": round(s, 4), "relevance": round(r, 4), "ucb1": round(u, 4)}}
+        {
+            **e,
+            "_retrieval": {
+                "score": round(s, 4),
+                "relevance": round(r, 4),
+                "ucb1": round(u, 4),
+            },
+            "_origin_scope": origin_scope,
+        }
         for s, r, u, e in ranked[:top_k]
     ]
 
 
-def _bump_counters(ids: list, hits_delta: int = 0, wins_delta: int = 0):
-    """Increment hits and/or wins on cognition entries by id."""
+def _bump_counters(ids: list, hits_delta: int = 0, wins_delta: int = 0,
+                   scopes: list | None = None):
+    """Increment hits and/or wins on cognition entries by id.
+
+    Scopes is an optional list of ("project", "global", ...) to update. When
+    omitted, both scopes are checked — bumps land wherever the id lives.
+    """
     if not ids:
         return
     target = set(ids)
-    entries = _read_cognition_entries()
-    if not entries:
-        return
-    changed = False
-    for e in entries:
-        if e.get("id") in target:
-            if hits_delta:
-                e["hits"] = max(e.get("hits", 0), 0) + hits_delta
-            if wins_delta:
-                e["wins"] = max(e.get("wins", 0), 0) + wins_delta
-            changed = True
-    if changed:
-        _write_cognition_entries(entries)
+    scopes_to_check = scopes if scopes else ["project", "global"]
+    for sc in scopes_to_check:
+        entries = _read_cognition_entries(scope=sc)
+        if not entries:
+            continue
+        changed = False
+        for e in entries:
+            if e.get("id") in target:
+                if hits_delta:
+                    e["hits"] = max(e.get("hits", 0), 0) + hits_delta
+                if wins_delta:
+                    e["wins"] = max(e.get("wins", 0), 0) + wins_delta
+                changed = True
+        if changed:
+            _write_cognition_entries(entries, scope=sc)
 
 
 def cmd_retrieve(args):
@@ -476,6 +645,10 @@ def cmd_retrieve(args):
     parser.add_argument("--min-relevance", type=float, default=0.08)
     parser.add_argument("--no-bump", action="store_true", help="Skip incrementing hits on retrieved entries")
     parser.add_argument("--write-to-scratchpad", action="store_true", help="Save retrieved entries under lessons_from_past")
+    parser.add_argument(
+        "--scope", choices=["project", "global", "merged"], default=None,
+        help="Search scope. Default: GHENGIS_COGNITION_SCOPE env or 'merged'.",
+    )
     ns = parser.parse_args(args)
 
     query = ns.query
@@ -486,14 +659,22 @@ def cmd_retrieve(args):
         print("no query (pass --query or set input.user_request via init)", file=sys.stderr)
         return 2
 
-    lessons = retrieve_lessons(query, top_k=ns.top_k, min_relevance=ns.min_relevance)
+    retrieval_scope = ns.scope or os.environ.get("GHENGIS_COGNITION_SCOPE", "merged")
+    lessons = retrieve_lessons(
+        query, top_k=ns.top_k, min_relevance=ns.min_relevance, scope=retrieval_scope
+    )
     if not lessons and ns.write_to_scratchpad:
         state = load()
         state["lessons_from_past"] = []
         save(state)
 
     if lessons and not ns.no_bump:
-        _bump_counters([l["id"] for l in lessons], hits_delta=1)
+        # Bump in each lesson's origin scope.
+        by_scope: dict[str, list[str]] = {}
+        for l in lessons:
+            by_scope.setdefault(l.get("_origin_scope", "project"), []).append(l["id"])
+        for sc, ids in by_scope.items():
+            _bump_counters(ids, hits_delta=1, scopes=[sc])
 
     if ns.write_to_scratchpad:
         state = load()
@@ -513,6 +694,10 @@ def cmd_cognition_replace_last(args):
     """
     parser = argparse.ArgumentParser(prog="scratchpad.py cognition-replace-last")
     parser.add_argument("--require-id", help="Refuse unless the new entry has this id (safety)")
+    parser.add_argument(
+        "--scope", choices=["project", "global"], default=None,
+        help="Which store to modify. Default: GHENGIS_COGNITION_SCOPE env or 'project'.",
+    )
     ns = parser.parse_args(args)
 
     try:
@@ -524,7 +709,7 @@ def cmd_cognition_replace_last(args):
         print("stdin must be a JSON object", file=sys.stderr)
         return 2
 
-    path = cognition_path()
+    path = _resolve_cognition_path(scope=ns.scope)
     if not path.exists():
         print(f"cognition.jsonl does not exist at {path}", file=sys.stderr)
         return 1
@@ -570,9 +755,13 @@ def cmd_audit(args):
     parser = argparse.ArgumentParser(prog="scratchpad.py audit")
     parser.add_argument("--hits-threshold", type=int, default=5)
     parser.add_argument("--win-rate-threshold", type=float, default=0.4)
+    parser.add_argument(
+        "--scope", choices=["project", "global"], default=None,
+        help="Which store to audit. Default: GHENGIS_COGNITION_SCOPE env or 'project'.",
+    )
     ns = parser.parse_args(args)
 
-    entries = _read_cognition_entries()
+    entries = _read_cognition_entries(scope=ns.scope)
     if not entries:
         print("no cognition entries", file=sys.stderr)
         return 0
@@ -601,8 +790,13 @@ def cmd_audit(args):
     return 0
 
 
-def emit_cognition_entry(state: dict) -> dict:
-    """Build a cognition entry from chain state and append to cognition.jsonl."""
+def emit_cognition_entry(state: dict, scope: str | None = None) -> dict:
+    """Build a cognition entry from chain state and append to cognition.jsonl.
+
+    Scope follows the precedence in `_resolve_cognition_path` — default
+    'project', overridable via GHENGIS_COGNITION_SCOPE env var or explicit
+    arg. Returns the entry that was written.
+    """
     chain_name = state.get("chain", "unknown")
     started = state.get("started_at", "")
     completed = state.get("completed_at", now_iso())
@@ -641,7 +835,7 @@ def emit_cognition_entry(state: dict) -> dict:
         "wins": 0,
         "audit_status": "unchecked",
     }
-    path = cognition_path()
+    path = _resolve_cognition_path(scope=scope)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as f:
         f.write(json.dumps(entry, sort_keys=False) + "\n")
@@ -681,12 +875,81 @@ def _derive_applies_when(chain: str, state: dict) -> str:
 
 def cmd_cognition_emit(args):
     """Explicitly emit a cognition entry from the current scratchpad."""
+    parser = argparse.ArgumentParser(prog="scratchpad.py cognition-emit")
+    parser.add_argument("--scope", choices=["project", "global"], default=None,
+                        help="Where to write. Default: GHENGIS_COGNITION_SCOPE env or 'project'.")
+    ns = parser.parse_args(args)
     state = load()
     if not state:
         print("no scratchpad to emit from", file=sys.stderr)
         return 1
-    entry = emit_cognition_entry(state)
+    entry = emit_cognition_entry(state, scope=ns.scope)
     print(json.dumps(entry, indent=2))
+    return 0
+
+
+def cmd_cognition_promote(args):
+    """Move a cognition entry from the project store to the global library.
+
+    The project entry is NOT deleted — it's marked with `promoted_to_global: true`
+    to preserve the local audit trail. The global copy gains
+    `promoted_from_project: <project_root>` and `promoted_at: <iso8601>` stamps.
+
+    Errors:
+      - entry_id not found in project store
+      - entry already has `promoted_to_global: true`
+    """
+    parser = argparse.ArgumentParser(prog="scratchpad.py cognition-promote")
+    parser.add_argument("entry_id")
+    ns = parser.parse_args(args)
+
+    project_path = _resolve_cognition_path(scope="project")
+    if not project_path.exists():
+        print(f"no project cognition store at {project_path}", file=sys.stderr)
+        return 1
+
+    project_entries = _read_cognition_entries(scope="project")
+    target = None
+    for e in project_entries:
+        if e.get("id") == ns.entry_id:
+            target = e
+            break
+    if target is None:
+        print(
+            f"entry_id {ns.entry_id!r} not found in project store ({project_path})",
+            file=sys.stderr,
+        )
+        return 1
+    if target.get("promoted_to_global") is True:
+        print(
+            f"entry_id {ns.entry_id!r} already has promoted_to_global=true",
+            file=sys.stderr,
+        )
+        return 1
+
+    # Build the global copy. Use a fresh dict so we don't mutate the project entry.
+    promoted = dict(target)
+    promoted["promoted_from_project"] = str(resolve_project_root())
+    promoted["promoted_at"] = now_iso()
+
+    global_path = _resolve_cognition_path(scope="global")
+    global_path.parent.mkdir(parents=True, exist_ok=True)
+    with global_path.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(promoted, sort_keys=False) + "\n")
+
+    # Mark the project entry. Atomic rewrite via _write_cognition_entries.
+    for e in project_entries:
+        if e.get("id") == ns.entry_id:
+            e["promoted_to_global"] = True
+            e["promoted_at"] = promoted["promoted_at"]
+            break
+    _write_cognition_entries(project_entries, scope="project")
+
+    print(json.dumps({
+        "promoted": ns.entry_id,
+        "project_path": str(project_path),
+        "global_path": str(global_path),
+    }, indent=2))
     return 0
 
 
@@ -702,6 +965,7 @@ COMMANDS = {
     "nested-start": cmd_nested_start,
     "nested-finish": cmd_nested_finish,
     "cognition-emit": cmd_cognition_emit,
+    "cognition-promote": cmd_cognition_promote,
     "cognition-replace-last": cmd_cognition_replace_last,
     "retrieve": cmd_retrieve,
     "audit": cmd_audit,
