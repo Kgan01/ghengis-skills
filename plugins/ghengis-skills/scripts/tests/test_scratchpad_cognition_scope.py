@@ -265,6 +265,97 @@ def test_promote_errors_if_entry_not_found(isolated_env):
     assert rc != 0
 
 
+def test_promote_errors_if_entry_already_in_global(isolated_env, capsys):
+    """v1.19.1 Fix C: promoting an id already present in global must error,
+    not create a duplicate line."""
+    entry = _make_entry("dup", "duplicate detection scenario")
+    _seed(isolated_env["project_cognition"], [entry])
+    # Pre-seed global with the SAME id.
+    _seed(isolated_env["global_cognition"], [_make_entry("dup", "older global text")])
+
+    rc = scratchpad.cmd_cognition_promote(["dup"])
+    assert rc != 0
+    err = capsys.readouterr().err
+    assert "already present in global" in err
+    assert "--replace" in err
+
+    # Global file must still contain exactly ONE entry with id=dup.
+    global_lines = [
+        json.loads(l)
+        for l in isolated_env["global_cognition"].read_text(encoding="utf-8").splitlines()
+        if l.strip()
+    ]
+    dup_lines = [e for e in global_lines if e.get("id") == "dup"]
+    assert len(dup_lines) == 1
+    # The original (pre-existing) text should be preserved — no overwrite without --replace.
+    assert dup_lines[0]["applies_when"] == "older global text"
+
+
+def test_promote_replace_flag_overwrites_global(isolated_env):
+    """v1.19.1 Fix C: --replace overwrites the existing global entry in place."""
+    project_entry = _make_entry("dup", "newer project text")
+    _seed(isolated_env["project_cognition"], [project_entry])
+    _seed(
+        isolated_env["global_cognition"],
+        [
+            _make_entry("other", "unrelated entry"),
+            _make_entry("dup", "older global text"),
+            _make_entry("after", "after entry"),
+        ],
+    )
+
+    rc = scratchpad.cmd_cognition_promote(["dup", "--replace"])
+    assert rc == 0
+
+    global_lines = [
+        json.loads(l)
+        for l in isolated_env["global_cognition"].read_text(encoding="utf-8").splitlines()
+        if l.strip()
+    ]
+    # Still exactly 3 entries (no duplicate appended).
+    assert len(global_lines) == 3
+    dup_lines = [e for e in global_lines if e.get("id") == "dup"]
+    assert len(dup_lines) == 1
+    # The replacement should have the newer project text and the promotion stamps.
+    assert dup_lines[0]["applies_when"] == "newer project text"
+    assert "promoted_from_project" in dup_lines[0]
+    assert "promoted_at" in dup_lines[0]
+    # Surrounding entries preserved.
+    assert any(e.get("id") == "other" for e in global_lines)
+    assert any(e.get("id") == "after" for e in global_lines)
+
+    # Project entry still marked as promoted.
+    project_lines = [
+        json.loads(l)
+        for l in isolated_env["project_cognition"].read_text(encoding="utf-8").splitlines()
+        if l.strip()
+    ]
+    assert project_lines[0]["promoted_to_global"] is True
+
+
+def test_promoted_from_project_uses_posix_separators(isolated_env):
+    """v1.19.1 Fix D: promoted_from_project must use POSIX separators (no
+    backslashes) so the audit field is portable across platforms."""
+    entry = _make_entry("posix_test", "platform-portable path field")
+    _seed(isolated_env["project_cognition"], [entry])
+
+    rc = scratchpad.cmd_cognition_promote(["posix_test"])
+    assert rc == 0
+
+    global_lines = [
+        json.loads(l)
+        for l in isolated_env["global_cognition"].read_text(encoding="utf-8").splitlines()
+        if l.strip()
+    ]
+    promoted = next(e for e in global_lines if e.get("id") == "posix_test")
+    assert "promoted_from_project" in promoted
+    # The field must not contain Windows-style separators.
+    assert "\\" not in promoted["promoted_from_project"]
+    # Should look like a POSIX-style path with forward slashes (or a single token,
+    # which is also POSIX-clean).
+    assert "/" in promoted["promoted_from_project"] or "\\" not in promoted["promoted_from_project"]
+
+
 # ---------------------------------------------------------------------------
 # Backward compat: GHENGIS_COGNITION env still gates the loop
 # ---------------------------------------------------------------------------

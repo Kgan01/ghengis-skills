@@ -10,11 +10,11 @@ ghengis-skills:analyzer subagent on the freshly-archived scratchpad.
 Silent in all other cases — does NOT spam the conversation with reminders
 for unrelated Bash commands.
 
-State location: per-project at <cwd>/.claude/ghengis-chain/
+State location: per-project at <cwd>/.claude/
 Reads:
 - The Bash tool input (command + exit code) from stdin
 - <cwd>/.claude/ghengis-chain/history/ for the latest archived scratchpad
-- <cwd>/.claude/ghengis-chain/cognition.jsonl for the last entry's id
+- <cwd>/.claude/cognition.jsonl for the last entry's id (v1.19.0+ path)
 """
 import json
 import os
@@ -79,8 +79,13 @@ def _find_latest_history(chain_dir: Path) -> Path | None:
     return candidates[0] if candidates else None
 
 
-def _last_cognition_id(chain_dir: Path) -> str | None:
-    cog_path = chain_dir / "cognition.jsonl"
+def _last_cognition_id(cog_path: Path) -> str | None:
+    """Read the id of the last entry in cognition.jsonl.
+
+    v1.19.0+: cognition.jsonl moved from <cwd>/.claude/ghengis-chain/cognition.jsonl
+    to <cwd>/.claude/cognition.jsonl (per-project scope). The hook is project-scope-only
+    so we don't consult the global library.
+    """
     if not cog_path.exists():
         return None
     try:
@@ -116,8 +121,9 @@ def main() -> int:
 
     cwd = _normalize_cwd(data.get("cwd") or "")
     chain_dir = cwd / ".claude" / "ghengis-chain"
+    cognition_path = cwd / ".claude" / "cognition.jsonl"
     history_path = _find_latest_history(chain_dir)
-    last_id = _last_cognition_id(chain_dir)
+    last_id = _last_cognition_id(cognition_path)
 
     if history_path is None or last_id is None:
         # No archived scratchpad or no cognition entry yet — nothing to analyze
@@ -131,7 +137,7 @@ def main() -> int:
         "entry with a high-quality structured lesson.\n\n"
         f"Archived scratchpad: {history_path}\n"
         f"Last cognition entry id (target for replacement): {last_id}\n"
-        f"Cognition file: {chain_dir / 'cognition.jsonl'}\n\n"
+        f"Cognition file: {cognition_path}\n\n"
         "After the analyzer returns its REPLACEMENT: <single-line JSON>, pipe it\n"
         "to the helper:\n"
         f"  echo '<JSON>' | python <scratchpad.py path> cognition-replace-last "

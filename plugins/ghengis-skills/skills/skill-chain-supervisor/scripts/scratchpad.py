@@ -893,14 +893,20 @@ def cmd_cognition_promote(args):
 
     The project entry is NOT deleted — it's marked with `promoted_to_global: true`
     to preserve the local audit trail. The global copy gains
-    `promoted_from_project: <project_root>` and `promoted_at: <iso8601>` stamps.
+    `promoted_from_project: <project_root_posix>` and `promoted_at: <iso8601>` stamps.
 
     Errors:
       - entry_id not found in project store
       - entry already has `promoted_to_global: true`
+      - entry with same id already present in global store (use --replace to overwrite)
     """
     parser = argparse.ArgumentParser(prog="scratchpad.py cognition-promote")
     parser.add_argument("entry_id")
+    parser.add_argument(
+        "--replace",
+        action="store_true",
+        help="Overwrite the existing global entry with the same id (default: error).",
+    )
     ns = parser.parse_args(args)
 
     project_path = _resolve_cognition_path(scope="project")
@@ -927,15 +933,37 @@ def cmd_cognition_promote(args):
         )
         return 1
 
+    # Check for an existing global entry with the same id (dedup).
+    global_entries = _read_cognition_entries(scope="global")
+    existing_global_idx = None
+    for i, e in enumerate(global_entries):
+        if e.get("id") == ns.entry_id:
+            existing_global_idx = i
+            break
+    if existing_global_idx is not None and not ns.replace:
+        print(
+            f"Entry {ns.entry_id!r} is already present in global. "
+            "Use --replace to overwrite.",
+            file=sys.stderr,
+        )
+        return 1
+
     # Build the global copy. Use a fresh dict so we don't mutate the project entry.
+    # Use as_posix() so promoted_from_project is portable across platforms.
     promoted = dict(target)
-    promoted["promoted_from_project"] = str(resolve_project_root())
+    promoted["promoted_from_project"] = resolve_project_root().as_posix()
     promoted["promoted_at"] = now_iso()
 
     global_path = _resolve_cognition_path(scope="global")
     global_path.parent.mkdir(parents=True, exist_ok=True)
-    with global_path.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(promoted, sort_keys=False) + "\n")
+    if existing_global_idx is not None:
+        # --replace path: overwrite the matching entry in place via atomic rewrite.
+        global_entries[existing_global_idx] = promoted
+        _write_cognition_entries(global_entries, scope="global")
+    else:
+        # Default path: append to global.
+        with global_path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(promoted, sort_keys=False) + "\n")
 
     # Mark the project entry. Atomic rewrite via _write_cognition_entries.
     for e in project_entries:
@@ -949,6 +977,7 @@ def cmd_cognition_promote(args):
         "promoted": ns.entry_id,
         "project_path": str(project_path),
         "global_path": str(global_path),
+        "replaced": existing_global_idx is not None,
     }, indent=2))
     return 0
 
