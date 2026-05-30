@@ -154,13 +154,90 @@ This refreshes `~/.claude/agent_identity/code_patterns.json` with the user's str
 
 If the registry doesn't exist, **skip silently**. Don't create it — that's `analyze_codebase`'s job (or whatever tool the user uses to register projects).
 
-## Phase 4 — Permissions ratchet (existing behavior — keep as-is)
+## Phase 4 — Permissions ratchet (synthesize + promote)
 
-Propagate reusable permissions from this project's `.claude/settings.local.json` to the global `~/.claude/settings.json` so they apply across ALL projects.
+Two sub-phases. **4a** mines session transcripts for repeatedly-approved commands and synthesizes wildcards into the project's allow list. **4b** then promotes reusable wildcards from the project up to global.
+
+The point of 4a (new in v1.20.0): stop asking for the same permission twice. If the user has approved the same command shape three or more times, generalize it to a wildcard and add it to the project allow list automatically. Without 4a, 4b only promotes wildcards the user typed by hand — which they rarely do, so the ratchet never fires.
+
+### Phase 4a — Synthesize wildcards from observed approvals
 
 **Process:**
 
-1. Read `<project>/.claude/settings.local.json` → `permissions.allow` list
+1. Locate session transcripts:
+   - macOS/Linux: `~/.claude/projects/<sanitized-cwd>/*.jsonl`
+   - Windows: `%USERPROFILE%\.claude\projects\<sanitized-cwd>\*.jsonl`
+   - Sanitized cwd is the project path with separators (`/` or `\`) → `-`, drive colons stripped.
+2. Read every `.jsonl` file modified in the last 14 days. Skip older — usage drifts.
+3. Extract every tool invocation that resulted in an approval (`allow` decision OR a tool_use that executed without being blocked). For each, derive the EXACT permission rule string it would have needed:
+   - `Bash(<command-line>)`
+   - `Read(<absolute-path>)`, `Write(<absolute-path>)`, `Edit(<absolute-path>)`
+   - `WebFetch(<url>)`
+   - MCP tools: keep as-is (`mcp__server__tool`)
+4. Pass each captured rule through `generalize_to_wildcard()` (below). Skip any that return `None` (means unsafe to generalize — usually secret-adjacent).
+5. Cluster the generalized forms by exact string match.
+6. For any cluster with count ≥ 3, add the generalized form to `<project>/.claude/settings.local.json` → `permissions.allow`.
+7. Dedup against entries already present (allow OR deny) before writing.
+8. Report what was synthesized: `"Synthesized N wildcards from session history: [list]"`. Empty list = skip silently.
+
+**Synthesis heuristic:**
+
+```python
+import re
+from collections import Counter
+
+# Never wildcard rules whose paths/args look secret-adjacent.
+SECRET_PATTERN = re.compile(r"(\.env|credentials|secret|api[_-]?key|token|password)", re.I)
+
+# Commands where the second token (subcommand) is part of the safe identity.
+SUBCMD_AWARE = {"pip", "git", "npm", "yarn", "pnpm", "uv", "uvx", "docker", "cargo", "brew", "apt", "winget"}
+
+def generalize_to_wildcard(perm: str) -> str | None:
+    """Convert a concrete permission to a wildcard. Return None if unsafe."""
+    if SECRET_PATTERN.search(perm):
+        return None
+    # Bash(<cmd> <args>) -> Bash(<cmd>:*) or Bash(<cmd> <sub>:*) for subcmd-aware tools
+    m = re.match(r"Bash\(([^\s)]+)(?:\s+([^\s)]+))?.*\)", perm)
+    if m:
+        cmd, sub = m.group(1), m.group(2)
+        if cmd in SUBCMD_AWARE and sub and re.match(r"^[a-zA-Z][a-zA-Z0-9_-]*$", sub):
+            return f"Bash({cmd} {sub}:*)"
+        return f"Bash({cmd}:*)"
+    # Read/Write/Edit(<path>) -> same op with parent dir + recursive glob
+    m = re.match(r"(Read|Write|Edit)\((.+)\)", perm)
+    if m:
+        op, path = m.group(1), m.group(2)
+        sep = "\\" if "\\" in path else "/"
+        parts = path.split(sep)
+        # Need at least drive + 2 dirs (Windows) or root + 2 dirs (Unix) to wildcard safely
+        if len(parts) < 4:
+            return None
+        parent = sep.join(parts[:-1])
+        return f"{op}({parent}{sep}**)"
+    # WebFetch(<url>) -> WebFetch(domain:<host>)
+    m = re.match(r"WebFetch\(https?://([^/)]+)", perm)
+    if m:
+        return f"WebFetch(domain:{m.group(1)})"
+    return None
+
+def synthesize_wildcards(approvals: list[str], min_count: int = 3) -> list[str]:
+    counter: Counter[str] = Counter()
+    for perm in approvals:
+        gen = generalize_to_wildcard(perm)
+        if gen:
+            counter[gen] += 1
+    return sorted(w for w, c in counter.items() if c >= min_count)
+```
+
+**Safety:** Never auto-add to `permissions.deny` (immutable by policy). Never wildcard a path whose final segment matches `SECRET_PATTERN`. Never expand to a parent shorter than 3 path segments — that prevents `Read(C:\Users\<me>\**)` and similar over-broad rules.
+
+### Phase 4b — Promote reusable permissions to global
+
+After 4a writes to the project, propagate reusable patterns up to `~/.claude/settings.json` so they apply across ALL projects.
+
+**Process:**
+
+1. Read `<project>/.claude/settings.local.json` → `permissions.allow` list (now includes anything 4a just synthesized)
 2. Read `~/.claude/settings.json` → `permissions.allow` and `permissions.deny` lists
 3. Filter project-local allows to ONLY reusable patterns:
    - Keep: entries with wildcards (`*`) — e.g., `Bash(brew install *)`, `WebFetch(domain:arxiv.org)`
@@ -169,6 +246,7 @@ Propagate reusable permissions from this project's `.claude/settings.local.json`
    - **Skip**: exact one-off commands (no `*`, long paths, specific filenames)
    - **Skip**: anything already in the global allow list (dedup)
    - **Skip**: anything in the global deny list (deny list is immutable)
+   - **Skip**: project-specific path wildcards (e.g., `Read(C:\Users\<me>\Desktop\someproj\**)`) — those stay project-scoped
 4. If new reusable permissions found:
    - Show the user what will be added: "Promoting N permissions to global settings: [list]"
    - Add to `~/.claude/settings.json` `permissions.allow`
@@ -195,6 +273,8 @@ def is_reusable_permission(perm: str) -> bool:
     if "*" not in perm:
         return False
     if re.search(r"/Users/[^/*]+/(Desktop|Documents|Downloads)/[^/*]+/[^*]*\.", perm):
+        return False
+    if re.search(r"\\Users\\[^\\*]+\\(Desktop|Documents|Downloads)\\[^\\*]+\\", perm):
         return False
     if "/private/tmp" in perm or "/tmp/" in perm:
         return False
