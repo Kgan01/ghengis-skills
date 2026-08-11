@@ -32,10 +32,19 @@ From this skill's directory to the user's global `~/.claude/`:
 
 | Source | Destination |
 |---|---|
-| `scripts/agy-call.ps1` | `~/.claude/scripts/agy-call.ps1` — the Gemini wrapper (Flash default, JSONL usage log) |
+| `scripts/agy-call.ps1` | `~/.claude/scripts/agy-call.ps1` — the Gemini wrapper (Flash default, JSONL usage log, file relay for long/quoted prompts) |
+| `scripts/agy_pty_auth.py` | run from anywhere — the OAuth driver used in step 4 (needs `pip install pywinpty`) |
+| `scripts/dashboard.py` | `~/.claude/tri-model/dashboard.py` — live ops console on :8321 (`python ~/.claude/tri-model/dashboard.py`) |
+| `scripts/model_advisor.py` | `~/.claude/tri-model/model_advisor.py` — routing scorecard (`--days 7`, `--json`) |
+| `scripts/sync_check.ps1` | `~/.claude/tri-model/sync_check.ps1` — verifies the deployed copies still match this skill |
 | `assets/gemini-agent.md` | `~/.claude/agents/gemini.md` |
 | `assets/commands/*.md` | `~/.claude/commands/` — /gemini /opinion /fusion /auto-validate /adw /gauntlet |
-| `assets/adw/` (rosters.yaml + 14 workflows) | `~/.claude/tri-model/adw/` — the CANONICAL role→model + phase definitions /adw interprets. Ported verbatim from the pi-workbench ADW factory; edit models in rosters.yaml, never in command prose |
+| `assets/adw/` (rosters.yaml + 13 workflows) | `~/.claude/tri-model/adw/` — the CANONICAL role→model + phase definitions /adw interprets. Ported verbatim from the pi-workbench ADW factory; edit models in rosters.yaml, never in command prose |
+
+After deploying, run `pwsh ~/.claude/tri-model/sync_check.ps1` — it reports any
+file that drifted from the skill copy, in either direction. Run it again after
+changing anything locally, and copy the changed file back into the skill so the
+next machine inherits the fix (this is how the harness stays portable).
 
 Check the wrapper's model shorthand map against `agy models` after auth (step 4) — ids drift as Google ships new versions; update the `switch` block if `flash`/`pro` no longer resolve.
 
