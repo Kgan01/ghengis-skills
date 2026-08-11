@@ -35,10 +35,13 @@ $resolved = switch ($Model) {
     default { $Model }
 }
 
-# Windows argv ceiling is ~32K chars - a large prompt can't ride the command
-# line (CreateProcess fails with "filename or extension is too long"). agy's
-# print mode READS workspace files, so big prompts go via file + bootstrap.
-if ($Prompt.Length -gt 25000) {
+# Two argv hazards on Windows: the ~32K CreateProcess ceiling ("filename or
+# extension is too long"), and PowerShell 5.1 mangling embedded quotes and
+# newlines in native args (the prompt silently truncates at the first bad
+# char - observed as Gemini judging ~10-line fragments of long documents).
+# agy's print mode READS workspace files, so anything that is not a short
+# clean one-liner goes via file + bootstrap instead of argv.
+if ($Prompt.Length -gt 4000 -or $Prompt -match '["\r\n]') {
     $promptDir = Join-Path $triDir "prompts"
     New-Item -ItemType Directory -Force $promptDir | Out-Null
     $promptPath = Join-Path $promptDir ("prompt-{0}.md" -f (Get-Date -Format "yyyyMMdd-HHmmss-fff"))
