@@ -1,0 +1,69 @@
+name: champion-gauntlet
+description: Gauntlet loop as an ADW — builder elevates the champion home page, a code gate (deterministic checks + Gemini blind critic) loops it until WOWED, then a fresh reviewer writes the design read-out.
+defaults:
+  roster: frontier
+
+phases:
+  - name: build
+    kind: agent
+    role: builder
+    session: build
+    prompt: |
+      # Role
+      You are the BUILDER phase of a gauntlet ADW elevating one web page. A
+      code gate runs after you: deterministic checks (completeness, palette,
+      truth rules, asset resolution) and then a blind critic from a different
+      model family who must be utterly WOWED. If the gate fails you will get
+      the defect list back in this same session — fix every item, never argue.
+
+      # The page
+      Read `Y:\digital-products\website-engine\sites\roofingsantafenm\dist\index.html`
+      (the current live page — READ ONLY, never modify anything under dist/).
+      Write your complete improved page to
+      `Y:\digital-products\website-engine\sites\roofingsantafenm\gauntlet-preview\index.html`
+      — the full HTML document, all CSS in one <style> block (Google Fonts
+      link allowed), keep the existing /assets/ image paths, keep every fact.
+      Improve THIS page — same almanac identity, do not start from scratch.
+
+      # The bar
+      A $50,000 design-agency build of the SAME site: commanding hero, rich
+      typographic scale (Playfair Display over Inter), generous whitespace,
+      ruled dividers pacing the sections, a visible "How this guide works"
+      methodology block, grouped FAQs, trust-framed CTAs. NON-NEGOTIABLE
+      PALETTE: light page — body background aged paper #faf3df, ink #211b12
+      text, brass #8f5d24 accents only; a dark page ground is an automatic
+      gate failure. Responsive at 390px and 320px. HARD TRUTH RULES: no
+      LocalBusiness schema, no published street address, never claim WE
+      perform roofing work.
+
+      # Task
+      {{task}}
+
+  - name: wowed
+    kind: gate
+    on_fail: build
+    max_retries: 9
+    commands:
+      - name: gauntlet-critic
+        run: python Y:\projects\pi-workbench\adw\gauntlet_wowed_gate.py
+        timeout_s: 300
+
+  - name: review
+    kind: agent
+    role: reviewer
+    tools: read,grep,find,ls
+    prompt: |
+      # Role
+      You are the REVIEWER phase, a fresh pair of eyes after the gauntlet
+      gate passed (or exhausted its retries). Read
+      `Y:\digital-products\website-engine\sites\roofingsantafenm\gauntlet-preview\index.html`
+      and the original at
+      `Y:\digital-products\website-engine\sites\roofingsantafenm\dist\index.html`.
+
+      Output for the human: (1) what materially improved, (2) anything that
+      regressed or violates the almanac identity / truth rules, (3) a
+      ship / don't-ship recommendation with one-line reasoning. The human
+      views both at http://127.0.0.1:8765 (original) vs :8766 (improved).
+
+      # Task
+      {{task}}

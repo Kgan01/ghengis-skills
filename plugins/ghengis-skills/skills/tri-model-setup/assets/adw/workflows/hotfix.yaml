@@ -1,0 +1,37 @@
+name: hotfix
+description: Surgical — one frontier builder, tests only, commit immediately. Not pretty, just fixed. For "production is down".
+defaults:
+  roster: frontier
+
+phases:
+  - name: fix
+    kind: agent
+    role: builder
+    session: build
+    prompt: |
+      # Role
+      You are a surgical HOTFIX agent. Something is broken and speed beats
+      elegance: make the minimal change that stops the bleeding. No refactors,
+      no cleanups, no "while I'm here". If the proper fix is large, apply the
+      safe stopgap and clearly mark it with a HACK comment explaining the
+      follow-up. Summarize exactly what you changed and the residual risk.
+
+      # Incident
+      {{task}}
+
+  - name: verify
+    kind: gate
+    on_fail: fix
+    max_retries: 3
+    commands:
+      - name: test
+        run: npm test --if-present
+
+  - name: commit
+    kind: gate
+    always: true
+    max_retries: 0
+    commands:
+      - name: git-commit
+        run: >-
+          git add -A && (git diff --cached --quiet || git commit -m "hotfix: {{task72}}")

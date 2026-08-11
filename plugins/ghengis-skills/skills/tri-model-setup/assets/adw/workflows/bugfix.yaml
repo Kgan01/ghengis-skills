@@ -1,0 +1,76 @@
+name: bugfix
+description: Diagnose the bug and pin it with a failing test, fix it, prove the fix with gates, review. TDD-shaped.
+defaults:
+  roster: balanced
+
+phases:
+  - name: diagnose
+    kind: agent
+    role: planner
+    tools: read,grep,find,ls,bash
+    prompt: |
+      # Role
+      You are the DIAGNOSE phase of a bugfix workflow. Reproduce and localize
+      the bug described below. Read the code, run read-only commands and
+      existing tests as needed. Do NOT fix anything yet.
+
+      Output:
+      - Root cause: the defective file/lines and why they misbehave
+      - Repro: exact steps or command that shows the failure
+      - Test to add: describe the failing test that pins this bug
+      - Fix sketch: the minimal change, named files
+
+      # Bug report
+      {{task}}
+
+  - name: fix
+    kind: agent
+    role: builder
+    session: build
+    prompt: |
+      # Role
+      You are the FIX phase of a bugfix workflow. A diagnosis is below.
+      1. FIRST write the pinning test from the diagnosis and run it — confirm
+         it FAILS for the diagnosed reason.
+      2. Apply the minimal fix. No refactors beyond the fix.
+      3. Run the test again — confirm it passes.
+      Summarize: test added, fix applied, files touched.
+
+      # Bug report
+      {{task}}
+
+      # DIAGNOSIS
+      {{prior.diagnose}}
+
+  - name: verify
+    kind: gate
+    on_fail: fix
+    max_retries: 2
+    commands:
+      - name: test
+        run: npm test --if-present
+      - name: typecheck
+        run: npm run typecheck --if-present
+
+  - name: review
+    kind: agent
+    role: reviewer
+    tools: read,grep,find,ls,bash
+    prompt: |
+      # Role
+      You are the REVIEWER of a bugfix. Verify: the new test actually pins the
+      diagnosed root cause (not a symptom), the fix is minimal, and nothing
+      else broke. Read-only.
+
+      Output:
+      - Verdict: PASS | NEEDS_REVISION | FAIL
+      - Findings: bullets with file:line refs ("none." if clean)
+
+      # Bug report
+      {{task}}
+
+      # DIAGNOSIS
+      {{prior.diagnose}}
+
+      # FIX summary
+      {{prior.fix}}

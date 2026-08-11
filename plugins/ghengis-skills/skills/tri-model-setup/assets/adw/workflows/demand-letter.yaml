@@ -1,0 +1,93 @@
+name: demand-letter
+description: Law-firm demand-letter pipeline (aaron-boland) — ingest, extract, draft, judge-as-gate with an automated revise loop. PHI. Roster locked to local; run with --cwd Y:/aaron-boland/law-firm-ai-system and the client name as the task.
+defaults:
+  roster: local
+  lock_roster: true   # PHI — no cloud model may touch case content, ever
+
+# Task text = the client folder substring, e.g.:
+#   node adw/adw.mjs run demand-letter --cwd Y:/aaron-boland/law-firm-ai-system "Peterson, Wendy"
+# OLLAMA_HOST decides which box drafts (DGX for the 70b models). Aaron still
+# reviews every letter — this automates v1→vN, not the sign-off.
+
+phases:
+  - name: preflight
+    kind: gate
+    always: true
+    max_retries: 0
+    commands:
+      - name: ollama-up
+        run: python -c "import urllib.request,os;h=os.environ.get('OLLAMA_HOST','127.0.0.1:11434').rstrip('/');h=h if '://' in h else 'http://'+h;h=h.replace('0.0.0.0','127.0.0.1');urllib.request.urlopen(h+'/api/tags',timeout=10);print('ollama ok at '+h)"
+        timeout_s: 30
+
+  - name: ingest
+    kind: gate
+    always: true
+    max_retries: 0
+    commands:
+      - name: ingest-case
+        run: python scripts/ingest_case.py --client "{{task72}}"
+        timeout_s: 600
+
+  - name: extract
+    kind: gate
+    always: true
+    max_retries: 0
+    commands:
+      - name: extract-police
+        run: python scripts/extract_police.py --client "{{task72}}"
+        timeout_s: 3600
+      - name: extract-medical
+        run: python scripts/extract_medical.py --client "{{task72}}"
+        timeout_s: 7200
+
+  - name: draft
+    kind: gate
+    always: true
+    max_retries: 0
+    commands:
+      - name: blind-draft
+        run: python scripts/blind-draft.py --client "{{task72}}"
+        timeout_s: 3600
+
+  # The revise agent is manual: it never runs in sequence — only when the
+  # judge gate fails. It does what Kaegan did by hand across Peterson v1→v12:
+  # read the judge's findings, tune the drafter prompt, re-draft.
+  - name: revise
+    kind: agent
+    role: builder
+    session: revise
+    manual: true
+    prompt: |
+      # Role
+      You are the REVISE phase of the demand-letter workflow, running fully
+      locally (PHI-safe). The judge scored the latest draft below threshold.
+
+      Steps:
+      1. Find the newest *.judge.md and *.judge.json for this client under
+         Y:/aaron-boland/drafts/ and read the flagged findings carefully.
+         Deterministic flags (dates, citations, duplicates, dropped providers)
+         are ground truth; consensus-confirmed claims are near-certain;
+         "unstable" items are advisory only.
+      2. Open the drafter task template used by scripts/blind-draft.py
+         (scripts/templates/task-injuries-and-healthcare-*.yaml — newest
+         version). Make MINIMAL targeted prompt edits that address the flagged
+         failure modes (e.g. strengthen citation instructions, forbid role
+         labels, tighten date rules, adjust sentence-length guidance). Do NOT
+         edit any Python. Do NOT touch case source files on I:/.
+      3. Re-run the draft: python scripts/blind-draft.py --client "{{task72}}"
+      4. Summarize: which findings you addressed, what you changed in the
+         template, and the new draft's path. The judge will re-run
+         automatically after you finish.
+
+      # Client
+      {{task72}}
+
+  - name: judge
+    kind: gate
+    always: true
+    on_fail: revise
+    max_retries: 2
+    commands:
+      - name: judge-draft
+        run: python scripts/judge_draft.py --client "{{task72}}"
+        timeout_s: 2400

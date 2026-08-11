@@ -1,0 +1,126 @@
+name: storyboard
+description: Movie ramble → style bible → shot list → per-model compiled prompts, gated by a deterministic manifest check. Output is a reviewable shot manifest that doubles as the prompt↔result ledger. Render/assemble come later — no video spend here.
+defaults:
+  roster: balanced
+
+# Task = the movie idea in plain language. Optionally name the target model in
+# the task ("...for kling 4"); default is Seedance 2.
+# Output: ./storyboard/<slug>/manifest.yaml in the target project dir.
+
+phases:
+  - name: treatment
+    kind: agent
+    role: planner
+    tools: read,grep,find,ls
+    prompt: |
+      # Role
+      You are the TREATMENT phase of a movie-making workflow. Turn the idea
+      below into a tight treatment a stranger could shoot from. If the current
+      project directory has relevant context (scripts, notes, prior
+      storyboards), read it — otherwise work from the idea alone.
+
+      Output exactly these sections:
+      - Title + logline (one sentence)
+      - Story: 3-8 beats, each one sentence
+      - STYLE BIBLE — the visual grammar that will be embedded verbatim in
+        every shot prompt, so be concrete and reusable: genre + era + tone;
+        palette and color grade; lens language (focal lengths, DOF, anamorphic
+        or not, film stock/digital character); lighting philosophy; camera
+        movement vocabulary; what this movie NEVER looks like (negative space).
+      - Characters/locations: one visual paragraph each (appearance details
+        that must stay consistent across shots)
+
+      # Idea
+      {{task}}
+
+  - name: shotlist
+    kind: agent
+    role: planner
+    tools: read,grep,find,ls
+    prompt: |
+      # Role
+      You are the SHOT LIST phase. Break the treatment below into individual
+      generated clips. Each shot is 2-12 seconds (short-form video model
+      limits; prefer 4-8s) and contains ONE clear action beat. Cover the whole
+      storyline — this is the full movie, not a sample.
+
+      For each shot output:
+      - id (S01, S02…), duration_s
+      - shot_type (wide/medium/close/insert/aerial…) + camera move
+      - beat: the single action, one sentence
+      - continuity: what must match neighboring shots (character look,
+        light direction, screen direction, time of day)
+
+      # Treatment
+      {{prior.treatment}}
+
+  - name: compile
+    kind: agent
+    role: builder
+    session: compile
+    prompt: |
+      # Role
+      You are the PROMPT COMPILE phase. Turn the shot list into final,
+      SELF-CONTAINED video-model prompts and write the manifest file.
+
+      The iron rule: the video model has amnesia. It never saw the treatment,
+      the other shots, or this conversation. Every prompt must stand entirely
+      alone — subject, action, setting, lens, camera movement, lighting,
+      color grade, mood, era — by embedding the relevant style-bible and
+      character/location language INTO each prompt. Never write "the same
+      character as before".
+
+      Target model: use the model named in the idea below if any, else
+      Seedance 2. Write prompts in that model's preferred dialect (consult the
+      video-shortform skill if available in your context; general rules:
+      Seedance/Kling reward dense cinematic prose with explicit camera
+      grammar; Veo/Sora reward natural scene description with physical
+      detail; all reward one action per clip and explicit motion direction).
+
+      Write the file `storyboard/<kebab-slug-of-title>/manifest.yaml` in the
+      CURRENT project directory, exactly this schema:
+
+      ```yaml
+      title: ...
+      created: <ISO date>
+      target_model: <e.g. seedance-2>
+      logline: ...
+      style_bible: |
+        <verbatim from treatment>
+      shots:
+        - id: S01
+          duration_s: 6
+          shot_type: wide
+          camera_move: slow push-in
+          beat: <one sentence>
+          continuity: <one sentence>
+          prompt: |
+            <the full self-contained prompt, >=200 chars>
+          plate: null      # optional keyframe image path, if pre-generating
+          video: null      # filled at render time — prompt<->result ledger
+          judge: null      # filled by the VLM judge
+          rating: null     # human 1-5 after viewing
+      ```
+
+      A deterministic checker validates this file next (structure, durations
+      2-12s, prompt length, ledger placeholders) — make it pass first time.
+      After writing, print the manifest path and a 3-line summary.
+
+      # Idea
+      {{task}}
+
+      # Treatment
+      {{prior.treatment}}
+
+      # Shot list
+      {{prior.shotlist}}
+
+  - name: manifest-check
+    kind: gate
+    always: true
+    on_fail: compile
+    max_retries: 2
+    commands:
+      - name: manifest-valid
+        run: node Y:/projects/pi-workbench/adw/check-manifest.mjs
+        timeout_s: 60

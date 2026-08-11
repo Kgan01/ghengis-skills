@@ -1,0 +1,132 @@
+name: cad-part
+description: Drawing/photo → parametric CAD. VLM reads the drawing ($0, DGX), an agent drafts the feature plan, build123d generates via Claude Max ($0), and a deterministic geometry inspector gates the result. Output is editable engineering CAD (STEP), not a frozen mesh.
+defaults:
+  roster: balanced
+
+# Task = description + path to the drawing image(s), e.g.:
+#   /adw model the bracket in drawings/panel-bracket.jpg, steel, 3mm holes are M3 clearance
+# Ledger: ./cad/<slug>/manifest.yaml (drawing → interpretation → plan → code → inspector verdict)
+
+phases:
+  - name: read-drawing
+    kind: agent
+    role: planner
+    tools: read,grep,find,ls,bash
+    prompt: |
+      # Role
+      You are the READ-DRAWING phase of a drawing-to-CAD workflow. The task
+      below names or implies one or more drawing/photo files in this project
+      directory. Find them (search if the path is partial), then run the VLM
+      reader on them via bash:
+
+        node Y:/projects/pi-workbench/adw/cad-vlm-read.mjs <image> [image2 ...]
+
+      It prints structured JSON (part type, dimensions, features, annotations,
+      uncertainties). Present its findings faithfully, then add YOUR read of
+      anything the VLM missed that the task text supplies (material, hole
+      specs, tolerances the user stated). Resolve each uncertainty with a
+      stated default from engineering judgment — never leave a question
+      without a proposed answer. Do not design yet; this phase is evidence.
+
+      # Task
+      {{task}}
+
+  - name: feature-plan
+    kind: agent
+    role: planner
+    tools: read,grep,find,ls
+    prompt: |
+      # Role
+      You are the FEATURE-PLAN phase. Turn the drawing evidence below into a
+      parametric build plan a CAD generator will follow exactly:
+
+      - PARAMETERS table: every dimension in mm with its source
+        (annotated / estimated / assumed-default). Include the overall
+        bounding box explicitly as bbox_x, bbox_y, bbox_z.
+      - BASE SOLID: the starting primitive/profile and its dims.
+      - FEATURES: ordered list (holes, slots, fillets, chamfers, pockets…)
+        with exact positions from datum edges, using the parameters.
+      - SYMMETRY/PATTERNS: mirrors and hole patterns as patterns, not
+        individual features.
+      - PRINT/MFG notes: anything affecting geometry (clearance fits: +0.2mm
+        on 3D-printed holes, etc.).
+
+      Precision beats brevity — the generator sees only your plan.
+
+      ANNOTATIONS ARE AUTHORITATIVE: a drawn label like "2x D5" fixes that
+      feature count at exactly 2. If the VLM's visual count contradicts a
+      transcribed annotation, the annotation wins — never invent geometry to
+      reconcile the two, and note the conflict in the plan.
+
+      # Task
+      {{task}}
+
+      # Drawing evidence
+      {{prior.read-drawing}}
+
+  - name: generate
+    kind: agent
+    role: builder
+    session: generate
+    prompt: |
+      # Role
+      You are the GENERATE phase. Produce the parametric CAD from the feature
+      plan using the JARVIS build123d pipeline (Claude Max, $0), then record
+      the ledger.
+
+      1. Choose a short snake_case model_id from the part name.
+      2. From Y:/Jarvis/apps/server, run generate_parametric via bash+python
+         exactly in this shape (exports MUST include 'step' — it produces the
+         GLB sidecar the inspector needs):
+
+         cd Y:/Jarvis/apps/server && PYTHONIOENCODING=utf-8 python -c "
+         import asyncio, pathlib, os
+         from dotenv import load_dotenv
+         load_dotenv(pathlib.Path('..')/'..'/'.env')
+         os.environ.pop('ANTHROPIC_API_KEY', None)  # stale key overrides Claude Max OAuth -> 401
+         from tools.cad_tools import generate_parametric
+         PROMPT = '''<the ENTIRE feature plan, verbatim, plus the build123d
+         rubric: mm units, BuildPart/BuildSketch, Locations + Mode.SUBTRACT
+         for holes, fillet/chamfer helpers, final part in a variable named
+         result, no file I/O or subprocess>'''
+         print(asyncio.run(generate_parametric(prompt=PROMPT, model_id='<model_id>', exports=('stl','step'))))
+         "
+
+      3. In the CURRENT project directory write `cad/<model_id>/manifest.yaml`:
+         ```yaml
+         part: <human name>
+         created: <ISO date>
+         drawing: <image path(s) from the task>
+         model_id: <model_id>
+         expected_bbox_mm: {x: <bbox_x>, y: <bbox_y>, z: <bbox_z>}   # from the PARAMETERS table
+         tolerance_mm: 1.0
+         feature_plan: |
+           <the plan, verbatim>
+         artifacts:
+           step: <absolute path returned by generate_parametric>
+           stl: <absolute path>
+           source: <path to source.py in ~/.jarvis/cad/<model_id>/>
+         inspector: null    # filled by the gate
+         rating: null       # human verdict after opening the part
+         ```
+      4. Print the manifest path and the artifact paths.
+
+      If a previous attempt's inspector findings appear below the plan,
+      fix exactly those issues (usually a misread dimension or a dropped
+      feature) and regenerate with the SAME model_id.
+
+      # Task
+      {{task}}
+
+      # Feature plan
+      {{prior.feature-plan}}
+
+  - name: inspect
+    kind: gate
+    always: true
+    on_fail: generate
+    max_retries: 2
+    commands:
+      - name: geometry-inspector
+        run: python Y:/projects/pi-workbench/adw/cad_inspect_gate.py
+        timeout_s: 300

@@ -1,0 +1,114 @@
+name: sdlc
+description: The full deal — plan, build, verify with gates, commit, review, document, commit docs. Everything just gets done.
+defaults:
+  roster: balanced
+
+phases:
+  - name: plan
+    kind: agent
+    role: planner
+    tools: read,grep,find,ls
+    prompt: |
+      # Role
+      You are the PLANNER phase of an AI developer workflow. Produce a focused,
+      numbered implementation plan for the task below. Explore the codebase with
+      your read-only tools enough to ground every step in real files. Do NOT
+      write code or modify anything.
+
+      Output: numbered steps (imperative, one sentence each, name the files),
+      then a short "Risks / unknowns" list. No preamble. A different model will
+      execute your plan verbatim — precision beats brevity.
+
+      # Task
+      {{task}}
+
+  - name: build
+    kind: agent
+    role: builder
+    session: build
+    prompt: |
+      # Role
+      You are the BUILDER phase of an AI developer workflow. Execute the plan
+      below exactly. Full tool access. If you must deviate, say why in your
+      final summary. When done, summarize: files touched, key decisions,
+      deviations. Deterministic gates run after you — make them pass first time.
+
+      # Task
+      {{task}}
+
+      # PLANNER output
+      {{prior.plan}}
+
+  - name: verify
+    kind: gate
+    on_fail: build
+    max_retries: 2
+    commands:
+      - name: typecheck
+        run: npm run typecheck --if-present
+      - name: lint
+        run: npm run lint --if-present
+      - name: test
+        run: npm test --if-present
+
+  - name: commit
+    kind: gate
+    always: true
+    max_retries: 0
+    commands:
+      - name: git-commit
+        run: >-
+          git add -A && (git diff --cached --quiet || git commit -m "adw({{workflow}}): {{task72}}")
+
+  - name: review
+    kind: agent
+    role: reviewer
+    tools: read,grep,find,ls,bash
+    prompt: |
+      # Role
+      You are the REVIEWER phase of an AI developer workflow. A builder claims
+      the task is done, gates passed, and the work is committed. Your question:
+      is what was built what was asked for? Inspect the changed files
+      (`git show --stat HEAD` helps). Read-only — do NOT modify files.
+
+      Output:
+      - Verdict: PASS | NEEDS_REVISION | FAIL
+      - Findings: bullets with file:line refs ("none." if clean)
+      - Suggestions: optional follow-ups
+
+      # Task
+      {{task}}
+
+      # PLANNER output
+      {{prior.plan}}
+
+      # BUILDER output
+      {{prior.build}}
+
+  - name: document
+    kind: agent
+    role: builder
+    session: build
+    prompt: |
+      # Role
+      You are the DOCUMENT phase. The work below is built, verified, committed,
+      and reviewed. Update the repo's own records so the next engineer (or
+      agent) inherits the context: CHANGELOG.md if present, TODO.md if the task
+      closes an item, and any doc file that now tells a lie. Small, surgical
+      edits only — no new doc files unless clearly warranted. Summarize what
+      you updated (or say "nothing needed updating" if so).
+
+      # Task
+      {{task}}
+
+      # REVIEWER output
+      {{prior.review}}
+
+  - name: commit-docs
+    kind: gate
+    always: true
+    max_retries: 0
+    commands:
+      - name: git-commit-docs
+        run: >-
+          git add -A && (git diff --cached --quiet || git commit -m "docs(adw): record {{task72}}")

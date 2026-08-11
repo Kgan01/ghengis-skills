@@ -1,0 +1,62 @@
+name: site-page-gauntlet
+description: Page-by-page Santa Fe Roofing Guide rollout — Sol builds against the corrected champion; deterministic preservation, Gemini WOWED, and Opus SHIP gates loop back to the same builder session.
+defaults:
+  roster: frontier
+
+phases:
+  - name: build
+    kind: agent
+    role: builder
+    session: build
+    prompt: |
+      # Role
+      You are the BUILDER for one page in the Santa Fe Roofing Guide rollout.
+      The task value is a single page slug: `{{task}}`.
+
+      # Paths
+      Site root: `Y:\digital-products\website-engine\sites\roofingsantafenm`
+      If slug is `home`, read `dist\index.html` and write
+      `gauntlet-preview\index.html`. Otherwise read
+      `dist\{{task}}\index.html` and write the complete candidate to
+      `gauntlet-preview\{{task}}\index.html`.
+      `dist\` is READ ONLY. Never ship or invoke oneshot.py.
+
+      Read `gauntlet-preview\index.html` as the current visual champion. Apply
+      its paper/ink/brass design system, Playfair/Inter typography, editorial
+      rhythm, navigation, and trust framing without turning this page into a
+      homepage clone. Preserve the target page's unique information architecture.
+
+      # Preservation contract
+      Keep every verified fact, meaningful link, schema meaning, form field,
+      disclosure, FAQ, table, search/filter behavior, and page-specific tool.
+      Keep asset URLs resolvable. Progressive enhancement: core content and
+      controls remain visible without JavaScript. Maintain accessible headings,
+      focus states, landmarks, table semantics, and 320px/390px behavior.
+      Prominently state that Santa Fe Roofing Guide is not a roofing contractor
+      and does not perform roofing work. No LocalBusiness schema, street address,
+      invented facts, performance claims, or internal brief vocabulary.
+
+      # Homepage correction
+      For slug `home`, specifically restore the masthead contractor disclaimer;
+      remove “A trust-framed next step”; remove invented hero caption/apparatus;
+      restore illustration provenance; make plate numbering coherent; restore
+      FAQ question headings; fix the skip-link target, honeypot semantics, and
+      likely 375px hero overflow; keep the engineering/accessibility wins.
+
+      # Release loop
+      Two fresh gates follow: Gemini must return WOWED + SHIP and Opus must
+      independently return SHIP. Any defect list comes back into this same
+      session. Fix every listed issue without arguing or introducing regressions.
+      Write the full finished HTML document, validate it, then report concisely.
+
+  - name: release
+    kind: gate
+    on_fail: build
+    max_retries: 20
+    commands:
+      - name: gemini-wowed-preservation
+        run: python Y:\projects\pi-workbench\adw\site_page_wowed_gate.py --slug {{task72}}
+        timeout_s: 300
+      - name: opus-fresh-eyes-ship
+        run: python Y:\projects\pi-workbench\adw\site_page_opus_review.py --slug {{task72}}
+        timeout_s: 900

@@ -1,0 +1,89 @@
+name: render-cut
+description: Movie factory phase 2 — render the newest storyboard manifest's pending shots (Seedance 2 via fal, SPENDS MONEY), VLM-judge every clip against its own prompt, revise+re-render failures, assemble the cut. Run in the project dir that holds storyboard/.
+defaults:
+  roster: balanced
+
+# Launching this workflow IS the render consent — the render gate passes --yes.
+# Dry-run first from the terminal if unsure: node <adw>/render-shots.mjs
+
+phases:
+  - name: preflight
+    kind: gate
+    always: true
+    max_retries: 0
+    commands:
+      - name: ffmpeg
+        run: ffmpeg -version >nul 2>&1 || ffmpeg -version
+        timeout_s: 30
+      - name: fal-key
+        run: node -e "const{existsSync,readFileSync}=require('fs');for(const p of ['Y:/projects/pi-workbench/.env','Y:/Jarvis/.env']){if(existsSync(p))for(const l of readFileSync(p,'utf8').split(/\r?\n/)){const m=l.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);if(m&&!(m[1] in process.env))process.env[m[1]]=m[2]}};process.exit(process.env.FAL_API_KEY?0:1)"
+        timeout_s: 30
+      - name: vlm-host
+        run: node -e "fetch((process.env.ADW_VLM_HOST??'http://100.83.103.28:11434')+'/api/tags').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+        timeout_s: 30
+
+  - name: render
+    kind: gate
+    always: true
+    max_retries: 1   # a retry re-runs only shots whose video.error is set
+    on_fail: render-retry-note
+    commands:
+      - name: render-pending
+        run: node Y:/projects/pi-workbench/adw/render-shots.mjs --yes
+        timeout_s: 7200
+
+  # Trivial manual agent so a render retry has an on_fail target; it just
+  # reports which shots errored before render re-runs them.
+  - name: render-retry-note
+    kind: agent
+    role: reviewer
+    manual: true
+    tools: read,grep,find,ls
+    prompt: |
+      Read the newest storyboard/*/manifest.yaml in this directory. List shots
+      whose video field contains an error, with the error text, in 5 lines or
+      fewer. Do not modify anything — the renderer will retry them next.
+
+  - name: judge
+    kind: gate
+    always: true
+    on_fail: revise-shots
+    max_retries: 2
+    commands:
+      - name: vlm-judge
+        run: node Y:/projects/pi-workbench/adw/judge-shots.mjs
+        timeout_s: 3600
+
+  - name: revise-shots
+    kind: agent
+    role: builder
+    session: revise
+    manual: true
+    prompt: |
+      # Role
+      You are the REVISE phase of the movie render workflow. The VLM judge
+      scored some shots below threshold — their judge fields in the newest
+      storyboard/*/manifest.yaml show the score, what was missing, and notes.
+
+      For EACH failing shot (judge.score < 0.6):
+      1. Rewrite its `prompt` to fix what the judge found missing — keep the
+         style bible language, make the missing subject/action more explicit
+         and front-loaded (video models weight early tokens heavily).
+      2. Set its `video:` back to null (and leave `judge:` as-is; it will be
+         re-judged after re-render).
+      Then re-render only the cleared shots by running:
+      `node Y:/projects/pi-workbench/adw/render-shots.mjs --yes`
+      Summarize: which shots, what you changed in each prompt, render result.
+      The judge re-runs automatically after you finish.
+
+      # Original idea (for intent)
+      {{task}}
+
+  - name: assemble
+    kind: gate
+    always: true
+    max_retries: 0
+    commands:
+      - name: cut
+        run: node Y:/projects/pi-workbench/adw/assemble-cut.mjs
+        timeout_s: 1800

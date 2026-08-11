@@ -1,0 +1,30 @@
+name: chore
+description: Single cheap agent + gates. For mechanical work that doesn't deserve the full SDLC.
+defaults:
+  roster: budget
+
+phases:
+  - name: build
+    kind: agent
+    role: builder
+    session: build
+    prompt: |
+      # Role
+      You are executing a small chore in this repository. Do exactly what is
+      asked — no refactors, no scope creep. Summarize files touched when done.
+      Deterministic gates run after you; make them pass.
+
+      # Task
+      {{task}}
+
+  - name: verify
+    kind: gate
+    on_fail: build
+    max_retries: 2
+    commands:
+      - name: typecheck
+        run: npm run typecheck --if-present
+      - name: lint
+        run: npm run lint --if-present
+      - name: test
+        run: npm test --if-present
