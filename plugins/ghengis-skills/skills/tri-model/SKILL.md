@@ -28,6 +28,7 @@ Availability check (only when in doubt): `agy models` / `codex login status` err
 | A judgement call, architecture choice, "get this right" | /opinion (side-by-side, no merge) or, for the highest stakes only, /fusion (3x cost). |
 | "Is it actually done?" / acceptance matters | /auto-validate — blind validator (prefer the gemini agent) writes the gate BEFORE the build. |
 | A whole plain-language request to run end-to-end | /adw — router picks workflow + roster, phases run as agents, deterministic gates decide. |
+| An EXISTING deliverable that should be elevated until it wows — "make this great", "polish this", long-horizon quality push | /gauntlet — worker + blind cross-family critic rounds against a reference-anchored bar (`VERDICT: WOWED`), deterministic checks first, defects loop back verbatim, caps → honest PARTIAL. Works on any artifact: page, module, doc, deck, CAD part. |
 | Claude stuck after 2 real attempts | codex rescue (delegation, mode A). Note the handoff explicitly. |
 
 ## Till-Done Execution
@@ -53,7 +54,8 @@ The user wants to fire a request and watch it finish, not shepherd it:
 ## Cross-References
 
 - **`tri-model-setup`** — installs this rig on a machine that lacks it (agy, codex, wrapper, commands).
-- Commands (global `~/.claude/commands/`): `/gemini`, `/opinion`, `/fusion`, `/auto-validate`, `/adw`.
+- Commands (global `~/.claude/commands/`): `/gemini`, `/opinion`, `/fusion`, `/auto-validate`, `/adw`, `/gauntlet`.
+- **Gauntlet Loop lineage**: JARVIS `agents/gauntlet.py` (worker+blind-critic dyads, perception adapters) and the ADW wowed gates (deterministic-first, agy-preferred critic). The loop's two load-bearing framings: the critic is BLIND (fresh judgement every round, no history), and feedback is "flaws to REMOVE or RESOLVE — not features to add" (prevents rounds from bloating the deliverable).
 - **`oort-cascade`** / **`agent-teams`** — Claude-internal orchestration; this skill decides which MODEL FAMILY, those decide which Claude agents.
 - **`skill-chain-supervisor`** — chains may name a validator; prefer a cross-model one when the harness is present.
 - Decision record: `~/.claude/tri-model/README.md` (why the harness is shaped this way).
