@@ -27,3 +27,5 @@ build/
 # Local env
 .env
 .env.local
+
+plugins/ghengis-skills/skills/system-scaffold/
