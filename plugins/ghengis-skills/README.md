@@ -120,6 +120,15 @@ These change how Claude approaches complex work — orchestration patterns extra
 | **constitutional-ai** | 9 safety rules across 5 categories (Safety, Cost, Privacy, Transparency, Autonomy). Signal-based pre/post execution checks that prevent irreversible actions, PII exposure, and scope creep |
 | **project-scaffold** | Auto-generates a 4-layer project structure: MEMORY.md (project identity), CONTEXT.md (workspace routing), per-workspace guidance, and a modular `.claude/` directory with rules, docs, and settings |
 
+### Tri-Model Harness (2 skills)
+
+Claude Code as host for three model families: Claude (unmetered bulk), Gemini via Google's `agy` CLI (cheap second eyes), GPT via OpenAI's `codex` CLI (adversarial review). The user never picks models — routing doctrine does.
+
+| Skill | What It Does |
+|-------|-------------|
+| **tri-model** | Routing doctrine for the three-leg harness. Economics-first leg selection (bulk stays unmetered, metered legs get review-sized work), adversarial-review-by-default, /opinion /fusion /auto-validate /adw command family, till-done execution with visible task lists. Born from a production quota burn — a router with no economics doctrine exhausted a ChatGPT sub in days. |
+| **tri-model-setup** | Installs the rig on a bare machine: agy + codex + first-party plugin + bundled wrapper/agent/commands (in this skill's assets). Includes the battle-tested OAuth dance for agy's 60-second auth window (ConPTY + threaded feeder + clipboard relay) and the npm platform-pin gotcha. |
+
 ### Agent Reliability (5 skills)
 
 These keep agents honest, healthy, and on track — catching failures that normally go unnoticed until the user finds them.

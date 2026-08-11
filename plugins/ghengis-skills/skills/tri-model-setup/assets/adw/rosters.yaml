@@ -1,0 +1,54 @@
+# Model rosters — which model plays which role, per spend/quality profile.
+# Model refs: <provider>/<id>[:thinking]. Change models HERE, never in code.
+#
+# Providers in the quad:
+#   claude-cli/*    Claude via claude-shim ($0 on Max; shim must be running on :8317)
+#   openai-codex/*  ChatGPT subscription OAuth (already authed in pi)
+#   google/*        Gemini API (needs GEMINI_API_KEY in ../.env — see README)
+#
+# Dan's rule of thumb: frontier model plans + reviews (nothing gets missed),
+# workhorse builds (cheap, fast), gates are code (free).
+
+rosters:
+  # Max quality — critical or gnarly work. Fable plans (best model there is),
+  # Sol builds, Opus reviews (senior second pair of Claude eyes).
+  frontier:
+    planner:  { model: "claude-cli/fable" }
+    builder:  { model: "openai-codex/gpt-5.6-sol" }
+    reviewer: { model: "claude-cli/opus" }
+
+  # All-OpenAI rail — Sol (the frontier one) plans, Terra builds, Luna (the
+  # light one) reviews. Use when Claude quota is precious or Gemini is limited.
+  gpt:
+    planner:  { model: "openai-codex/gpt-5.6-sol", thinking: high }
+    builder:  { model: "openai-codex/gpt-5.6-terra" }
+    reviewer: { model: "openai-codex/gpt-5.6-luna" }
+
+  # Default — frontier ends, workhorse middle. Saves Claude/Max quota.
+  balanced:
+    planner:  { model: "openai-codex/gpt-5.6-sol", thinking: high }
+    builder:  { model: "google/gemini-3.6-flash" }
+    reviewer: { model: "claude-cli/sonnet" }
+
+  # Cheap — chores, docs, mechanical edits. No Claude quota burned at all.
+  budget:
+    planner:  { model: "google/gemini-3.1-pro-preview" }
+    builder:  { model: "google/gemini-3.6-flash" }
+    # All-Gemini so the cheap tier has no cross-provider dependency
+    # (Codex quota exhaustion would otherwise strand it at review).
+    reviewer: { model: "google/gemini-3.5-flash" }
+
+  # Two frontier models debate the plan (pingpong-plan-build workflow),
+  # a workhorse builds, Sonnet reviews. The heavyweight option.
+  pingpong:
+    planner_a: { model: "claude-cli/fable" }
+    planner_b: { model: "openai-codex/gpt-5.6-sol", thinking: high }
+    builder:   { model: "google/gemini-3.6-flash" }
+    reviewer:  { model: "claude-cli/sonnet" }
+
+  # $0 + private — DGX Spark via the ollama-ext extension (auto-registered
+  # as provider "ollama-dgx" when the Spark is reachable on the Tailnet).
+  local:
+    planner:  { model: "ollama-dgx/gpt-oss:120b" }
+    builder:  { model: "ollama-dgx/gpt-oss:120b" }
+    reviewer: { model: "ollama-dgx/qwen3.6:35b-a3b" }

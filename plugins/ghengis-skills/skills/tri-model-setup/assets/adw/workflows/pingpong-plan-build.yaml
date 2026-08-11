@@ -1,0 +1,118 @@
+name: pingpong-plan-build
+description: Two frontier models debate the plan (draft, adversarial critique, reconcile), then a workhorse builds it. For gnarly work where the plan is the risk.
+defaults:
+  roster: pingpong
+
+phases:
+  - name: plan
+    kind: agent
+    role: planner_a
+    tools: read,grep,find,ls
+    prompt: |
+      # Role
+      You are PLANNER-A, first voice in a two-model planning debate. Draft a
+      numbered implementation plan for the task, grounded in real files (use
+      your read-only tools). Do NOT modify anything. A rival frontier model
+      will attack this plan next, so state your assumptions explicitly.
+
+      Output: numbered steps naming files, then "Assumptions" and
+      "Risks / unknowns" lists. No preamble.
+
+      # Task
+      {{task}}
+
+  - name: critique
+    kind: agent
+    role: planner_b
+    tools: read,grep,find,ls
+    prompt: |
+      # Role
+      You are PLANNER-B, the adversarial second voice in a planning debate.
+      Another frontier model drafted the plan below. Your job is to find what
+      it got wrong: missed files, wrong assumptions, simpler paths, hidden
+      breakage, untested edge cases. Verify claims against the actual codebase
+      with your read-only tools. Do NOT modify anything. Do not nitpick style —
+      attack substance. If a step is right, say "agree" and move on.
+
+      Output: per-step verdicts (agree / object: reason / missing: addition),
+      then "Verdict: SOUND | NEEDS_REWORK" with the 3 most important changes.
+
+      # Task
+      {{task}}
+
+      # PLANNER-A's draft plan
+      {{prior.plan}}
+
+  - name: reconcile
+    kind: agent
+    role: planner_a
+    tools: read,grep,find,ls
+    prompt: |
+      # Role
+      You are PLANNER-A again, closing the planning debate. Below are your
+      draft and PLANNER-B's critique. Accept every objection that is correct
+      (do not defend your draft for pride), reject with one-line reasons any
+      that are wrong, and emit the FINAL plan. This exact text goes to a
+      builder model for verbatim execution.
+
+      Output: final numbered steps naming files, then "Risks / unknowns".
+      Nothing else.
+
+      # Task
+      {{task}}
+
+      # Your draft
+      {{prior.plan}}
+
+      # PLANNER-B's critique
+      {{prior.critique}}
+
+  - name: build
+    kind: agent
+    role: builder
+    session: build
+    prompt: |
+      # Role
+      You are the BUILDER. Execute the final plan below exactly — it survived a
+      two-frontier-model debate, so trust it. Full tool access. Summarize files
+      touched and any forced deviations when done. Gates run after you.
+
+      # Task
+      {{task}}
+
+      # FINAL plan
+      {{prior.reconcile}}
+
+  - name: verify
+    kind: gate
+    on_fail: build
+    max_retries: 2
+    commands:
+      - name: typecheck
+        run: npm run typecheck --if-present
+      - name: lint
+        run: npm run lint --if-present
+      - name: test
+        run: npm test --if-present
+
+  - name: review
+    kind: agent
+    role: reviewer
+    tools: read,grep,find,ls,bash
+    prompt: |
+      # Role
+      You are the REVIEWER. Builder claims done, gates passed. Is what was
+      built what was asked for — and does it honor the debated plan? Read-only.
+
+      Output:
+      - Verdict: PASS | NEEDS_REVISION | FAIL
+      - Findings: bullets with file:line refs ("none." if clean)
+
+      # Task
+      {{task}}
+
+      # FINAL plan
+      {{prior.reconcile}}
+
+      # BUILDER output
+      {{prior.build}}
