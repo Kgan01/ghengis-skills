@@ -35,9 +35,25 @@ $resolved = switch ($Model) {
     default { $Model }
 }
 
-$agyArgs = @("--print", $Prompt, "--model", $resolved, "--output-format", "text", "--print-timeout", "$($TimeoutMin)m")
-if ($Effort) { $agyArgs += @("--effort", $Effort) }
-if ($Cwd)    { $agyArgs += @("--add-dir", $Cwd) }
+# Windows argv ceiling is ~32K chars - a large prompt can't ride the command
+# line (CreateProcess fails with "filename or extension is too long"). agy's
+# print mode READS workspace files, so big prompts go via file + bootstrap.
+if ($Prompt.Length -gt 25000) {
+    $promptDir = Join-Path $triDir "prompts"
+    New-Item -ItemType Directory -Force $promptDir | Out-Null
+    $promptPath = Join-Path $promptDir ("prompt-{0}.md" -f (Get-Date -Format "yyyyMMdd-HHmmss-fff"))
+    Set-Content -Path $promptPath -Value $Prompt -Encoding utf8 -NoNewline
+    $sendPrompt = "Read the file $promptPath in your workspace. It contains your complete task and all material. Follow it exactly and reply with the output it asks for - nothing else."
+    $extraDir = $promptDir
+} else {
+    $sendPrompt = $Prompt
+    $extraDir = $null
+}
+
+$agyArgs = @("--print", $sendPrompt, "--model", $resolved, "--output-format", "text", "--print-timeout", "$($TimeoutMin)m")
+if ($Effort)   { $agyArgs += @("--effort", $Effort) }
+if ($Cwd)      { $agyArgs += @("--add-dir", $Cwd) }
+if ($extraDir) { $agyArgs += @("--add-dir", $extraDir) }
 
 $t0 = Get-Date
 $prevCwd = Get-Location
@@ -60,6 +76,8 @@ $entry = [ordered]@{
     seconds      = $secs
     exit         = $code
     cwd          = "$Cwd"
+    via_file     = [bool]$extraDir
+    output_head  = $output.Substring(0, [Math]::Min(160, $output.Length)).Trim()
 } | ConvertTo-Json -Compress
 Add-Content -Path (Join-Path $triDir "agy-usage.jsonl") -Value $entry
 
