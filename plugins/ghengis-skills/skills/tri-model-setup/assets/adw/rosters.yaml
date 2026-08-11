@@ -9,7 +9,30 @@
 # Dan's rule of thumb: frontier model plans + reviews (nothing gets missed),
 # workhorse builds (cheap, fast), gates are code (free).
 
+#
+# DEFAULT DOCTRINE (2026-08-10): QUALITY FIRST.
+# The plans are paid for — Claude Max $200 (unmetered), ChatGPT Pro 5x, Google
+# AI Pro. Spending a cheap model to save quota that expires unused is a false
+# economy. So: frontier models do the thinking, cheap models execute work that
+# is ALREADY fully specified, and a higher-tier reviewer always checks them.
+# `quality` is the default roster; `balanced`/`budget` are deliberate downgrades.
+
 rosters:
+  # DEFAULT. Claude does the heavy lifting (unmetered $200 plan), codex gets
+  # real building work (5x plan sits idle otherwise), Opus reviews everything.
+  quality:
+    planner:  { model: "claude-cli/fable" }
+    builder:  { model: "openai-codex/gpt-5.6-sol" }
+    reviewer: { model: "claude-cli/opus" }
+
+  # Pre-specified mechanical work: the task is already decided, a fast model
+  # types it, and a frontier reviewer verifies correctness. Kaegan's pattern:
+  # "just go do it as I said, then have Opus review it."
+  specd:
+    planner:  { model: "claude-cli/haiku" }
+    builder:  { model: "google/gemini-3.6-flash" }
+    reviewer: { model: "claude-cli/opus" }
+
   # Max quality — critical or gnarly work. Fable plans (best model there is),
   # Sol builds, Opus reviews (senior second pair of Claude eyes).
   frontier:

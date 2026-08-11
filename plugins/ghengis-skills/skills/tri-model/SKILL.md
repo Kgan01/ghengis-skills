@@ -13,9 +13,33 @@ Baseline failure this skill exists to prevent (observed in production, 2026-08):
 
 | Leg | Metering | Role |
 |---|---|---|
-| **Claude** (this session + Agent tool) | unmetered (Max sub) | ALL bulk labor: reading, building, editing, testing |
-| **Gemini** (`gemini` agent → `agy`, Flash default) | metered, cheap (AI Pro) | second eyes: review, critique, tie-breaks. Pro only for deep judgement |
-| **GPT** (`codex` CLI + plugin) | metered (ChatGPT sub) | adversarial review of finished work; rescue when Claude is stuck |
+| **Claude** (this session + Agent tool) | unmetered (Max $200) | most of the work, at the TOP tier — Opus/Fable for thinking and review |
+| **Gemini** (`gemini` agent → `agy`) | AI Pro sub | Flash for fast dedicated tasks; Pro for cross-family critique |
+| **GPT** (`codex` CLI + plugin) | ChatGPT Pro 5x | real building work + adversarial review — this plan sits idle otherwise |
+
+## Quality First
+
+**All three plans are already paid for.** Quota that expires unused buys
+nothing, so downgrading to a cheap model "to save money" is a false economy.
+Default to the strongest model that fits, and reserve small models for work
+that is *already fully specified*.
+
+| Work | Model tier |
+|---|---|
+| Thinking, design, review, judgement, anything ambiguous | frontier — Opus 5 / Fable / GPT-5.6-sol / Gemini 3.1 Pro |
+| Bulk building where the approach is decided | Sonnet, or codex (its plan is otherwise idle) |
+| **Pre-specified mechanical execution** — "just do exactly this" | fast tier (Haiku, Gemini 3.6 Flash) **always followed by a frontier review** |
+| Anything shipping | never graded only by the model that built it |
+
+**The spec'd-task pattern** (Kaegan's, make it routine): when the user has
+already decided *what* to do, hand the typing to a fast model, then have
+**Opus verify it is correct** before it counts as done. Speed on execution,
+frontier judgement on correctness — never fast-and-unchecked.
+
+**Keep codex working.** The 5x plan is paid; an idle GPT leg is waste, and its
+different failure modes catch what Claude and Gemini both miss (it found
+duplicate usage records inflating a dashboard's cost figures by 28% after
+Gemini had already passed the same artifact).
 
 Availability check (only when in doubt): `agy models` / `codex login status` errors → leg is down; proceed without it and say so in one line. A missing leg never blocks work.
 
@@ -38,6 +62,22 @@ The user wants to fire a request and watch it finish, not shepherd it:
 1. **Make the work visible**: TaskCreate one task per phase/gate up front; mark `in_progress`/`completed` as you go. The task list IS the progress UI.
 2. **Run until done**: a failing gate feeds its failure tail back to the builder (same agent, max 3 retries), then escalates roster or reports PARTIAL honestly. Never stop at "I ran into an issue" with tasks still open.
 3. **Leave evidence**: every agy call auto-logs to `~/.claude/tri-model/agy-usage.jsonl`; ADW runs write envelopes + `metrics.jsonl`. Cite them in the final report.
+
+## Route on Evidence, Not Assumption
+
+`python ~/.claude/tri-model/model_advisor.py --days 7` turns the harness's own
+logs into a routing scorecard: per-model latency, failure rate, token volume
+(cache included), ADW phase outcomes, codex plan burn, and **critic yield** —
+defects surfaced per gauntlet round, and whether a reviewer's pass verdict
+later got overturned. Consult it when a routing choice is non-obvious, and cite
+what it says. Rows flagged `[thin evidence]` have too few observations to route
+on; say so rather than inventing a preference.
+
+Measured so far (2026-08-10): Gemini 3.1 Pro averages **128s** per call versus
+**9.4s** for 3.6 Flash — Flash is the right default for fast dedicated work and
+Pro is worth the wait only for deep critique. codex has completed 15/15
+sessions cleanly. Every claim in this paragraph came from the advisor, and it
+should be re-run rather than trusted as it ages.
 
 ## Anti-Patterns
 
