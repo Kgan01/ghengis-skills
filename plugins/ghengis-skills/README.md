@@ -129,6 +129,18 @@ Claude Code as host for three model families: Claude (unmetered bulk), Gemini vi
 | **tri-model** | Routing doctrine for the three-leg harness. Economics-first leg selection (bulk stays unmetered, metered legs get review-sized work), adversarial-review-by-default, /opinion /fusion /auto-validate /adw command family, till-done execution with visible task lists. Born from a production quota burn — a router with no economics doctrine exhausted a ChatGPT sub in days. |
 | **tri-model-setup** | Installs the rig on a bare machine: agy + codex + first-party plugin + bundled wrapper/agent/commands (in this skill's assets). Includes the battle-tested OAuth dance for agy's 60-second auth window (ConPTY + threaded feeder + clipboard relay) and the npm platform-pin gotcha. |
 
+**How the commands relate** — one front door, one engine, a few specialist tools:
+
+- **`/adw`** is the front door for *tasks*: say it in plain language, the router picks a **workflow** (which phases run) and a **roster** (which models fill them) from the canonical YAMLs. You never call workflows directly.
+- **`sdlc`** is one workflow *inside* /adw — plan → build → gates → commit → review → document. Its siblings are lighter/heavier variants the router chooses between: `scout` (read-only recon), `chore` (build+gates), `bugfix` (pin with a failing test), `hotfix` (prod down), `plan-build-test` (no git ceremony), `pingpong-plan-build` (two frontier models debate the plan first).
+- **`/opinion`** — for *questions*, not tasks: legs answer independently, side by side, no merge.
+- **`/fusion`** — rare high-stakes calls: every leg attempts, one merged answer with attribution. 3x cost, deliberate only.
+- **`/auto-validate`** — when *proof of done* matters: a blind validator writes an executable acceptance gate BEFORE the build; not done until it exits 0.
+- **`/gauntlet`** — when the thing already *exists* and should be elevated: worker + blind cross-family critic loop against a reference-anchored bar until `VERDICT: WOWED`. Polish, not construction.
+- **`/gemini`** — direct one-off line to the Gemini leg.
+
+Rule of thumb: task → `/adw` · question → `/opinion` · prove it's done → `/auto-validate` · make it wow → `/gauntlet`. With the `tri-model` skill loaded, plain chat routes through the same doctrine automatically.
+
 ### Agent Reliability (5 skills)
 
 These keep agents honest, healthy, and on track — catching failures that normally go unnoticed until the user finds them.
