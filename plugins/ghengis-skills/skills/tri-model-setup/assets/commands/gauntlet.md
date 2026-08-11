@@ -11,6 +11,14 @@ The general topology (from JARVIS `agents/gauntlet.py` + the ADW wowed gates): a
 
 1. **Identify the deliverable** — file path(s) preferred. Slug it; run dir `~/.claude/tri-model/gauntlet-runs/<slug>/`.
 2. **Write the bar** (unless given after `--`): anchor to the best conceivable version of the SAME artifact, in concrete named attributes — "a $50,000 design-agency build of THIS site: commanding hero, Playfair over Inter, aged-paper #faf3df ground…" not "high quality". Include any hard truth/constraint rules (things that are an automatic fail). Save as `bar.md` in the run dir.
+
+   **THE BAR IS PERMANENTLY HIGH — this floor applies to every gauntlet, every domain, no exceptions.** A bar that only describes appearance produces a beautiful artifact with nothing in it; that failure is why this rule exists. Every bar MUST demand, in domain-specific terms:
+   - **Substance over surface**: the information, capability, or rigor the artifact exists to deliver — named explicitly, not implied. Ask "what would make this genuinely useful to someone who depends on it?" and write that down.
+   - **Depth on demand**: the user can get from summary to underlying detail (click through, drill in, cite the source, show the work). A surface with no way in fails.
+   - **Nothing withheld that the source contains**: if the underlying data/material has something valuable, hiding it is a defect. Enumerate what the source actually offers before writing the bar.
+   - **Honesty**: no fabricated, padded, defaulted, or unlabelled-estimate values presented as measured.
+   - **Craft**: the domain's real quality conventions, named concretely.
+   Then add the hard rules that are automatic fails.
 3. **Author deterministic checks** where the domain allows (existence, completeness/size, forbidden patterns, palette/lint/tests) as a small script in the run dir. They run FIRST each round, cost $0, and catch the class of bug a model critic shouldn't be spent on.
 4. **TaskCreate**: one task for setup, one per round (created as you go), one for the final review. Statuses updated live.
 5. Caps: default **9 rounds** (override via `--rounds N`). Never ask which models — worker is Claude (warm session or agent); critic is the `gemini` agent on **Pro** (`-Model pro`), a different family from the worker by construction; final reviewer prefers a third family (codex) when live.
