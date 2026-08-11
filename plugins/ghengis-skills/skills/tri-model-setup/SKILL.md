@@ -34,7 +34,7 @@ From this skill's directory to the user's global `~/.claude/`:
 |---|---|
 | `scripts/agy-call.ps1` | `~/.claude/scripts/agy-call.ps1` — the Gemini wrapper (Flash default, JSONL usage log) |
 | `assets/gemini-agent.md` | `~/.claude/agents/gemini.md` |
-| `assets/commands/*.md` | `~/.claude/commands/` — /gemini /opinion /fusion /auto-validate /adw |
+| `assets/commands/*.md` | `~/.claude/commands/` — /gemini /opinion /fusion /auto-validate /adw /gauntlet |
 | `assets/adw/` (rosters.yaml + 14 workflows) | `~/.claude/tri-model/adw/` — the CANONICAL role→model + phase definitions /adw interprets. Ported verbatim from the pi-workbench ADW factory; edit models in rosters.yaml, never in command prose |
 
 Check the wrapper's model shorthand map against `agy models` after auth (step 4) — ids drift as Google ships new versions; update the `switch` block if `flash`/`pro` no longer resolve.
