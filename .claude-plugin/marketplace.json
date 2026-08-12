@@ -7,7 +7,7 @@
     {
       "name": "ghengis-skills",
       "source": "./plugins/ghengis-skills",
-      "description": "42 skills covering multi-agent orchestration, prompt quality, agent reliability, security, code intelligence, and domain expertise"
+      "description": "61 skills covering the tri-model harness (Claude+Gemini+GPT routing), multi-agent orchestration, prompt quality, agent reliability, security, code intelligence, and domain expertise"
     }
   ]
 }

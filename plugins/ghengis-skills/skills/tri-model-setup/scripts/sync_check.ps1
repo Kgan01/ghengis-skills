@@ -2,14 +2,51 @@
 # ghengis-skills copy that ships it? Run after deploying to a new machine, and
 # after editing anything locally (so the change gets carried back).
 #
-#   pwsh ~/.claude/tri-model/sync_check.ps1          # report drift
-#   pwsh ~/.claude/tri-model/sync_check.ps1 -Push    # copy local -> skill
-#   pwsh ~/.claude/tri-model/sync_check.ps1 -Pull    # copy skill -> local
+#   powershell -File ~/.claude/tri-model/sync_check.ps1          # report drift
+#   powershell -File ~/.claude/tri-model/sync_check.ps1 -Push    # copy local -> skill
+#   powershell -File ~/.claude/tri-model/sync_check.ps1 -Pull    # copy skill -> local
+#
+# Windows PowerShell 5.1 compatible - no ternary, no null-coalescing. pwsh is NOT
+# assumed present (it is absent on a stock Windows 11 box).
 param([switch]$Push, [switch]$Pull)
 
 $g = Join-Path $env:USERPROFILE ".claude"
-$skill = Join-Path $g "plugins\marketplaces\ghengis-skills-marketplace\plugins\ghengis-skills\skills\tri-model-setup"
-if (-not (Test-Path $skill)) { Write-Error "tri-model-setup skill not found at $skill"; exit 1 }
+
+# The marketplace directory is named after however the plugin was added - "Kgan01"
+# when installed from the GitHub owner, "ghengis-skills-marketplace" when added by
+# reload-ghengis. Never hardcode either, and never just take the first directory
+# found: a stale orphan clone left by an earlier reload can sort ahead of the real
+# one alphabetically and silently diff you against a dead copy (observed 2026-08-12).
+# installed_plugins.json is authoritative about which marketplace is actually live.
+$mkRoot = Join-Path $g "plugins\marketplaces"
+$skill = $null
+$rel = "plugins\ghengis-skills\skills\tri-model-setup"
+
+$installed = Join-Path $g "plugins\installed_plugins.json"
+if (Test-Path $installed) {
+    try {
+        $j = Get-Content $installed -Raw | ConvertFrom-Json
+        foreach ($k in $j.plugins.PSObject.Properties.Name) {
+            if ($k -like "ghengis-skills@*") {
+                $mkName = $k.Split("@")[1]
+                $cand = Join-Path (Join-Path $mkRoot $mkName) $rel
+                if (Test-Path $cand) { $skill = $cand; break }
+            }
+        }
+    } catch { }   # fall through to the scan
+}
+
+if (-not $skill -and (Test-Path $mkRoot)) {
+    foreach ($mk in Get-ChildItem $mkRoot -Directory -ErrorAction SilentlyContinue) {
+        $cand = Join-Path $mk.FullName $rel
+        if (Test-Path $cand) { $skill = $cand; break }
+    }
+}
+if (-not $skill) {
+    Write-Error "tri-model-setup skill not found under any marketplace in $mkRoot"
+    exit 1
+}
+Write-Host "skill source: $skill" -ForegroundColor DarkGray
 
 # local path -> skill path
 $map = [ordered]@{
@@ -33,8 +70,8 @@ foreach ($w in Get-ChildItem "$skill\assets\adw\workflows" -Filter *.yaml -Error
 $drift = 0
 foreach ($local in $map.Keys) {
     $remote = $map[$local]
-    $lh = (Test-Path $local) ? (Get-FileHash $local).Hash : $null
-    $rh = (Test-Path $remote) ? (Get-FileHash $remote).Hash : $null
+    $lh = $null; if (Test-Path $local)  { $lh = (Get-FileHash $local).Hash }
+    $rh = $null; if (Test-Path $remote) { $rh = (Get-FileHash $remote).Hash }
     $name = Split-Path $local -Leaf
     if (-not $lh -and -not $rh) { continue }
     if (-not $lh)      { Write-Host "MISSING LOCALLY : $name" -ForegroundColor Yellow; $drift++ }

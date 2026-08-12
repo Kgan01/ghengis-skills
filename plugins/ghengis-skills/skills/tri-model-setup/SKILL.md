@@ -12,7 +12,36 @@ Turns a bare Claude Code machine into the three-leg rig: Claude host (unmetered)
 
 ### 1. Install agy (Gemini leg binary)
 
-Windows: `curl.exe -fsSL https://antigravity.google/cli/install.cmd -o install.cmd && cmd /c install.cmd` (macOS/Linux: `install.sh` from the same host). Binary lands at `%LOCALAPPDATA%\agy\bin\agy.exe`; PATH updates in the registry but NOT in already-open shells — use the full path until restart.
+**Do NOT run Google's `install.cmd` from an agent shell — it hangs** (observed 2026-08-12,
+blocked past 5 min). The batch script reads its parsed manifest values with `set /p`, which
+blocks forever when stdin is not a console. Do what the installer does, directly — it is
+three steps, and unlike the .cmd it verifies the checksum where you can see it:
+
+```bash
+BASE=https://antigravity-cli-auto-updater-974169037036.us-central1.run.app
+curl -fsSL --max-time 30 "$BASE/manifests/windows_amd64.json" -o manifest.json   # arm64: windows_arm64
+# manifest has {version, url, sha512}
+DEST="$LOCALAPPDATA/agy/bin"; mkdir -p "$DEST"
+curl -fsSL --max-time 240 "<url from manifest>" -o "$DEST/agy.exe"
+certutil -hashfile "$(cygpath -w "$DEST/agy.exe")" SHA512   # MUST equal manifest sha512
+"$DEST/agy.exe" --version
+```
+
+The binary is ~178 MB, so allow a generous curl timeout. macOS/Linux: same manifest host,
+swap the platform slug and use `shasum -a 512`.
+
+Then put it on PATH. **Use the registry API, never `setx`** — `setx` truncates PATH at 1024
+characters and will silently destroy a long user PATH:
+
+```powershell
+$dir = Join-Path $env:LOCALAPPDATA 'agy\bin'
+$cur = [Environment]::GetEnvironmentVariable('Path','User')
+if (($cur -split ';') -notcontains $dir) {
+  [Environment]::SetEnvironmentVariable('Path', $cur.TrimEnd(';') + ';' + $dir, 'User')
+}
+```
+
+PATH updates in the registry but NOT in already-open shells — use the full path until restart.
 
 ### 2. Install codex (GPT leg) + first-party plugin
 
@@ -41,10 +70,17 @@ From this skill's directory to the user's global `~/.claude/`:
 | `assets/commands/*.md` | `~/.claude/commands/` — /gemini /opinion /fusion /auto-validate /adw /gauntlet |
 | `assets/adw/` (rosters.yaml + 13 workflows) | `~/.claude/tri-model/adw/` — the CANONICAL role→model + phase definitions /adw interprets. Ported verbatim from the pi-workbench ADW factory; edit models in rosters.yaml, never in command prose |
 
-After deploying, run `pwsh ~/.claude/tri-model/sync_check.ps1` — it reports any
-file that drifted from the skill copy, in either direction. Run it again after
-changing anything locally, and copy the changed file back into the skill so the
-next machine inherits the fix (this is how the harness stays portable).
+After deploying, run `powershell -NoProfile -ExecutionPolicy Bypass -File ~/.claude/tri-model/sync_check.ps1`
+— it reports any file that drifted from the skill copy, in either direction. Run it again
+after changing anything locally, and copy the changed file back into the skill so the next
+machine inherits the fix (this is how the harness stays portable).
+
+`sync_check.ps1` is Windows PowerShell 5.1 compatible on purpose — **`pwsh` is absent on a
+stock Windows 11 box**, so do not invoke it with `pwsh` and do not reintroduce PS7-only
+syntax (ternary `? :`, `??`) into it. It discovers the skill directory by scanning
+`~/.claude/plugins/marketplaces/*/plugins/ghengis-skills/skills/tri-model-setup`, because
+that folder is named after however the plugin was added (`Kgan01` from the GitHub owner,
+`ghengis-skills-marketplace` via reload-ghengis) — never hardcode either name.
 
 Check the wrapper's model shorthand map against `agy models` after auth (step 4) — ids drift as Google ships new versions; update the `switch` block if `flash`/`pro` no longer resolve.
 
@@ -80,6 +116,10 @@ Write/refresh `~/.claude/tri-model/README.md` (legs, auth state, model-id map, u
 | Letting the user auth agy with a Workspace account | Wrong entitlement, fails quietly or bills wrong | Say "personal account" out loud before the browser opens |
 | Assuming `npm i -g` produced a working codex | Platform-pin config silently skips the binary | Run `codex --version` before calling install done |
 | Hardcoding Gemini model ids without checking | agy model ids rotate (3.5 → 3.6 …) | Verify against `agy models`, update the wrapper map |
+| Running Google's `install.cmd` from an agent shell | Its `set /p` blocks forever on non-console stdin (observed: >5 min hang, nothing installed) | Fetch the manifest, download, verify sha512, place the binary yourself — step 1 |
+| `setx PATH ...` to add agy | Truncates PATH at 1024 chars, silently destroying a long user PATH | `[Environment]::SetEnvironmentVariable('Path',...,'User')` |
+| Invoking `sync_check.ps1` with `pwsh` | `pwsh` is not on a stock Windows 11 box; the script is 5.1-safe by design | `powershell -NoProfile -ExecutionPolicy Bypass -File ...` |
+| Hardcoding the marketplace folder name | It is `Kgan01` or `ghengis-skills-marketplace` depending on how the plugin was added — the wrong one fails with "skill not found" | Scan `marketplaces/*/plugins/ghengis-skills/skills/...` |
 
 ## Cross-References
 
