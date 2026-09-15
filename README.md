@@ -25,7 +25,11 @@
 
 Skills are lightweight — they load on-demand and don't bloat your context window. Unlike MCP servers that inject tool schemas into every message, skills activate only when relevant, adding zero overhead the rest of the time.
 
-## What's New (v1.14.0)
+## What's New (v1.26.0)
+
+- **StoryScope (`storyscope`)** — Human-sounding writing built on structure, not word swaps. Translates the 30 core narrative features from Russell et al. (COLM 2026, arXiv 2604.03136) into nonfiction moves: stop stating the lesson in the closing slot, disclose late, keep a real cost of your own position, name sources, quote verbatim, name feelings plainly. Drafting mode puts the structural decisions to the author first; revising mode extracts a skeleton, scores it with quoted evidence, and never fabricates texture.
+
+## Previous (v1.14.0)
 
 - **Closed cognition loop (`skill-chain-supervisor`)** — Chain runs now learn from each other. Set `GHENGIS_COGNITION=true` and every `finish` emits a structured lesson to `cognition.jsonl`; every `init` retrieves the most relevant past lessons via UCB1-weighted Jaccard similarity, bumps `hits`, and bumps `wins` on success. Audit command surfaces entries to retire (high hits, low win-rate). Stdlib-only, opt-in.
 - **5 new workflow skills + 4 new chains (v1.12.0)** — `brainstorming` (inline conversational design, never uses plan mode), `writing-skills` (TDD on documentation), `systematic-debugging` (iron law: no fixes without root cause), `test-driven-development` (RED-GREEN-REFACTOR with bite-sized steps), `finishing-a-development-branch` (verify-tests gate before merge/PR). Plus chains `feature-build`, `bug-hunt`, `skill-port`, `finish-line`.
@@ -448,7 +452,7 @@ The development discipline skills. Mostly auto-fire when triggered, but also wir
 | **test-driven-development** | RED-GREEN-REFACTOR discipline with bite-sized 2-5 minute steps. Watch the test fail before writing code. Watch it pass after. Commit at every cycle boundary. | Auto-fires when implementing any new behavior. Stages 2 of `feature-build` and `bug-hunt` chains. Override only for true throwaway code or 30-min spikes. |
 | **finishing-a-development-branch** | Verify tests → detect workspace shape → present 4-option menu (merge / PR / keep / discard) → execute → cleanup. Refuses to proceed if tests fail. | Trigger: *"ship this branch"*, *"merge this branch"*, *"wrap up and ship"*. Stage 1 of `finish-line` chain. |
 
-### Domain Expertise (16 skills)
+### Domain Expertise (17 skills)
 
 Expert-level methodology that loads when Claude encounters matching tasks. Each skill contains the actual knowledge — frameworks, formulas, checklists, worked examples — not just generic guidance.
 
@@ -468,6 +472,7 @@ Expert-level methodology that loads when Claude encounters matching tasks. Each 
 | **mcp-patterns** | MCP server configuration, the meta-tool pattern for context reduction, Context7 two-step lookup, registration anti-patterns | Trigger: *"set up an MCP server"*, *"how do I use the meta-tool pattern"*. |
 | **data-analysis** | Statistical methodology, pandas workflows, correlation vs causation, visualization selection, small sample warnings | Trigger: *"analyze this data"*, *"what does this CSV tell us"*, *"visualize X vs Y"*. |
 | **content-writing** | Blog posts, documentation, marketing copy — structure, SEO basics, audience targeting, editorial checklists | Trigger: *"write a blog post on X"*, *"draft marketing copy for Y"*. |
+| **storyscope** | Make papers, essays, blogs and speeches read as human-written by fixing *structural* decisions — openings, delayed disclosure, closers, ambivalence, named sources, verbatim quotes — from the StoryScope paper (COLM 2026: structure alone detects AI at 93%, style edits barely dent it). Decision sheet for drafting, skeleton + evidence scorecard for revising; never invents material | Trigger: *"make this sound human"*, *"this sounds like AI"*, *"StoryScope this"*. Run before `humanizer`. |
 | **devops** | Solo-dev deployment patterns — Docker multi-stage builds, GitHub Actions CI/CD, SSL, environment management, rollback procedures | Trigger: *"deploy this"*, *"set up CI/CD"*, *"Docker for this project"*. |
 | **music-curation** | Genre classification, BPM matching and transitions, mood-to-genre mapping, playlist arc design, Spotify audio features | Trigger: *"make a playlist for X"*, *"music for a Y mood"*. |
 | **home-lighting** | Color temperature science, circadian rhythm automation, room profiles, scene composition, Philips Hue API patterns | Trigger: *"design lighting for X room"*, *"circadian scenes for sleep"*, *"Hue automation"*. |

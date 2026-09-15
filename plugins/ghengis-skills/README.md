@@ -206,6 +206,7 @@ Expert-level methodology that loads when Claude encounters matching tasks. Each 
 | **mcp-patterns** | MCP server configuration, the meta-tool pattern for context reduction, Context7 two-step lookup, registration anti-patterns |
 | **data-analysis** | Statistical methodology, pandas workflows, correlation vs causation, visualization selection, small sample warnings |
 | **content-writing** | Blog posts, documentation, marketing copy — structure, SEO basics, audience targeting, editorial checklists |
+| **storyscope** | Human-sounding papers, essays and blogs via structural decisions (openings, delayed disclosure, closers, ambivalence, named sources, verbatim quotes) from the StoryScope paper (COLM 2026); run before `humanizer` |
 | **devops** | Solo-dev deployment patterns — Docker multi-stage builds, GitHub Actions CI/CD, SSL, environment management, rollback procedures |
 | **music-curation** | Genre classification, BPM matching and transitions, mood-to-genre mapping, playlist arc design, Spotify audio features |
 | **home-lighting** | Color temperature science, circadian rhythm automation, room profiles, scene composition, Philips Hue API patterns |
