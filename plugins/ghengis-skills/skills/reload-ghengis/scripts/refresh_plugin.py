@@ -25,6 +25,11 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+# Windows consoles default to cp1252, which can't encode the → and — in log lines
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+
 MARKETPLACE = "ghengis-skills-marketplace"
 PLUGIN = "ghengis-skills"
 # For first-time installs: if the marketplace clone is missing, bootstrap from GitHub
