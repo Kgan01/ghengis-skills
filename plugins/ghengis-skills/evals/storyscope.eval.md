@@ -61,6 +61,28 @@ Baseline failures observed without the skill (2026-09-15, Opus): with notes, rew
   - Asks for ambivalence/pushback material rather than inventing it
 - **passing_grade:** 3/3 must pass
 
+## TC-8: Drafting stays easy and fabrication-free
+
+- **prompt:** "Write the blog post from my notes." (~600-word shop blog; notes include a verbatim customer quote, return rates, a revenue loss, the owner's admitted hypocrisy, and a local co-op that disagrees)
+- **context:** Observed no-skill baseline (2026-09-15) invented "That number is right there on the product page", "you live on the third floor", "plan on about an hour", mind-read "She wasn't mad at us", put numbers before the story, and closed on "I'd rather have a slower sale that sticks." With the skill: opened on the quote, held the 9% loss late, the hypocrisy thread returned to reframe the co-op's point, ended "I don't know yet if it's worth the 9%.", flagged every inference, and came in under length rather than padding.
+- **assertions:**
+  - Decision sheet proposes an answer for every item; "go with your proposals" is a complete reply
+  - ≤5 open questions for a piece under 800 words
+  - No invented facts, feelings, or texture; inferences are listed for the author to confirm
+  - Theme is stated at most once; final line is not a maxim
+  - Does not pad to hit a word count with invented material
+- **passing_grade:** 5/5 must pass
+
+## TC-9: Fidelity to the paper
+
+- **prompt:** "Which of these rules come from the StoryScope paper?"
+- **assertions:**
+  - Distinguishes [paper] findings from [adaptation] rules (e.g., per-section closers, three-dimension minimum, nonfiction mappings are adaptations)
+  - Does not recommend "open in medias res" or "introduce in action" as human markers (both are Kimi fingerprints; in-dialogue introduction is the human fingerprint)
+  - States that the paper studied fiction detection, not revision
+  - Cites 93.2% as the 257-feature narrative model and 1.6 points as the LAMP drop on 278 Gemini stories (95.5 → 93.9)
+- **passing_grade:** 4/4 must pass
+
 ## TC-7: Rates, not quotas
 
 - **prompt:** StoryScope audit of an essay where the author ends 2 of 8 sections on a maxim and addresses "you" twice

@@ -1,79 +1,107 @@
-# Skeleton extraction template (Mode B, step 1)
+# Skeleton template (Mode B step 2: planning the rewrite)
 
-Adapted from the paper's NarraBench extraction prompt (arXiv 2604.03136, Figure 8) for nonfiction. Fill it in **before** judging any sentence. The paper found that comparing raw text surfaced mostly style features (humor, register, imagery), while comparing templates surfaced structural ones (arcs, event density, flashbacks). Only 6 of the top 20 features overlapped. Reduce the piece to its skeleton so you judge its decisions, not its wording.
+**What the paper did.** The pipeline extracted a structured template per story using a zero-shot JSON schema organized by NarraBench dimension (Figure 8). Those templates were used to **discover** features by comparing sources, because comparing raw text surfaced style features while comparing templates surfaced structural ones. **Scoring** was done differently: the model read the full text, one dimension per call.
 
-Quote the text as evidence wherever a field asks for it. Use `null` when the text has nothing.
+**[adaptation]** This skill does **not** score from the skeleton. Score the full text first (Mode B step 1, `features.md`). Then fill in this skeleton to see the piece's structure and plan what to move.
+
+The field names follow Figure 8. Nonfiction notes are in comments. Paper instructions carried over:
+- be objective and don't interpret beyond what the text conveys
+- use `null` when something isn't present
+- write trajectories and sequences with arrows ("state1 -> state2"), complete even when nonlinear
+- GLOBAL fields describe the whole piece; LOCAL fields name the paragraph or section
+
+Quote evidence wherever a field allows it.
 
 ```yaml
-piece:
+piece:                     # [adaptation] header
   title:
-  genre:            # essay | blog | op-ed | paper section | grant narrative | speech | story | email
+  genre:                   # essay | blog | op-ed | paper section | grant narrative | speech | story
   words:
-  author_material:  # what notes, transcript or sources exist beyond the draft? (path or "none")
+  author_material:         # notes/transcript/sources beyond the draft, or "none"
 
-opening:
-  first_move:       # place-setting | thesis | background | scene/moment | quote | number | admission
-  evidence:         # first sentence, quoted
+agents:
+  major_characters:        # nonfiction: the author and the central people in the piece
+    - name:                # [GLOBAL] full name as it appears
+      role:                # [GLOBAL] max 2 short clauses
+      attributes:          # [GLOBAL]
+      emotion_trajectory:  # [GLOBAL] initial -> progression -> final
+      motivation_trajectory: # [GLOBAL]
+      trope:               # [GLOBAL] archetype, if any ("wise mentor", "faceless bureaucracy")
+      introduced_by:       # [adaptation, for the core feature] external_desc | in-action | in-dialogue | inner_thought | others_reports
+      voice:               # [adaptation] verbatim | paraphrase | none
+  supporting_characters:
+    - name:
+      description:         # one line
 
-disclosure_order:   # paragraph-level sequence, arrows: "announcement -> history -> users -> impact -> moral"
-  rule_before_case: # yes/no. Does the principle arrive before the reader has seen the problem?
-  withheld_facts:   # anything held back and revealed late (null if nothing)
-  late_recontextualization: # a late fact that changes how an earlier paragraph reads (null if none)
-  flashbacks:       # where the piece jumps back or forward in time, by paragraph
+social_network:
+  relationships:           # [GLOBAL] "A-B: relationship type and quality"
 
-causal_chain:       # "A -> B -> C", and whether anything breaks into it
-threads:
-  main:
-  side_threads:     # each one with: parallel to the theme? resolved?
+events:
+  sequence:                # [LOCAL] ordered beats: who, where, what, when (by paragraph)
+  causality:               # [GLOBAL] "event1 -> event2: explanation"
+  narrative_schema:        # [GLOBAL] Figure 8: "such as quest, revenge, or coming-of-age". Table 6's schema options: quest/journey, investigation/mystery, transformation/redemption, siege/ordeal, slice_of_life, trial/test/game, heist/caper, frame_confession/memoir
 
-people:             # everyone who appears
-  - name:
-    introduced_by:  # credentials/description | what they said | what they did | others' report
-    voice:          # verbatim quote | paraphrase | none
-    evidence:
+plot:
+  themes:                  # [GLOBAL]
+  summary:                 # [GLOBAL] 2-3 sentences
+  moral:                   # [GLOBAL] one sentence if signaled; else null. Quote where the text states it
+  central_obstacle:        # [GLOBAL]
+  central_conflict:        # [GLOBAL]
+  narrative_archetype:     # [GLOBAL]
+  plot_arc:                # [GLOBAL] e.g. "rising action -> climax -> falling action"
+  subplots:                # [adaptation, for Subplot Integration] each: thematically parallel | contrasting | independent
 
-references:
-  named:            # specific works, people, statutes, datasets, places
-  vague:            # "experts", "studies", "scholars have long observed", quoted
+setting:
+  locations:               # [LOCAL/GLOBAL] with scope
+  time_period:             # [GLOBAL]
+  atmosphere:              # [GLOBAL]
 
-emotion:
-  rendering:        # plain labels | embodied metaphor | behavior | setting-as-mirror
-  evidence:
-  mind_reading:     # inner states given to people the author couldn't know (quoted)
+discourse:
+  revelation:
+    suspense:              # [GLOBAL] what key information is withheld?
+    curiosity:             # [GLOBAL] what causal antecedents are withheld?
+    surprises:             # [GLOBAL] what was revealed, and when (paragraph)?
+  temporal_order:
+    structure:             # [GLOBAL] linear | nonlinear | mixed
+    duration:              # [GLOBAL] overall time span
+    flashbacks:            # [LOCAL] which paragraphs
+    time_jumps:            # [LOCAL] ellipses or leaps in time/place, by paragraph
+    scene_duration:        # [LOCAL] approximate duration of major scenes
 
-stance:
-  toward_sources:   # agrees with all | complicates some | disagrees with some
-  toward_own_position: # clean | concedes a cost | genuinely torn
-  evidence:
+narration:
+  perspective:
+    point_of_view:         # [GLOBAL] 1st person | 2nd person | 3rd person limited | 3rd person omniscient
+    focalization:          # [LOCAL] whose perspective, by section
+    dialogue_speakers:     # [LOCAL] who is quoted, by section
+  style:                   # recorded for completeness; style belongs to humanizer, not this skill
+    allusions:             # [LOCAL]
+    figurative_language:   # [LOCAL]
+    imagery:               # [LOCAL]
+    sentence_complexity:   # [GLOBAL]
+    evaluative_language:   # [LOCAL]
 
-author_on_page:
-  first_person:     # none | occasional | throughout
-  reader_address:   # count of "you" addressed to the reader
-  asides_admissions: # quoted
-
-endings:
-  section_closers:  # the last sentence of each section/paragraph block, quoted, marked [maxim] or [fact]
-  final_line:       # quoted, marked [maxim] | [reframe] | [call-to-action] | [fact] | [open question]
-  resolution_mode:  # author wins on merits | external events | left open | internal reframe/acceptance
-
-voice_uniformity:   # do sections differ in rhythm/register? note any seam between author-dictated and generated parts
-escalation:         # does tension or stakes rise, or stay flat?
+planning:                  # [adaptation] used to rank fixes
+  theme_statements:        # every sentence where the author states the lesson, quoted, with paragraph
+  resolution:              # how it ends: resolved externally | resolved internally | unresolved; final line quoted
+  reader_address:          # quoted instances of "you"/asides, with count
+  references:              # named works/people/places vs vague allusions, quoted
 ```
 
-## From skeleton to scorecard
+## From skeleton to moves [adaptation]
 
-Map the fields to `features.md` sections:
+| Skeleton field | What to look for | Core features it informs |
+|---|---|---|
+| `events.sequence`, `temporal_order.*` | Is the order strictly chronological? Where could a fact move later? | Chronological Discontinuity, Anachrony (TMP); Nonlinear Framing (REV) |
+| `revelation.suspense/curiosity/surprises` | Is anything withheld? Does a late reveal change an earlier paragraph? | Recontextualization After Surprise, Pre-Threat Investment (REV) |
+| `plot.moral`, `planning.theme_statements` | How many times is the lesson stated? | Narratorial Thematic Commentary, Thematic Explicitness (SIT) |
+| `events.causality` | One unbroken chain? | Continuity of Main Causal Chain (EVT) |
+| `planning.resolution` | Does it end on an internal reframe or on the protagonist's choice? | Mode of Resolution (EVT); Agency in Resolution (PLT) |
+| `plot.subplots` | Any thread parallel to the theme? | Subplot Integration (PLT) |
+| `agents.*.introduced_by`, `voice` | Credentials first? Paraphrase only? | Character Introduction (AGENT); Dialogue-to-Narration (PER) |
+| `agents.*.emotion_trajectory` + evidence | Body metaphors, or named feelings? | Dominant Emotional Expression (AGENT) |
+| `setting.*` | Opening grounded in place? Mood mirrored in setting? | Opening Spatial Grounding, Setting as Psychological Mirror (SET) |
+| `planning.references` | Named, or vague echoes? | Intertextual Strategy, Reference Explicitness (SIT) |
+| `planning.reader_address` | Never, occasional, or constant? | Direct Reader Address (PER), Fourth-Wall Permeability (SIT) |
+| `agents.major_characters` (author) | Is the author's own position framed as clearly positive? | Moral Polarity Toward Protagonist (PLT) |
 
-| Skeleton field | features.md rows |
-|---|---|
-| `endings.*` | A: narrator states the theme, explicitness; C: resolution mode |
-| `references.*` | A: vague echoes; D: named, balanced mix |
-| `emotion.*` | B: all rows; G: plain labels |
-| `disclosure_order.*`, `opening` | C: opening grounding, investment before the threat; F: all rows |
-| `threads.*`, `causal_chain` | A: thematic unity; C: causal chain, no subplots; G: parallel subplot |
-| `people.*` | C: external-description introduction; G: dialogue proportion |
-| `stance.*` | G: ambivalent framing; Claude fingerprint: reverent toward sources |
-| `author_on_page.*` | E: both rows |
-| `voice_uniformity`, `escalation` | Claude fingerprint: uniform voice, flat escalation |
-
-Seven dimensions to count for the "at least three dimensions changed" check: **Situatedness** (A, D, E), **Agents** (B emotion, people), **Setting** (B sensory, place), **Events** (causal chain, resolution mode), **Plot** (threads, ambivalence, resolution agency), **Temporal/Revelation** (F, opening), **Perspective** (dialogue proportion, reader address).
+The dimensions the core features span, for the "changes in at least three dimensions" check [adaptation]: **SIT, PLT, EVT, SET, AGENT, PER, REV, TMP** (Social networks has no core feature).

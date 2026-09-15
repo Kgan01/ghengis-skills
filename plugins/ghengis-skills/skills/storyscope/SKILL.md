@@ -7,131 +7,142 @@ model: premium
 
 # StoryScope: human structure, not human-sounding sentences
 
-AI-written text is recognizable from its **decisions**, not only its words. StoryScope (Russell, Rajendhran, Pham, Iyyer, Wieting; COLM 2026; arXiv 2604.03136) rebuilt 10,272 human short stories with five LLMs and compared them on 304 narrative features with all style features removed. Structure alone separated human from AI at **93.2% macro-F1**. A professional-style edit that stripped clichés and purple prose lowered that by only **1.6 points**. Swapping out em-dashes and "delve" leaves the structural signal almost untouched.
+This skill applies Russell, Rajendhran, Pham, Iyyer & Wieting, *StoryScope: Investigating idiosyncrasies in AI fiction* (COLM 2026, arXiv 2604.03136v6) to everyday writing.
 
-This skill is for those decisions. Surface cleanup belongs to `humanizer` and comes second.
+Every claim is tagged:
+- **[paper]**: the paper found or did this. Numbers are the paper's.
+- **[adaptation]**: this skill's own rule for applying the paper to nonfiction. The paper did not test it.
 
-**The core rule:** these decisions belong to the author. Your job is to find each decision point, show the author what the default AI choice would be, and get their call. Do not make up the answer to fill a feature.
+Keep the tags straight when you explain the method to anyone.
+
+## What the paper found [paper]
+
+- **Setup.** Gemini 2.5 Flash reverse-engineered a writing prompt from each of 10,272 human short stories (Books3). Claude Sonnet 4.6, GPT-5.4, Gemini 3 Flash, DeepSeek V3.2 and Kimi K2.5 each wrote a story from that prompt, giving 61,608 stories. A pipeline found **304 interpretable features** across 10 NarraBench dimensions. Gemini 3 Flash scored each story, reading the full text one dimension per call. XGBoost classifiers did the classifying, and SHAP measured each feature's importance.
+- **Structure alone separates human from AI.** Removing the 47 style or style-related features leaves **257 narrative features**, which reach **93.2% macro-F1**, against 96.0% with all 304 features.
+- **30 core features** reach 84.8% alone. To qualify as core, a feature needed a human–AI gap of at least 0.20 that held across all five models (AI spread ≤ 0.35).
+- **Surface editing barely moves it.** LAMP rewrote 278 Gemini stories to remove seven categories of AI artifacts (cliché, redundant exposition, purple prose…), with Gemini as the rewriter and 25 few-shot examples from professional writers. The narrative classifier went from 95.5 to 93.9 macro-F1, a drop of 1.6 points.
+- **Why structure matters.** The authors call AI style "increasingly fleeting". GPT-5.4 cut back its em-dashes, and "fine-tuning to mimic human style drops AI detection rates on creative writing from 97% to 3%" (citing Chakrabarty et al., 2026). They argue narrative features are harder to "humanize", since "changing them requires significant structural rewrites rather than simple post-hoc edits" (citing Namuduri et al., 2025).
+- **The core pattern.** AI over-explains themes and prefers tidy, single-track plots. Human writing frames choices as morally ambiguous, has more complex timelines, names outside works, addresses the reader, and describes feelings with explicit labels more often.
+- **Convergence.** The five models cluster together. Human stories are rarer (mean rarity percentile 0.71 vs 0.49), but the two distributions "overlap substantially".
+- **Claude** is the most distinctive model: the flattest escalation, the most uniform narrative voice, reverent/continuist toward literary tradition (62% of stories vs 39–56% for the other sources), and a preference for epilogues and quiet endings.
+- **No single dimension decides it.** The best single dimension (Agents) reaches 80.2%, and removing any one costs at most 1.2 points. The signal is spread across correlated dimensions.
+
+## What the paper did NOT show (say this; don't oversell)
+
+- Everything was **fiction**. Human stories averaged ~6,400 words; Gemini, DeepSeek and Kimi stories ran ~3,000. Nothing was tested on essays, blogs or papers. Every nonfiction mapping here is **[adaptation]**.
+- The paper **detected** AI text. It did not test whether revising a piece to match human values makes it read as human. This skill's rewriting method is **[adaptation]**.
+- Raw-text classifiers (ModernBERT, stylometry, TF-IDF) scored **99.7–99.9%**. Never claim a result is "undetectable".
+- The rates are averages across stories, not targets. Human narrators commented on the theme in 52% of stories.
 
 ## When to Use
 
 - Drafting a paper section, essay, blog post, op-ed, grant narrative, speech, newsletter or short story from someone's notes, dictation or outline
-- "This sounds like AI" / "make it sound human" / "de-AI this" on text that already exists
-- Reviewing a ghostwritten or model-assisted draft before it goes out under a person's name
-- Any piece long enough to have a shape: roughly 400 words or more. Structure needs room to show.
+- "This sounds like AI" / "make it sound human" on existing text
+- Reviewing a model-assisted draft before it goes out under a person's name
+- Pieces with enough length to have a shape (roughly 400+ words)
 
 ## When NOT to Use
 
-- Word-level cleanup only (stock phrases, em-dashes, filler, chatbot artifacts). Use `humanizer`.
-- Reference docs, API docs, specs, runbooks, legal instruments. Their readers want linear, explicit and single-track, which is the AI profile, and that's correct there.
-- Evading an AI-detection policy on work the person is required to write unaided. This skill changes how writing is built. It is not a way to hide authorship.
-- Very short text (under ~150 words: a text message, a tweet). There is almost no structure to work on. Apply only rule 4 (names) and rule 7 (plain labels).
-
-## Honest limits (say these when relevant, don't oversell)
-
-- The corpus was **fiction, ~5,000-word stories**. Mapping features onto essays and papers is an inference. `features.md` marks which mappings are direct and which are loose.
-- Numbers are **rates, not quotas**. Human narrators still stated the theme 52% of the time, compared with 77% for AI. The goal is to stop landing every section in the same default slot. It is not to ban morals.
-- No single dimension decides it. Training on any one dimension topped out at 80%, and dropping any one cost at most 1.2 points. The signal is spread out, so fixing only one habit (only the closers, say) barely moves the piece. **Make changes in at least three dimensions.**
-- Text classifiers trained on raw prose (ModernBERT, stylometry, TF-IDF) still reached 99.7-99.9% in the paper. This skill makes writing read and hold together like a person's. It does not make it "undetectable," and you must never claim it does.
+- Word-level cleanup only. Use `humanizer`.
+- Reference docs, API docs, specs, runbooks, legal instruments. Linear, explicit and single-track is what their readers need.
+- Hiding authorship where someone is required to write unaided. This skill shapes how writing is built. It isn't for evading a policy.
+- Text under ~150 words. There's too little structure. Use only rule 4 (names).
 
 ## The process
 
 ### Mode A: drafting (author available)
 
-**1. Get the decision sheet answered before drafting prose.** Pull proposed answers from the author's material and give them the list in plain chat. Mark each item with what the default AI draft would do so the author can see what they're overriding. Where the material has no answer, ask. Don't fill it in yourself.
+**1. Get the decision sheet answered before drafting prose.** [adaptation] Each decision targets core features from `features.md`. Propose an answer for every item from the author's notes, so "go with your proposals" is a complete reply. Mark each item with the AI-elevated default it avoids. Ask only what the notes truly can't answer, ranked: **at most 5 questions under ~800 words**, at most 10 for longer pieces. Never fill a gap with invented material.
 
-| # | Decision | Default AI choice (the thing to avoid by default) |
-|---|---|---|
-| 1 | **Entry.** Which concrete thing opens: a moment, a quote, a number, the middle of events? | Place-setting or the thesis ("In a small town...", "X has always been...") |
-| 2 | **Withheld.** What does the reader not get until later? Which late fact changes how an earlier part reads? | Context first, then problem, then answer, in order |
-| 3 | **Open.** What stays unresolved? What does the author's own position cost, or who does it hurt? | Every thread closed; the author's side clean |
-| 4 | **Pushback.** Which source, authority, ally or convention does the author disagree with or complicate? | Agrees with and extends every source |
-| 5 | **Voices.** Who is quoted word for word? Who is introduced by what they said or did? | Paraphrase; people introduced by title and credentials |
-| 6 | **Names.** Which specific people, places, works, numbers, dates or statutes replace each vague "experts", "studies", "many"? | Vague gestures toward "the literature" |
-| 7 | **Side thread.** Which digression does the author care about enough to keep, even though it doesn't serve the thesis head-on? | One straight track, no subplots |
-| 8 | **Endings.** Which sections end on a fact or image instead of the lesson? Is the moral stated anywhere, and where? | Every section and the piece end on a quotable maxim |
-| 9 | **On the page.** Where does the author appear ("I", "you", an aside, an admission)? | Author invisible; nobody addressed |
+| # | Decision | Core features it targets [paper] | AI-elevated default to avoid |
+|---|---|---|---|
+| 1 | **Entry.** What does the reader get first, and what do they not get yet? | Opening spatial grounding (AI ↑), pre-threat investment (AI ↑), nonlinear framing for delayed disclosure (human ↑) | Place-setting, or a long build-up of background before the problem |
+| 2 | **Withheld.** Which fact arrives late and changes how an earlier part reads? | Recontextualization after surprise (human ↑), chronological discontinuity and anachrony (human ↑) | Chronological order, every fact in sequence |
+| 3 | **Ambivalence.** Where is the author's own position morally mixed: a real cost, doubt or contradiction? | Moral polarity → ambivalent/mixed (human 59% vs AI 38%) | The author's side framed as clearly good |
+| 4 | **Resolution.** What settles the piece: outside events, nothing (left open), or the author's insight? | Agency in resolution → protagonist choice (AI ↑), mode of resolution → internal understanding (AI ↑) | Ending on a realization or acceptance ("the real question is…") |
+| 5 | **Voices.** Who speaks in their own words, and is the central person introduced through what they said? | Dialogue-to-narration proportion (human ↑), character introduction → in-dialogue (human fingerprint) vs external description (AI ↑) | Paraphrase; introducing someone with a credential line |
+| 6 | **Names.** Which specific works, people and places are named? | Intertextual strategy → explicit named reference (human 47% vs AI 24%), reference explicitness → balanced mix (human ↑) vs implicit echoes (AI ↑) | "Scholars have long observed", vague allusion |
+| 7 | **Parallel thread.** Is there a second thread that echoes the main theme from another angle? | Subplot integration → thematically parallel (human 42% vs AI 21%); no subplots (AI 79% vs 57%) | One straight track |
+| 8 | **Theme statement.** Is the lesson stated outright, and if so, how many times and where? | Narratorial thematic commentary (AI 77% vs human 52%), thematic explicitness & moralizing (AI ↑) | Lesson stated, and restated to close sections [adaptation: the section-closer slot] |
+| 9 | **Reader.** Is the reader addressed anywhere? | Direct reader address and fourth-wall permeability (human ↑; body text 28% vs 7%, 67% vs 39%) | No address at all. But most human stories don't address the reader either, and "no direct address" is also a human fingerprint (Table 17). When a human does, it's occasional. |
 
-For a short piece (under ~800 words), cover at least 1, 3, 5 or 6, and 8.
+For a short piece, the sheet only has to cover 1, 3, 5 or 6, and 8.
 
-**2. Draft to the sheet.** Keep the author's plain wording. "I was scared" stays "I was scared." Don't turn it into a tight chest (see rule 7).
+**2. Draft to the sheet.** Name feelings with explicit labels where the author's feeling is stated (explicit labels: human 29% vs AI 8%; embodied metaphor: AI 81% vs 38%) [paper].
 
-**3. Run the Mode B audit on your own draft** before handing it over. The model writing it drifts back toward its defaults, especially on endings (8) and resolution (3).
+**3. Audit the draft blind.** [paper protocol, adapted] The paper hid which source wrote a story in every LLM-facing prompt. When you can, give the draft to a fresh subagent to score, with no mention of who wrote it. When you can't, score it yourself using Mode B step 2 exactly.
 
 ### Mode B: auditing or revising existing text
 
-**1. Extract the skeleton first.** Don't judge the prose yet. The paper found that comparing raw text surfaced style features, while comparing structured templates surfaced structural ones, so extract before you judge. Fill in the template in `template.md`: opening move, order of disclosure, causal chain, threads, how it resolves, list of section closers, references (named or vague), quotes vs paraphrase, how emotion is rendered, how people are introduced, stance toward sources, where the author shows up.
+**1. Score the full text, one dimension at a time.** [paper] Answer the paper's exact questions in `features.md`, reading the whole piece, **one NarraBench dimension per pass**. The paper found single-call application covered only 68.4% of features, with "broad systematic dropout, especially in revelation and temporal-structure features". Per-dimension calls covered 95.4%. [adaptation] Only the 8 dimensions that contain core features need a pass: Situatedness, Plot, Events, Setting, Agents, Perspective, Revelation, Temporal structure. Quote evidence from the text for every answer; the paper's scoring step didn't require that, but this skill does.
 
-**2. Score it** against the 30 core features in `features.md`. Output the scorecard below, **with an evidence line quoted from the text** for every flag. A flag without evidence is not allowed.
+**2. Draw the skeleton to plan the rewrite.** [adaptation] Fill in `template.md`, adapted from the paper's Figure 8 extraction schema. The paper used templates to *discover* features, not to score them. Here the skeleton is a planning map: it shows the order of disclosure, the threads and the resolution, so you can see what to move.
 
-**3. Rank the fixes by effect per word changed.** Moving one paragraph (delayed disclosure) or cutting four closers usually does more than rewriting a whole section. For each fix, say which rule it applies and whether it needs **author material**: ambivalence, pushback, verbatim quotes, named sources and personal stakes almost always do.
+**3. Rank fixes by effect per word changed.** [adaptation] Moving a paragraph or removing a theme statement usually beats rewriting a section. For each fix, name the core feature and say whether it needs **author material** (ambivalence, quotes, named references and personal stakes almost always do).
 
-**4. Get author material before rewriting.** If a fix needs a fact, quote, doubt or name that isn't in the source, list it as a question. When the author can't be reached, make the structural moves that need no new facts (reordering, cutting closers, using quotes that already exist, pulling in stakes from the notes) and hand back the rest as open questions.
+**4. Get author material before rewriting.** If a fix needs a fact, quote, doubt or name that isn't in the source, list it as a question. When the author can't be reached, make only the moves that need no new facts, and return the rest as bracketed questions.
 
-**5. Rewrite structurally.** Move, cut, reorder, restore verbatim quotes, put in the author's own named specifics. Then, optionally, run `humanizer` for surface cleanup.
+**5. Rewrite structurally, then re-score (step 1 again).** [adaptation] Change features in at least three dimensions. This rule is ours: the paper showed the signal is redundant across dimensions (removing any one cost ≤ 1.2 points). The only edits it tested were LAMP's surface rewrites, never structural edits or edits aimed at human feature values. Then read the piece straight through: the argument is still made, the paragraphs connect, and the length is within ~25% of the original unless the removed text was invented.
 
-**6. Re-score.** Confirm changes span at least three dimensions (for example Revelation/Temporal, Situatedness, Plot) and that nothing has swung into caricature (see anti-patterns). Then read it straight through once as a reader: the author's case is still being argued, paragraphs connect, and it doesn't read like a list of facts.
+**6. Optional surface pass:** `humanizer`.
 
 ### Scorecard format
 
 ```
 STORYSCOPE AUDIT: <title> (<words> words, <genre>)
-Dimension          Feature                         Reading          Evidence
-Situatedness       Narrator states the lesson      AI (6/7 closers) "When we protect our libraries, we protect ourselves."
-Situatedness       Vague vs named references       AI               "As scholars have long observed"
-Agents             Emotion rendering               AI (embodied)    "their shoulders loosening"
-Temporal/Revelation Order of disclosure            AI (linear)      history → uses → cuts → moral
-Plot               Author's position               AI (clean)       no cost or doubt stated
+Dimension      Core feature (paper question)             Answer            Leans   Evidence
+Situatedness   Narratorial thematic commentary           yes               AI      "When we protect our libraries, we protect ourselves."
+Situatedness   Reference explicitness                    implicit echoes   AI      "As scholars have long observed"
+Agents         Dominant emotional expression             embodied metaphors AI     "their shoulders loosening"
+Revelation     Nonlinear framing for delayed disclosure  1 (linear)        AI      history → users → impact → moral
+Plot           Moral polarity toward protagonist         clearly positive  not the human-elevated option (ambivalent)  no cost of the author's position stated
 ...
-Dimensions flagged: 5 of 7   Needs author material: 3 items (listed below)
-Top fixes (ranked by effect per word): 1. ... 2. ... 3. ...
+Dimensions leaning AI: 5 of 8   Needs author material: 3 items
+Top fixes (effect per word): 1. ... 2. ... 3. ...
 Questions for the author: ...
 ```
 
-## The ten rules (the compressed version of features.md)
+## Rules (each traced to a core feature)
 
-1. **Don't state the lesson in the closing slot.** Let at least half the sections end on a fact, a quote or a concrete image. If there's a moral, say it once, somewhere other than the last line.
-2. **Open late, disclose late.** Start with a concrete moment from the middle and bring in the background after the reader cares. Put the rule after the reader has felt the problem. Use a late fact that makes an earlier paragraph read differently.
-3. **Leave something open.** State at least one real cost, doubt or unresolved thread of the author's own position, in the author's words.
-4. **Name things.** Real people, places, works, numbers, dates. Mix explicit citations with a few unmarked echoes. Replace every "studies show" with the study, or cut it.
-5. **Push back on something.** Disagree with or complicate at least one source or accepted framing. Claude's strongest fingerprint is reverence toward its sources (62% vs 39-56%).
-6. **Let people talk.** Use verbatim quotes over paraphrase. Introduce a person by what they said or did, not by a credential line. Quotes should report or reveal. They shouldn't voice the thesis for you.
-7. **Name feelings plainly.** "I was angry" beats a tight throat and dim lamplight. Cut settings that mirror mood and sensory padding (AI used smell in 82% of stories, humans in 57%). Don't narrate other people's inner states you couldn't know.
-8. **Keep one side thread.** A digression that runs parallel to the theme, with no bow tied on it (human 42% vs AI 21%).
-9. **Show up.** Address the reader, make an aside, admit something. The author exists on the page (reader address: human 28% vs AI 7%).
-10. **Vary the voice and the stakes.** Vary tension and register across sections. Claude's fingerprint is the flattest escalation and the most uniform voice of the five models. Where the author's dictated sections differ in rhythm from the rest, level the smooth parts toward the author's sections, not the other way.
+1. **Decide whether to state the theme at all.** [paper: narratorial commentary 77% AI vs 52% human; explicitness 3.94 vs 3.28] If you state it, say it once. [adaptation: don't repeat it as a closer on every section]
+2. **Hold something back, and let a late fact reframe what came before.** [paper: recontextualization 3.28 vs 2.95; delayed disclosure 1.96 vs 1.68; chronological discontinuity; anachrony] Don't open with place-setting or a long background wind-up [paper: opening spatial grounding and pre-threat investment are AI-elevated]. A formula "in medias res" opening is not the fix. That's Kimi's fingerprint.
+3. **Frame the author's own position as mixed where it really is.** [paper: moral polarity → ambivalent, 59% vs 38%] Ambivalence means a real cost or contradiction from the author, not a hedge.
+4. **Name the works, people and places you draw on, and mix explicit citation with a few unmarked echoes.** [paper: explicit named reference 47% vs 24%; balanced mix 37% vs 16%; implicit echoes AI 72% vs 50%]
+5. **Don't let the ending be the author's insight winning.** [paper: protagonist-choice resolution 69% AI vs 46%; internal-understanding resolution 47% vs 27%] Let outside events settle it, or leave it unresolved.
+6. **Put the words people actually said on the page, and introduce the central person through their words.** [paper: dialogue proportion human ↑; in-dialogue introduction is the top human fingerprint; external description AI 52% vs 30%] Note that "primarily direct speech" is also a Gemini fingerprint, so quote where you have the words. Don't make everything quotes.
+7. **Name feelings plainly. Don't render them through the body or the setting.** [paper: explicit labels 29% vs 8%; embodied metaphor 81% vs 38%; setting as psychological mirror 4.07 vs 3.58] Cut sensory padding [paper: sensory density AI ↑; olfactory among the most engaged senses 82% vs 57%]. Don't narrate inner states you couldn't know [paper: depth of interior access AI ↑].
+8. **Include a second thread that echoes the theme from another angle.** [paper: thematically parallel subplots 42% vs 21%]
+9. **Let one dialogue do more than argue ideas.** [paper: dialogue function → philosophical debate, AI 59% vs 34%] Quotes should move events or show a person.
+10. **For a Claude-drafted piece, check Claude's fingerprints:** does the stakes level actually rise, does any section sound different from the others, does it only honor convention and never break one, and does it close on an epilogue? [paper: Claude fingerprints] [adaptation: applying "reverent toward literary tradition" to cited sources and conventions in nonfiction]
 
 ## Anti-patterns
 
 | Anti-pattern | Why it fails | Do instead |
 |---|---|---|
-| Swapping words, cutting em-dashes, and calling it human | The paper's LAMP edit removed clichés and purple prose and moved structural detection 1.6 points | Structural moves first; `humanizer` after |
-| **Making up** a quote, a named source, an anecdote or a doubt to satisfy a feature | Fabrication, and under the author's name. Worse than sounding like AI | Ask the author. If they can't be reached, flag it as an open question. Fiction is the only exception. |
-| Making up *texture*: overheard reactions ("everyone I talked to said…"), "it came up at church", a scene nobody reported, and then telling the author "no new facts added" | Invented human detail is still invention. It's the first thing a no-skill rewrite reaches for | Texture comes only from the author or the source. Otherwise leave a bracketed question: `[what did people actually say?]` |
-| Rewording the closing moral instead of removing the slot ("protect our libraries" becomes "what we fund says what we care about") | Same decision (narrator states the lesson), new words. Structurally nothing changed | End on a fact, a date, a quote or the concrete worry |
-| Keeping the original paragraph order and calling it a rewrite | Order of disclosure is the temporal and revelation dimensions. Same order means same structure | Draw the skeleton, then decide what moves before touching sentences |
-| Asking the author only for missing *facts* (dates, numbers) | Facts help with rule 4 alone. The human part comes from *decisions* | Ask the decision questions too: your stake, who you disagree with, whose exact words, what the reader shouldn't learn until later |
-| Cutting every closer, forcing "you" into every paragraph, scrambling chronology | Quotas become a new tell. Humans still moralize half the time | Aim for human rates. Break uniformity, don't flip it |
-| Stripping the piece to a column of one-line fact paragraphs with no connecting prose and no argument | Minimalism is a different default, not a human one. Cutting the moral slot doesn't mean cutting the case being made | The author's argument still gets made, in connected paragraphs. Stay within ~25% of the original length unless the cut text was invented |
-| Dropping the personal stake in as one orphan line ("I spent 7th grade there.") | That's an aside, not a thread. A parallel thread comes back | Bring the stake back at least twice, the second time where it changes how the reader takes something |
-| Fixing one feature (usually closers) and stopping | Signal is spread across dimensions; any one removal costs at most ~1 point | Changes across three or more dimensions |
-| "Elevating" the author's plain labels into imagery | Plain emotion labels and plain naming are human markers (29% vs 8%) | Leave "It's equipment." alone |
-| Synonym-hunting to avoid repeating a key term | A model habit; people repeat the word that matters | Keep repetition that carries the argument |
-| Rewriting silently instead of showing the author the decision points | The decisions are what makes it human. A model making them brings back the model's defaults | Decision sheet (Mode A) or scorecard plus questions (Mode B) |
-| Adding ambivalence that softens a claim the author actually holds | Ambivalence means real cost or real doubt, not hedging | "This also enables X, which is why Y exists." Don't write "some may argue" |
-| Claiming the result is undetectable | Raw-text classifiers still reached ~99.8% in the paper | Say it reads and is built like the author's work |
-| Applying the full method to a spec, runbook or legal instrument | Linear, explicit, single-track is what those readers need | Skip it, or apply only rules 4 and 6 |
+| Swapping words, cutting em-dashes, and calling it human | [paper] LAMP artifact removal moved narrative detection 1.6 points (95.5 → 93.9, Gemini stories) | Structural moves first; `humanizer` after |
+| **Making up** a quote, source, anecdote, doubt or reaction to satisfy a feature | Fabrication under the author's name | Ask, or leave a bracketed question. Fiction is the only exception. |
+| Making up *texture*: "everyone I talked to said…", scenes nobody reported, "the number is right there on the page" | Observed in no-skill baselines (see eval), each time claiming "no new facts" | Texture comes only from the author or the source |
+| Rewording the theme statement instead of deciding whether to have one | Narratorial commentary is yes/no for the whole piece. New words, same answer | Remove it, or state it once, deliberately |
+| Keeping the original paragraph order and calling it a rewrite | Revelation and temporal features measure order | Plan from the skeleton before touching sentences |
+| Opening "in medias res" or introducing people "in action" as the human fix | [paper] Both are Kimi fingerprints. Among the top human fingerprints listed, introduction is in-dialogue | Solve the entry with delayed disclosure, not a formula |
+| Constant "you", constant flashbacks, all quotes | [paper] Most human stories never address the reader, and "no direct address" is also a human fingerprint. Frequent flashbacks and primarily direct speech are Gemini fingerprints | Use these at human rates, not as quotas |
+| Stripping to one-line fact paragraphs with no argument | Observed overcorrection in testing | Keep the case connected; length within ~25% |
+| A personal stake dropped in as one orphan line | Not a parallel thread | A thread that comes back and echoes the theme |
+| Scoring all 30 features in one pass | [paper] Single-call coverage was 68.4% vs 95.4% per dimension | One dimension per pass |
+| Asking the author twenty questions for a short post | Nobody answers them; the skill stops being easy | Propose answers; ≤5 questions under 800 words |
+| Claiming the result is undetectable | [paper] Raw-text classifiers hit 99.7–99.9% | Say it's built like the author's work |
+| Presenting an [adaptation] rule as a paper finding | The paper studied fiction detection only | Keep the tags |
 
 ## Reference files
 
-- `features.md`: all 30 core features with human/AI rates, what each looks like in nonfiction, and the fix move. Also each model's fingerprint (what Claude, GPT and Gemini default to).
-- `template.md`: the skeleton-extraction template for Mode B step 1, adapted from the paper's NarraBench extraction prompt for nonfiction.
+- `features.md`: the 30 core features with the paper's exact questions, answer options, human/AI values, NarraBench dimension, and a nonfiction reading marked as adaptation. Also per-model fingerprints and the method details.
+- `template.md`: the skeleton for Mode B step 2, the paper's Figure 8 schema adapted for nonfiction.
 
 ## Cross-References
 
-- **`humanizer`**: the surface pass (stock words, inflation, filler). Run it *after* this skill. The two don't overlap: this one changes what the piece is made of, humanizer changes the wording.
-- **`content-writing`** / **`report-writing`**: their structure templates (inverted pyramid, key-takeaways closer) are the AI-default shape. When a piece has to read as a person's, this skill overrides those templates for opening, closers and resolution.
-- **`brainstorming`**: its conversational style suits walking through the Mode A decision sheet.
-- **`paper-to-code`**: sibling pattern (research turned into practice). This skill is the writing-side application of arXiv 2604.03136.
-- **`deep-research`** / **`fact-checker` agent**: when rule 4 needs real named sources, get them from research. Don't produce them from memory.
-- Source: https://arxiv.org/abs/2604.03136 · code and features: https://github.com/jenna-russell/storyscope
+- **`humanizer`**: the surface pass. Run it after this skill.
+- **`content-writing`** / **`report-writing`**: their templates (key-takeaways closer, inverted pyramid) match the AI-elevated profile. When a piece has to read as a person's, this skill overrides them on theme statement, resolution and disclosure order.
+- **`brainstorming`**: conversational format for the decision sheet.
+- **`deep-research`** / **`fact-checker` agent**: real named sources for rule 4. Never produce them from memory.
+- **`paper-to-code`**: the same research-to-practice discipline.
+- Source: https://arxiv.org/abs/2604.03136 · code, prompts, features: https://github.com/jenna-russell/storyscope
