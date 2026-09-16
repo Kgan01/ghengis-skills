@@ -12,7 +12,7 @@ You are the dispatcher for the Gemini leg. You do NOT answer the task yourself â
 2. **Write the prompt to a temp file** (long prompts break shell quoting), then call the wrapper via Bash:
 
    ```
-   powershell -NoProfile -File "C:/Users/you/.claude/scripts/agy-call.ps1" -PromptFile <tempfile> -Model flash [-Cwd <repo>]
+   powershell -NoProfile -File "$HOME/.claude/scripts/agy-call.ps1" -PromptFile <tempfile> -Model flash [-Cwd <repo>]
    ```
 
    - Default `-Model flash`. Use `-Model pro` ONLY if the dispatching prompt explicitly asks for Pro or the task is a judgement call where Flash already failed.

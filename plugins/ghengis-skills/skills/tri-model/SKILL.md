@@ -31,7 +31,7 @@ that is *already fully specified*.
 | **Pre-specified mechanical execution** — "just do exactly this" | fast tier (Haiku, Gemini 3.6 Flash) **always followed by a frontier review** |
 | Anything shipping | never graded only by the model that built it |
 
-**The spec'd-task pattern** (Kaegan's, make it routine): when the user has
+**The spec'd-task pattern** (the user's own, make it routine): when the user has
 already decided *what* to do, hand the typing to a fast model, then have
 **Opus verify it is correct** before it counts as done. Speed on execution,
 frontier judgement on correctness — never fast-and-unchecked.

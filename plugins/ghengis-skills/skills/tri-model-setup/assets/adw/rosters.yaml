@@ -26,7 +26,7 @@ rosters:
     reviewer: { model: "claude-cli/opus" }
 
   # Pre-specified mechanical work: the task is already decided, a fast model
-  # types it, and a frontier reviewer verifies correctness. Kaegan's pattern:
+  # types it, and a frontier reviewer verifies correctness. The user's pattern:
   # "just go do it as I said, then have Opus review it."
   specd:
     planner:  { model: "claude-cli/haiku" }

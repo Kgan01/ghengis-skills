@@ -12,8 +12,12 @@ work directly:
 
 Run via:
   # As a skill: user invokes /reload-ghengis
-  # Standalone: curl -fsSL https://raw.githubusercontent.com/Kgan01/ghengis-skills/master/plugins/ghengis-skills/skills/reload-ghengis/scripts/refresh_plugin.py | python
+  # Standalone (macOS/Linux): curl -fsSL https://raw.githubusercontent.com/Kgan01/ghengis-skills/master/plugins/ghengis-skills/skills/reload-ghengis/scripts/refresh_plugin.py | python3
+  # Standalone (PowerShell):  irm https://raw.githubusercontent.com/Kgan01/ghengis-skills/master/plugins/ghengis-skills/skills/reload-ghengis/scripts/refresh_plugin.py | python -
   # Direct:  python refresh_plugin.py
+  # The /reload-ghengis skill fetches THIS file from GitHub master first and only
+  # falls back to its bundled copy when offline, so old installs always run the
+  # newest fixes (e.g. the v1.26.2 Windows UTF-8 console fix).
 
 Stdlib only — no dependencies. Works on Windows, macOS, Linux.
 """
@@ -186,7 +190,8 @@ def main() -> int:
     update_installed_plugins(version, cache_dir, marketplace_path)
     log("")
     log(f"Done. Plugin pinned to {version}.")
-    log("Next: run /reload-plugins in Claude Code to activate.")
+    log("Next: FULLY restart Claude Code (/exit or Ctrl+C, then run `claude` again).")
+    log("      /reload-plugins alone may not register NEW skills, commands, or hooks.")
     return 0
 
 

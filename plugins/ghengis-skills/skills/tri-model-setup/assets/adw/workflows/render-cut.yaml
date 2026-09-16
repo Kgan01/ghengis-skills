@@ -19,7 +19,7 @@ phases:
         run: node -e "const{existsSync,readFileSync}=require('fs');for(const p of ['<pi-workbench>/.env','<jarvis>/.env']){if(existsSync(p))for(const l of readFileSync(p,'utf8').split(/\r?\n/)){const m=l.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);if(m&&!(m[1] in process.env))process.env[m[1]]=m[2]}};process.exit(process.env.FAL_API_KEY?0:1)"
         timeout_s: 30
       - name: vlm-host
-        run: node -e "fetch((process.env.ADW_VLM_HOST??'http://<local-model-host>:11434')+'/api/tags').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+        run: node -e "let h=process.env.ADW_VLM_HOST??process.env.OLLAMA_HOST??'127.0.0.1:11434';if(!h.includes('://'))h='http://'+h;fetch(h.replace(/[/]$/,'')+'/api/tags').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
         timeout_s: 30
 
   - name: render

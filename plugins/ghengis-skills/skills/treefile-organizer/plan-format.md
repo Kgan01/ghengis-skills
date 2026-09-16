@@ -66,7 +66,7 @@ This file specifies the schema for `plan.json` and the structure expected in `pl
 {
   "version": "1",
   "created_at": "2026-05-06T00:30:00Z",
-  "project_root": "/Users/kgan/Desktop/myproject",
+  "project_root": "/Users/you/Desktop/myproject",
   "project_type": "fastapi-service",
   "language_mix": {"python": 47, "typescript": 0, "javascript": 0},
   "anchors": ["pyproject.toml", ".github/workflows/", "scripts/deploy.sh"],

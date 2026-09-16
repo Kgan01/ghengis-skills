@@ -1,12 +1,12 @@
 name: demand-letter
-description: Law-firm demand-letter pipeline (example law firm) — ingest, extract, draft, judge-as-gate with an automated revise loop. PHI. Roster locked to local; run with --cwd <law-firm-ai-system repo> and the client name as the task.
+description: Law-firm demand-letter pipeline — ingest, extract, draft, judge-as-gate with an automated revise loop. PHI. Roster locked to local; run with --cwd <law-firm-ai-system repo> and the client name as the task.
 defaults:
   roster: local
   lock_roster: true   # PHI — no cloud model may touch case content, ever
 
 # Task text = the client folder substring, e.g.:
 #   node adw/adw.mjs run demand-letter --cwd <law-firm-ai-system repo> "Doe, Jane"
-# OLLAMA_HOST decides which box drafts (DGX for the 70b models). The attorney still
+# OLLAMA_HOST decides which box drafts (a GPU box for the 70b models). The attorney still
 # reviews every letter — this automates v1→vN, not the sign-off.
 
 phases:
@@ -50,7 +50,7 @@ phases:
         timeout_s: 3600
 
   # The revise agent is manual: it never runs in sequence — only when the
-  # judge gate fails. It does what Kaegan did by hand across Doe v1→v12:
+  # judge gate fails. It automates what was once done by hand across v1→v12 drafts:
   # read the judge's findings, tune the drafter prompt, re-draft.
   - name: revise
     kind: agent
@@ -64,7 +64,7 @@ phases:
 
       Steps:
       1. Find the newest *.judge.md and *.judge.json for this client under
-         <drafts dir>/ and read the flagged findings carefully.
+         the case repo's drafts/ folder and read the flagged findings carefully.
          Deterministic flags (dates, citations, duplicates, dropped providers)
          are ground truth; consensus-confirmed claims are near-certain;
          "unstable" items are advisory only.

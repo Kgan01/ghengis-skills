@@ -22,7 +22,7 @@ Do **not** use for organic/aesthetic shapes from a reference image (use the TREL
 
 Working environment must satisfy:
 
-1. JARVIS repo at `C:\Users\you\OneDrive\Desktop\Jarvis` (adjust path if elsewhere).
+1. JARVIS repo at `~/Jarvis` (adjust path to wherever it is cloned).
 2. Python env has `build123d` installed (`pip install build123d`).
 3. `.env` has `CLAUDE_MAX_ENABLED=true` (uses the user's Claude Max OAuth — $0 cost).
 4. Optional but recommended: `trimesh` for lightweight preview rendering.
@@ -106,7 +106,7 @@ This gives proper hole/pocket visibility (matplotlib triangulation alone does no
 ### 4. Open the artifact folder
 
 ```bash
-explorer.exe "C:\Users\you\.jarvis\cad\<MODEL_ID>\"
+explorer.exe "%USERPROFILE%\.jarvis\cad\<MODEL_ID>\"   # macOS: open ~/.jarvis/cad/<MODEL_ID>/
 ```
 
 So the user has `source.py`, `gen_step.py`, `model.step`, `model.stl`, `.model.step.glb`, and any rendered previews at their fingertips.

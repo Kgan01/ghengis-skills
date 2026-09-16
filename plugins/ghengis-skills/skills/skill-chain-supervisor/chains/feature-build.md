@@ -96,7 +96,7 @@ Scratchpad keys expected at chain start:
   "stages_completed": ["brainstorming", "test_driven_development", "build_validate", "report"],
   "input": {
     "user_request": "Add a /health endpoint that returns DB connectivity status",
-    "project_root": "/Users/kgan/code/foo-service"
+    "project_root": "/Users/you/code/foo-service"
   },
   "brainstorming": {
     "design_summary": "GET /health → JSON {status: ok|degraded|down, db: <bool>, ts: <iso>}. Use existing db.ping() helper.",
