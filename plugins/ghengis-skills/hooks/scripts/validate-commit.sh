@@ -10,6 +10,10 @@ case "$COMMAND" in
     *) exit 0 ;;
 esac
 
+# Block private data (client names, home paths, Tailscale IPs) headed to a PUBLIC repo
+echo "$INPUT" | "${SCRIPT_DIR}/run-python.sh" "${SCRIPT_DIR}/public_leak_guard.py" commit
+[ $? -eq 2 ] && exit 2
+
 ERRORS=""
 STAGED_FILES=$(git diff --cached --name-only 2>/dev/null)
 

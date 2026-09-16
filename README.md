@@ -12,7 +12,7 @@
 
 [![Skills](https://img.shields.io/badge/skills-62-blue?style=for-the-badge)](./plugins/ghengis-skills/skills/)
 [![Evals](https://img.shields.io/badge/evals-51-green?style=for-the-badge)](./plugins/ghengis-skills/evals/)
-[![Version](https://img.shields.io/badge/version-1.27.0-lightgrey?style=for-the-badge)](#changelog)
+[![Version](https://img.shields.io/badge/version-1.27.1-lightgrey?style=for-the-badge)](#changelog)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange?style=for-the-badge)](https://code.claude.com)
 [![License](https://img.shields.io/badge/license-MIT-purple?style=for-the-badge)](#license)
 
@@ -673,6 +673,11 @@ MIT
 ## Changelog
 
 Newest first.
+
+### v1.27.1 (2026-09-16)
+
+- **Public leak guard (`hooks/scripts/public_leak_guard.py`)**: the commit and push hooks now block when a change headed to a PUBLIC GitHub repo contains private data: your home-folder paths, Tailscale IPs, or anything in your personal denylist at `~/.claude/private-denylist.txt` (literal terms, `regex:` lines, and `folder-names:<dir>` so every "Last, First" client folder is protected automatically). The denylist lives outside every repo. Private repos are skipped; unknown visibility is treated as public. Escape hatch for a verified false positive: `GHENGIS_LEAK_GUARD=off`.
+- History rewrite: a real client name that had been copied into an example workflow comment (v1.21.2) was scrubbed from all commits. If you cloned before 2026-09-16, re-clone or run the reload.
 
 ### v1.27.0 (2026-09-16)
 
