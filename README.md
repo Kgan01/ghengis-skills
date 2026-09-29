@@ -10,9 +10,9 @@
                      S K I L L S
 ```
 
-[![Skills](https://img.shields.io/badge/skills-62-blue?style=for-the-badge)](./plugins/ghengis-skills/skills/)
-[![Evals](https://img.shields.io/badge/evals-51-green?style=for-the-badge)](./plugins/ghengis-skills/evals/)
-[![Version](https://img.shields.io/badge/version-1.27.1-lightgrey?style=for-the-badge)](#changelog)
+[![Skills](https://img.shields.io/badge/skills-64-blue?style=for-the-badge)](./plugins/ghengis-skills/skills/)
+[![Evals](https://img.shields.io/badge/evals-52-green?style=for-the-badge)](./plugins/ghengis-skills/evals/)
+[![Version](https://img.shields.io/badge/version-1.28.0-lightgrey?style=for-the-badge)](#changelog)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange?style=for-the-badge)](https://code.claude.com)
 [![License](https://img.shields.io/badge/license-MIT-purple?style=for-the-badge)](#license)
 
@@ -20,7 +20,7 @@
 
 </div>
 
-62 skills for Claude Code: supervised build / debug / ship chains, a **tri-model harness** that puts Gemini and GPT to work alongside Claude (`/adw`, `/opinion`, `/fusion`, `/auto-validate`, `/gauntlet`), agent-reliability guards, and domain expertise across 20+ fields. Skills load on demand. Unlike MCP servers that add tool schemas to every message, a skill costs nothing until a task matches its trigger, and an autoloader makes sure the right one fires.
+64 skills for Claude Code: supervised build / debug / ship chains, a **tri-model harness** that puts Gemini and GPT to work alongside Claude (`/adw`, `/opinion`, `/fusion`, `/auto-validate`, `/gauntlet`), agent-reliability guards, and domain expertise across 20+ fields. Skills load on demand. Unlike MCP servers that add tool schemas to every message, a skill costs nothing until a task matches its trigger, and an autoloader makes sure the right one fires.
 
 ---
 
@@ -54,7 +54,7 @@ In Claude Code, run these four commands one at a time. Each block is one line yo
 
 **5. Fully restart Claude Code.** Use `/exit` or Ctrl+C, then run `claude` again. `/reload-plugins` is not enough: the statusline config and newly added skills are only picked up at startup.
 
-All 62 skills are then available in every session (CLI, desktop, and mobile). Claude loads them automatically when a task matches.
+All 64 skills are then available in every session (CLI, desktop, and mobile). Claude loads them automatically when a task matches.
 
 ### Optional: the tri-model rig
 
@@ -480,7 +480,7 @@ Sample `cognition.jsonl` entry:
 
 ## Skills
 
-All 62, grouped by what they do. Most fire automatically from their trigger descriptions. The rest you run explicitly as `/ghengis-skills:<name>`.
+All 64, grouped by what they do. Most fire automatically from their trigger descriptions. The rest you run explicitly as `/ghengis-skills:<name>`.
 
 ### Tri-Model Harness (2)
 
@@ -489,10 +489,11 @@ All 62, grouped by what they do. Most fire automatically from their trigger desc
 | **tri-model** | Routing doctrine for the Claude + Gemini + GPT harness: quality-first economics, cross-family review by default, the `/adw` `/opinion` `/fusion` `/auto-validate` `/gauntlet` command family, and till-done execution with visible task lists. The user never picks models. | Auto-fires on non-trivial build/fix/review/decide work when the legs are installed, and on *"get this right"* or *"second opinion"*. See [Tri-Model Harness](#tri-model-harness). |
 | **tri-model-setup** | Installs the rig on a bare machine: agy + codex + the codex plugin, then deploys the wrapper, `gemini` agent, six commands, ADW YAMLs, dashboard, and advisor. Handles the agy OAuth steps and known npm/PATH gotchas. | `/ghengis-skills:tri-model-setup`, or *"set up the tri-model rig"*. |
 
-### Plugin & Setup (4)
+### Plugin & Setup (5)
 
 | Skill | What It Does | How to Use |
 |-------|-------------|-----------|
+| **notebooklm-pack-setup** | One-time connection for pushing packs: installs the unofficial `notebooklm-py` CLI, has you sign in with your own Google account in a browser window, verifies it, and confirms the account. Covers switching accounts and disconnecting. The session stays on your machine. | *"set up NotebookLM"*, or automatically when `notebooklm-pack` finds the CLI missing or logged out. Optional: packs can always be uploaded by hand. |
 | **setup** | Merges safe-by-default autonomous permissions into `~/.claude/settings.json` (dev tools allowed, destructive operations denied). | `/ghengis-skills:setup` once after install. |
 | **install-statusline** | Installs the agent-monitor terminal status bar (model name + color-coded context usage). Auto-detects `python3` vs `python`; safe to re-run. | `/ghengis-skills:install-statusline`, then a full restart. |
 | **reload-ghengis** | Force-syncs the plugin from GitHub `master`, bypassing `/plugin update` caching. Always runs the latest refresh script, falling back to the bundled copy only when offline. | `/ghengis-skills:reload-ghengis`, then a full restart. |
@@ -566,10 +567,11 @@ All 62, grouped by what they do. Most fire automatically from their trigger desc
 | **output-formatting** | 8 destination formatters (chat, email, Slack, TTS, PDF, CSV, JSON, markdown) plus document ingestion and chunking. | *"format this for Slack"*, *"export as CSV"*. |
 | **proactive-rituals** | Morning briefings, end-of-day summaries, weekly reviews, and custom rituals mapped to native cron scheduling. | *"set up a morning briefing"*. Pair with `/schedule`. |
 
-### Domain Expertise (19)
+### Domain Expertise (20)
 
 | Skill | What It Does | How to Use |
 |-------|-------------|-----------|
+| **notebooklm-pack** | Turns a concept from your own project into an upload-ready NotebookLM source pack: self-contained primers, a case study with every caveat kept, glossary, and a manifest of ready-to-paste prompts. Optional push script drives a consumer account through the unofficial `notebooklm-py` CLI. | *"make me a notebook pack"*, *"I want to actually learn X we built"*. |
 | **storyscope** | Makes papers, essays, blogs, and speeches read as human-written by fixing *structural* decisions (openings, delayed disclosure, closers, ambivalence, named sources, verbatim quotes), based on StoryScope (COLM 2026). Never invents material. | *"make this sound human"*, *"StoryScope this"*. Run before `humanizer`. |
 | **content-writing** | Blog posts, docs, and marketing copy: structure, SEO basics, audience targeting, editorial checklists. | *"write a blog post on X"*. |
 | **report-writing** | Executive summaries, data presentation, confidence levels, source citation. | *"write a report on X"*. |
@@ -640,7 +642,7 @@ The plugin ships 7 subagents with isolated context (`plugins/ghengis-skills/agen
 
 ## Evals
 
-51 skills have evaluation cases in `plugins/ghengis-skills/evals/`: scenarios with specific assertions that check whether a skill produces methodology-driven output rather than a generic response. The 11 without evals are mostly installers and infrastructure (`setup`, `install-statusline`, `reload-ghengis`, `using-ghengis-skills`, `tri-model-setup`, `agent-monitor`, `time-perception`) plus `auto-project-sync`, `cad`, `evolving-cognition`, and `paper-to-code`.
+52 skills have evaluation cases in `plugins/ghengis-skills/evals/`: scenarios with specific assertions that check whether a skill produces methodology-driven output rather than a generic response. The 12 without evals are mostly installers and infrastructure (`setup`, `install-statusline`, `reload-ghengis`, `using-ghengis-skills`, `tri-model-setup`, `notebooklm-pack-setup`, `agent-monitor`, `time-perception`) plus `auto-project-sync`, `cad`, `evolving-cognition`, and `paper-to-code`.
 
 ```
 evals/{skill-name}.eval.md
@@ -673,6 +675,11 @@ MIT
 ## Changelog
 
 Newest first.
+
+### v1.28.0 (2026-09-29)
+
+- **NotebookLM learning packs (`notebooklm-pack`).** Turns a concept from your own project into study material NotebookLM can ground on: 4–6 self-contained markdown sources (field primers, a case study that keeps its caveats and falsification criteria, glossary/FAQ) plus a manifest of focus prompts for Audio Overview, Video Overview, quizzes, and chat. Every run ends with the notebook link. Ships `scripts/push_pack.py` (standard library only) to create the notebook and upload sources through the unofficial `notebooklm-py` CLI, with `--check`, `--dry-run`, `--profile <name>`, `--notebook <id>` to avoid duplicates, and the manual drag-in path as the fallback.
+- **NotebookLM connection setup (`notebooklm-pack-setup`).** Installs the CLI, walks you through signing in with your own Google account, verifies the session, and has you confirm the account before anything is pushed. Nothing account-specific ships with the plugin; the session lives on your machine under `~/.notebooklm/`.
 
 ### v1.27.1 (2026-09-16)
 
