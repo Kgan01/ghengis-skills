@@ -12,7 +12,7 @@
 
 [![Skills](https://img.shields.io/badge/skills-64-blue?style=for-the-badge)](./plugins/ghengis-skills/skills/)
 [![Evals](https://img.shields.io/badge/evals-52-green?style=for-the-badge)](./plugins/ghengis-skills/evals/)
-[![Version](https://img.shields.io/badge/version-1.28.0-lightgrey?style=for-the-badge)](#changelog)
+[![Version](https://img.shields.io/badge/version-1.29.0-lightgrey?style=for-the-badge)](#changelog)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange?style=for-the-badge)](https://code.claude.com)
 [![License](https://img.shields.io/badge/license-MIT-purple?style=for-the-badge)](#license)
 
@@ -20,7 +20,7 @@
 
 </div>
 
-64 skills for Claude Code: supervised build / debug / ship chains, a **tri-model harness** that puts Gemini and GPT to work alongside Claude (`/adw`, `/opinion`, `/fusion`, `/auto-validate`, `/gauntlet`), agent-reliability guards, and domain expertise across 20+ fields. Skills load on demand. Unlike MCP servers that add tool schemas to every message, a skill costs nothing until a task matches its trigger, and an autoloader makes sure the right one fires.
+65 skills for Claude Code: supervised build / debug / ship chains, a **tri-model harness** that puts Gemini and GPT to work alongside Claude (`/adw`, `/opinion`, `/fusion`, `/auto-validate`, `/gauntlet`), agent-reliability guards, and domain expertise across 20+ fields. Skills load on demand. Unlike MCP servers that add tool schemas to every message, a skill costs nothing until a task matches its trigger, and an autoloader makes sure the right one fires.
 
 ---
 
@@ -54,7 +54,7 @@ In Claude Code, run these four commands one at a time. Each block is one line yo
 
 **5. Fully restart Claude Code.** Use `/exit` or Ctrl+C, then run `claude` again. `/reload-plugins` is not enough: the statusline config and newly added skills are only picked up at startup.
 
-All 64 skills are then available in every session (CLI, desktop, and mobile). Claude loads them automatically when a task matches.
+All 65 skills are then available in every session (CLI, desktop, and mobile). Claude loads them automatically when a task matches.
 
 ### Optional: the tri-model rig
 
@@ -567,10 +567,11 @@ All 64, grouped by what they do. Most fire automatically from their trigger desc
 | **output-formatting** | 8 destination formatters (chat, email, Slack, TTS, PDF, CSV, JSON, markdown) plus document ingestion and chunking. | *"format this for Slack"*, *"export as CSV"*. |
 | **proactive-rituals** | Morning briefings, end-of-day summaries, weekly reviews, and custom rituals mapped to native cron scheduling. | *"set up a morning briefing"*. Pair with `/schedule`. |
 
-### Domain Expertise (20)
+### Domain Expertise (21)
 
 | Skill | What It Does | How to Use |
 |-------|-------------|-----------|
+| **asd-ste100** | Writes and rewrites docs, runbooks, WARNING text, error messages, and agent prompts in ASD-STE100 Simplified Technical English. Three modes (Docs / Strict / Certified), meaning-fidelity gate (no nearest-word swaps, hedges keep their strength, nothing invented), do-not-touch zones for code and identifiers, a project glossary, and the STEMG AI white paper's guardrails (human accountable, disclose AI assistance, never claim compliance). Ships a stdlib linter. Best-of merge of two MIT skills (danyuchn, nuelcyoung). | *"rewrite this runbook in STE"*, *"make this unambiguous"*, *"check STE compliance"*. |
 | **notebooklm-pack** | Turns a concept from your own project into an upload-ready NotebookLM source pack: self-contained primers, a case study with every caveat kept, glossary, and a manifest of ready-to-paste prompts. Optional push script drives a consumer account through the unofficial `notebooklm-py` CLI. | *"make me a notebook pack"*, *"I want to actually learn X we built"*. |
 | **storyscope** | Makes papers, essays, blogs, and speeches read as human-written by fixing *structural* decisions (openings, delayed disclosure, closers, ambivalence, named sources, verbatim quotes), based on StoryScope (COLM 2026). Never invents material. | *"make this sound human"*, *"StoryScope this"*. Run before `humanizer`. |
 | **content-writing** | Blog posts, docs, and marketing copy: structure, SEO basics, audience targeting, editorial checklists. | *"write a blog post on X"*. |
@@ -642,7 +643,7 @@ The plugin ships 7 subagents with isolated context (`plugins/ghengis-skills/agen
 
 ## Evals
 
-52 skills have evaluation cases in `plugins/ghengis-skills/evals/`: scenarios with specific assertions that check whether a skill produces methodology-driven output rather than a generic response. The 12 without evals are mostly installers and infrastructure (`setup`, `install-statusline`, `reload-ghengis`, `using-ghengis-skills`, `tri-model-setup`, `notebooklm-pack-setup`, `agent-monitor`, `time-perception`) plus `auto-project-sync`, `cad`, `evolving-cognition`, and `paper-to-code`.
+53 skills have evaluation cases in `plugins/ghengis-skills/evals/`: scenarios with specific assertions that check whether a skill produces methodology-driven output rather than a generic response. The 12 without evals are mostly installers and infrastructure (`setup`, `install-statusline`, `reload-ghengis`, `using-ghengis-skills`, `tri-model-setup`, `notebooklm-pack-setup`, `agent-monitor`, `time-perception`) plus `auto-project-sync`, `cad`, `evolving-cognition`, and `paper-to-code`.
 
 ```
 evals/{skill-name}.eval.md
@@ -675,6 +676,10 @@ MIT
 ## Changelog
 
 Newest first.
+
+### v1.29.0 (2026-10-06)
+
+- **Simplified Technical English (`asd-ste100`).** A best-of merge of [danyuchn/asd-ste100-skill](https://github.com/danyuchn/asd-ste100-skill) and [nuelcyoung/asd-ste100](https://github.com/nuelcyoung/asd-ste100) (both MIT), aligned with the STEMG white paper *ASD-STE100 and AI* (June 2026). Docs mode for READMEs and CLAUDE.md, Strict mode for runbooks, warnings, error strings and prompts, and Certified mode for contract deliverables (part-of-speech tagging against the user's official dictionary, verification disclaimer, AI-assist note). A meaning-fidelity gate blocks the failures seen in the baseline test: nearest-word swaps ("stale" to "old"), silent modal-strength changes, dropped instructions and invented numbers. Also: do-not-touch zones for code and identifiers, a project glossary (`docs/ste-glossary.md`), and `scripts/ste_lint.py` (ported linter plus frontmatter skip, `--strict` modal advisories and `--max-words`). 7 eval cases.
 
 ### v1.28.0 (2026-09-29)
 

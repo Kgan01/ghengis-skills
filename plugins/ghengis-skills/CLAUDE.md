@@ -1,6 +1,6 @@
 # Ghengis Skills
 
-> 64 skills for Claude Code — agentic engineering, agent reliability, domain expertise.
+> 65 skills for Claude Code — agentic engineering, agent reliability, domain expertise.
 
 ## Structure
 
