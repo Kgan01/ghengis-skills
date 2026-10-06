@@ -108,15 +108,15 @@ Replace vague content only with information from the source. If the source has n
 
 ## Worked example (from the baseline test)
 
-**Source:** "Restores should be performed during low-traffic windows because the `/brain/recall` endpoint could return stale results while the restore is running."
+**Source:** "Restores should be performed during low-traffic windows because the `/search` endpoint could return stale results while the restore is running."
 
-**Baseline rewrite without the skill:** "Do the restore when there is not much traffic. During a restore, the `/brain/recall` endpoint can return old results."
+**Baseline rewrite without the skill:** "Do the restore when there is not much traffic. During a restore, the `/search` endpoint can return old results."
 
 Failures: `should` became an order (Pass 3). `could` became `can` (Pass 3). `stale` became `old` (Pass 2). "low-traffic" is still vague and has no flag (Pass 6). The causal link "because" is gone (Pass 1).
 
 **Strict rewrite:**
 
-> We recommend that you do the restore when traffic is low. During the restore, the `/brain/recall` endpoint could return results that are not current.
+> We recommend that you do the restore when traffic is low. During the restore, the `/search` endpoint could return results that are not current.
 >
 > Flagged: "traffic is low": give the request rate or time window. "We recommend": confirm whether this is a recommendation or an obligation (`must`).
 

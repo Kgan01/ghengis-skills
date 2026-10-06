@@ -1,6 +1,6 @@
 # ASD-STE100 — Evaluation
 
-Fixture A: a ~140-word restore runbook section ("Restoring the Brain Database") with marketing adjectives, a semicolon, "may be retained ... depending on disk pressure", "data that can be lost", "kicking off", "check all required dependencies", "should be performed during low-traffic windows because ... could return stale results", a WARNING with "unless ... otherwise ... may be corrupted", and a 33-word passive sequence ending "several minutes on large brains".
+Fixture A: a ~140-word restore runbook section ("Restoring the Search Index") with marketing adjectives, a semicolon, "may be retained ... depending on disk pressure", "data that can be lost", "kicking off", "check all required dependencies", "should be performed during low-traffic windows because ... could return stale results", a WARNING with "unless ... otherwise ... may be corrupted", and a 33-word passive sequence ending "several minutes on large indexes".
 
 Fixture B: a client pump-controller setup doc with YAML frontmatter, "utilizes a cutting-edge PID loop which should generally be tuned on-site; various parameters may need adjustment", a numbered list with an inline `pio` command, "Verify ... confirm ... check" rotation, "Torque the mounting bolts appropriately", and "CAUTION: The impeller could be damaged if the pump is run dry for more than 30 seconds."
 

@@ -57,7 +57,7 @@ Never claim Certified-level compliance from Docs or Strict work. Without the off
 Before you change a word, mark what stays exactly as it is:
 
 - Fenced code blocks, inline code, commands, flags, file paths, URLs, and environment variables.
-- Identifiers and API field names, even if they contain non-approved words (`retry_backoff`, `/brain/recall`).
+- Identifiers and API field names, even if they contain non-approved words (`retry_backoff`, `/search`).
 - YAML or TOML frontmatter keys and values that tools parse.
 - Product and proper names.
 - Direct quotes and legal or license text.
