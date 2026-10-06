@@ -296,7 +296,8 @@ def lint(text, filename="<stdin>", strict=False, max_words=MAX_WORDS):
                         seen_synonyms[(gi, base)] = (
                             lineno, source_column + m.start() + 1, m.group(0)
                         )
-            for sent in re.split(r"(?<=[.!?])\s+", line):
+            # ghengis: closers after the stop (."  .**  .)) still end the sentence
+            for sent in re.split(r"(?<=[.!?])[\"'”’)\]*_]*\s+", line):
                 n = len(sent.split())
                 if n > max_words:
                     findings.append({"file": filename, "line": lineno,
@@ -473,6 +474,11 @@ def selftest():
     assert findings[0]["level"] == "advisory"
     findings, _ = lint("The request may have failed.")
     assert findings == [], findings
+    # ghengis: a quote or bold closer after the stop still splits sentences
+    twelve = " ".join(["word"] * 12)
+    for closer in ('."', ".**", ".)"):
+        findings, _ = lint(f"{twelve}{closer} {twelve} {twelve}.")
+        assert not any(f["rule"] == "long-sentence" for f in findings), (closer, findings)
     # ghengis: --max-words
     findings, _ = lint(" ".join(["word"] * 21) + ".", max_words=20)
     assert [f["rule"] for f in findings] == ["long-sentence"], findings

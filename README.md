@@ -12,7 +12,7 @@
 
 [![Skills](https://img.shields.io/badge/skills-64-blue?style=for-the-badge)](./plugins/ghengis-skills/skills/)
 [![Evals](https://img.shields.io/badge/evals-52-green?style=for-the-badge)](./plugins/ghengis-skills/evals/)
-[![Version](https://img.shields.io/badge/version-1.29.0-lightgrey?style=for-the-badge)](#changelog)
+[![Version](https://img.shields.io/badge/version-1.29.1-lightgrey?style=for-the-badge)](#changelog)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange?style=for-the-badge)](https://code.claude.com)
 [![License](https://img.shields.io/badge/license-MIT-purple?style=for-the-badge)](#license)
 
@@ -676,6 +676,10 @@ MIT
 ## Changelog
 
 Newest first.
+
+### v1.29.1 (2026-10-06)
+
+- `asd-ste100`: `ste_lint.py` now ends a sentence at a stop followed by a closing quote, bracket or bold marker (`."`, `.)`, `.**`). Before, those sentences merged with the next one and gave false long-sentence findings. Found by running the skill on a real concept note.
 
 ### v1.29.0 (2026-10-06)
 
