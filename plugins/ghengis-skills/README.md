@@ -1,6 +1,6 @@
 # Ghengis Skills
 
-A Claude Code plugin that makes Claude smarter, faster, and more autonomous. It has **65 skills** (53 with evals): supervised build / debug / ship chains, a **tri-model harness** (Claude + Gemini + GPT: `/adw`, `/opinion`, `/fusion`, `/auto-validate`, `/gauntlet`, `/gemini`), multi-agent orchestration, prompt quality validation, agent reliability, security testing, code intelligence, and domain expertise across 20+ fields.
+A Claude Code plugin that makes Claude smarter, faster, and more autonomous. It has **66 skills** (54 with evals): supervised build / debug / ship chains, a **tri-model harness** (Claude + Gemini + GPT: `/adw`, `/opinion`, `/fusion`, `/auto-validate`, `/gauntlet`, `/gemini`), multi-agent orchestration, prompt quality validation, agent reliability, security testing, code intelligence, and domain expertise across 20+ fields.
 
 Skills load on demand. A skill adds nothing to your context until a task matches its trigger.
 
@@ -58,7 +58,7 @@ Then fully restart Claude Code. New skills may not register with `/reload-plugin
 
 | Path | Contents |
 |---|---|
-| `skills/` | 65 skills, one folder each (`SKILL.md` + optional docs, scripts, assets) |
+| `skills/` | 66 skills, one folder each (`SKILL.md` + optional docs, scripts, assets) |
 | `evals/` | 52 `{skill}.eval.md` files with test cases and assertions |
 | `agents/` | 7 subagents: researcher, validator, fact-checker, editor, analyst, security-reviewer, analyzer |
 | `hooks/` | time tracking, autoloader injection, agent monitor, chain lifecycle, completion check, update notice |

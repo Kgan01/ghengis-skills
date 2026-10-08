@@ -12,7 +12,7 @@
 
 [![Skills](https://img.shields.io/badge/skills-64-blue?style=for-the-badge)](./plugins/ghengis-skills/skills/)
 [![Evals](https://img.shields.io/badge/evals-52-green?style=for-the-badge)](./plugins/ghengis-skills/evals/)
-[![Version](https://img.shields.io/badge/version-1.29.1-lightgrey?style=for-the-badge)](#changelog)
+[![Version](https://img.shields.io/badge/version-1.30.0-lightgrey?style=for-the-badge)](#changelog)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange?style=for-the-badge)](https://code.claude.com)
 [![License](https://img.shields.io/badge/license-MIT-purple?style=for-the-badge)](#license)
 
@@ -20,7 +20,7 @@
 
 </div>
 
-65 skills for Claude Code: supervised build / debug / ship chains, a **tri-model harness** that puts Gemini and GPT to work alongside Claude (`/adw`, `/opinion`, `/fusion`, `/auto-validate`, `/gauntlet`), agent-reliability guards, and domain expertise across 20+ fields. Skills load on demand. Unlike MCP servers that add tool schemas to every message, a skill costs nothing until a task matches its trigger, and an autoloader makes sure the right one fires.
+66 skills for Claude Code: supervised build / debug / ship chains, a **tri-model harness** that puts Gemini and GPT to work alongside Claude (`/adw`, `/opinion`, `/fusion`, `/auto-validate`, `/gauntlet`), agent-reliability guards, and domain expertise across 20+ fields. Skills load on demand. Unlike MCP servers that add tool schemas to every message, a skill costs nothing until a task matches its trigger, and an autoloader makes sure the right one fires.
 
 ---
 
@@ -54,7 +54,7 @@ In Claude Code, run these four commands one at a time. Each block is one line yo
 
 **5. Fully restart Claude Code.** Use `/exit` or Ctrl+C, then run `claude` again. `/reload-plugins` is not enough: the statusline config and newly added skills are only picked up at startup.
 
-All 65 skills are then available in every session (CLI, desktop, and mobile). Claude loads them automatically when a task matches.
+All 66 skills are then available in every session (CLI, desktop, and mobile). Claude loads them automatically when a task matches.
 
 ### Optional: the tri-model rig
 
@@ -560,12 +560,13 @@ All 64, grouped by what they do. Most fire automatically from their trigger desc
 | **code-intelligence** | 6-layer architectural classification, AST analysis, import graphs, circular dependency detection, structural search. | *"map the architecture"*, *"trace dependencies"*. |
 | **treefile-organizer** | Reorganizes a project tree based on its real import graph. Analyzer + planner scripts produce a plan that is adversarially validated before any move. Python + TypeScript. | *"reorganize this project"*. Refuses on a dirty git tree and never moves files without an explicit "yes proceed". |
 
-### Operations (2)
+### Operations (3)
 
 | Skill | What It Does | How to Use |
 |-------|-------------|-----------|
 | **output-formatting** | 8 destination formatters (chat, email, Slack, TTS, PDF, CSV, JSON, markdown) plus document ingestion and chunking. | *"format this for Slack"*, *"export as CSV"*. |
 | **proactive-rituals** | Morning briefings, end-of-day summaries, weekly reviews, and custom rituals mapped to native cron scheduling. | *"set up a morning briefing"*. Pair with `/schedule`. |
+| **remote-access-setup** | Sets up Tailscale (private network) on every device, Sunshine on the computer to control, and Moonlight on the devices you control from — Windows, macOS, Linux, phones. Covers the traps that break unattended hosts (no monitor, autologin, sleep/WoL, RDP conflict, Tailscale key expiry), never forwards router ports, never handles the person's passwords. Ships a client-facing explainer PDF written in ASD-STE100 style (`explainer/`). | *"set up remote access"*, *"let me use my desktop from my laptop"*, *"install Tailscale and Moonlight"*. |
 
 ### Domain Expertise (21)
 
@@ -676,6 +677,10 @@ MIT
 ## Changelog
 
 Newest first.
+
+### v1.30.0 (2026-10-08)
+
+- **Remote access (`remote-access-setup`).** One skill that sets up Tailscale on every device, Sunshine on the host (the computer that gets controlled), and Moonlight on the clients, on Windows, macOS, Linux, iOS and Android. It asks host / client / both first, uses verified package IDs (winget, Homebrew casks, Flathub), and covers what breaks unattended hosts: no monitor attached, sign-in after a reboot, sleep and Wake-on-LAN, Remote Desktop taking the console session, and Tailscale key expiry. It never forwards router ports and never takes the person's passwords. Includes `explainer/remote-access-explained.pdf`, a 5-page client guide in ASD-STE100 style (what each part is, why it is safe, what the skill does), with its Markdown source and `build_pdf.py`. 4 eval cases.
 
 ### v1.29.1 (2026-10-06)
 
