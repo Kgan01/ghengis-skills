@@ -12,7 +12,7 @@
 
 [![Skills](https://img.shields.io/badge/skills-64-blue?style=for-the-badge)](./plugins/ghengis-skills/skills/)
 [![Evals](https://img.shields.io/badge/evals-52-green?style=for-the-badge)](./plugins/ghengis-skills/evals/)
-[![Version](https://img.shields.io/badge/version-1.30.0-lightgrey?style=for-the-badge)](#changelog)
+[![Version](https://img.shields.io/badge/version-1.31.0-lightgrey?style=for-the-badge)](#changelog)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-orange?style=for-the-badge)](https://code.claude.com)
 [![License](https://img.shields.io/badge/license-MIT-purple?style=for-the-badge)](#license)
 
@@ -20,7 +20,7 @@
 
 </div>
 
-66 skills for Claude Code: supervised build / debug / ship chains, a **tri-model harness** that puts Gemini and GPT to work alongside Claude (`/adw`, `/opinion`, `/fusion`, `/auto-validate`, `/gauntlet`), agent-reliability guards, and domain expertise across 20+ fields. Skills load on demand. Unlike MCP servers that add tool schemas to every message, a skill costs nothing until a task matches its trigger, and an autoloader makes sure the right one fires.
+81 skills for Claude Code: supervised build / debug / ship chains, a **tri-model harness** that puts Gemini and GPT to work alongside Claude (`/adw`, `/opinion`, `/fusion`, `/auto-validate`, `/gauntlet`), agent-reliability guards, and domain expertise across 20+ fields. Skills load on demand. Unlike MCP servers that add tool schemas to every message, a skill costs nothing until a task matches its trigger, and an autoloader makes sure the right one fires.
 
 ---
 
@@ -54,7 +54,7 @@ In Claude Code, run these four commands one at a time. Each block is one line yo
 
 **5. Fully restart Claude Code.** Use `/exit` or Ctrl+C, then run `claude` again. `/reload-plugins` is not enough: the statusline config and newly added skills are only picked up at startup.
 
-All 66 skills are then available in every session (CLI, desktop, and mobile). Claude loads them automatically when a task matches.
+All 81 skills are then available in every session (CLI, desktop, and mobile). Claude loads them automatically when a task matches.
 
 ### Optional: the tri-model rig
 
@@ -544,6 +544,26 @@ All 64, grouped by what they do. Most fire automatically from their trigger desc
 | **test-driven-development** | RED-GREEN-REFACTOR in 2–5 minute steps, watching the test fail and then pass, with a commit per cycle. | Auto-fires on any testable behavior change. |
 | **finishing-a-development-branch** | Verify tests → detect workspace → merge / PR / keep / discard → clean up. Won't proceed while tests fail. | *"ship this branch"*. Stage 1 of `finish-line`. |
 
+### Engineering Discipline (15, ported from ponytail + pstack)
+
+| Skill | What It Does | How to Use |
+|-------|-------------|-----------|
+| **ponytail** | Lazy-senior-dev discipline: the smallest complete change. Checks need → codebase → stdlib → installed dep → one line → minimum code. Never cuts validation, error handling, security or accessibility; risky logic leaves one small test; `shortcut:` comments mark deliberate limits. Levels lite / full / ultra. | Auto-fires on any coding task. *"ponytail ultra"*, *"be lazy"*, *"this is over-engineered"*. |
+| **ponytail-review** | Diff review like the senior dev who gets paged: bugs, security, real load, untested risky logic, slow paths, what to cut. Reads the code the change touches, not just the diff. | *"review this diff"*, *"is this ready to merge"*. |
+| **ponytail-audit** | The same checks across the whole repo, mapped first (entry points, data flow), ranked, with a fix-this-first verdict. | *"audit this repo"*, *"what should we fix first"*. |
+| **ponytail-debt** | Harvests `shortcut:` comments into a debt ledger so "later" doesn't become "never". | *"what shortcuts did we take"*. |
+| **engineering-principles** | 24 short principles (data structures first, boundary discipline, idempotency, prove-it-works, test behavior not implementation…) as one index; reads only the principle that applies. | Fires when choosing types, boundaries or test shape. |
+| **blast-radius** | Finds what a small-looking change could break outside the diff, and proves the one fact it's safe because of by running code. | *"what could this break"*. |
+| **correct** | Mines repeated agent mistakes in a repo and makes each impossible: architecture, then types, lint, tests, docs last. Keeps a rule → enforcer table. | *"agents keep doing X"*. |
+| **benchmark-checklist** | Vets a measured number (limiter, tuning, errors, repeat runs, relevance, did the work happen) before reporting it. | Before reporting a speedup or regression. |
+| **how** | Walkthrough of how a subsystem works, with an explorer + explainer split. | *"how does X work"*. |
+| **why** | Design rationale from evidence: git history, GitHub, docs/plans, Claude memory, the JARVIS brain, connected MCPs. | *"why is it like this"*. |
+| **interrogate** | Multi-model adversarial diff review across the tri-model legs (Claude + Codex + Gemini), with a rubric and lead judgment. | *"interrogate this"*, *"tear this apart"*. |
+| **create-verification-skill** | Generates a project-local verify skill + feature map that drives the app like a user (Claude Code and pi). | *"we have no way to prove this works"*. |
+| **maintain-verification-skill** | Keeps that verify skill's feature map honest against the app. | Periodic, or when verification drifts. |
+| **figure-it-out** | Designs an auditable playbook when no existing one fits: large migrations, unattended work. | *"migrate everything, I'm stepping away"*. |
+| **show-me-your-work** | Decision trail as a TSV log (what, why, evidence, result); bash + stdlib-Python loggers. | *"keep a decision trail"*. |
+
 ### Research (3)
 
 | Skill | What It Does | How to Use |
@@ -677,6 +697,10 @@ MIT
 ## Changelog
 
 Newest first.
+
+### v1.31.0 (2026-10-12)
+
+- **Engineering discipline pack (15 skills).** Ported from [ponytail](https://github.com/DietrichGebert/ponytail) (MIT, Dietrich Gebert) and [pstack](https://github.com/backnotprop/pstack) (MIT, Lauren Tan / poteto). `ponytail` auto-fires on every coding task (smallest complete change, never cutting validation or security), with `ponytail-review`, `ponytail-audit` and `ponytail-debt`. From pstack: `blast-radius`, `correct`, `benchmark-checklist`, `how`, `why`, `interrogate` (re-targeted to the tri-model legs), `create-verification-skill`, `maintain-verification-skill`, `figure-it-out`, `show-me-your-work`, and the 24 principle skills consolidated into one `engineering-principles` index. Cursor-only features, grok defaults and the `poteto-mode` router were dropped. The autoloader trigger map routes to all of them, plus the REA reverse-engineering skill. Verified in pi: on a booking-form fixture the agent loaded `ponytail` unprompted and shipped a 3-line diff reusing the existing `Input` with `type="date"`. 15 eval files.
 
 ### v1.30.0 (2026-10-08)
 

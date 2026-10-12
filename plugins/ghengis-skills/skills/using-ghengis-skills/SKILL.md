@@ -142,6 +142,19 @@ These situations ALWAYS require the listed skill — no exceptions:
 | Purchase decisions / product research | `ghengis-skills:shopping` |
 | Financial record-keeping / tax prep | `ghengis-skills:bookkeeping` |
 | Client/freelance project management | `ghengis-skills:crm-patterns` |
+| ANY task that writes, fixes, refactors or reviews code, or picks a dependency | **`ghengis-skills:ponytail` (AUTO-FIRE, stays on for the session)** |
+| Reviewing a diff / PR / "is this ready to merge" | `ghengis-skills:ponytail-review`; contested or high-stakes → `ghengis-skills:interrogate` |
+| "Audit this repo", "what should we fix first" | `ghengis-skills:ponytail-audit` |
+| Collecting deferred `shortcut:` comments | `ghengis-skills:ponytail-debt` |
+| Small-looking change that could break something elsewhere | `ghengis-skills:blast-radius` |
+| Agents keep repeating the same mistake in a repo | `ghengis-skills:correct` |
+| Reporting or acting on a benchmark / speedup / regression number | `ghengis-skills:benchmark-checklist` |
+| "How does X work", walkthrough before changing code | `ghengis-skills:how` (broad architecture mapping → `code-intelligence`) |
+| "Why is X built this way", design rationale, regressions | `ghengis-skills:why` |
+| Project has no scripted way to prove the app works | `ghengis-skills:create-verification-skill` → later `maintain-verification-skill` |
+| Large migration or unattended work with no fitting playbook | `ghengis-skills:figure-it-out` + `ghengis-skills:show-me-your-work` |
+| Choosing core types, boundaries, idempotency, test shape | `ghengis-skills:engineering-principles` (read only the principle that applies) |
+| Shipped binary / APK / Electron app / firmware / website with no source | `reverse-engineer-anything` skill + REA MCP tools (`mcp__rea__*`) |
 
 ## Aggressive Auto-Fire Skills
 
